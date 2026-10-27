@@ -1,5 +1,5 @@
 rules_version = '2';
-// Règles de la base du pointage des lots (projet Firebase ltc-pointage-lots).
+// Règles de la base du pointage des lots (projet Firebase ltc-pointage-lots-4bfa7).
 // À coller dans Firebase → Firestore Database → Règles, puis « Publier ».
 service cloud.firestore {
   match /databases/{database}/documents {

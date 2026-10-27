@@ -1,7 +1,7 @@
 // Mode hors ligne : la page, ses icônes et les bibliothèques (Excel, Firebase, polices) sont gardées sur l'appareil.
 // La page est redemandée au réseau d'abord (dernière version) ; si le réseau ne répond pas en 2,5 s,
 // la copie gardée s'ouvre tout de suite. Les données Firebase ne passent pas par ici (Firestore garde son propre cache).
-const CACHE = 'pointage-v1';
+const CACHE = 'pointage-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon-32.png'];
 const EXTERNAL = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 

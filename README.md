@@ -3,8 +3,8 @@
 Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on annonce à voix haute les numéros présents. L'appli les coche automatiquement et exporte le résultat en Excel.
 
 - Site : https://rottweilert.github.io/LTC-pointage-lots/ (GitHub Pages, mis à jour à chaque modification de la branche `main`). Installable sur téléphone et tablette (« Ajouter à l'écran d'accueil »).
-- Données partagées : Firebase Firestore (projet `ltc-pointage-lots`). Tous les appareils voient le même inventaire en direct ; hors ligne, les actions sont gardées sur l'appareil et envoyées au retour du réseau.
-- Tant que `FIREBASE_CONFIG` vaut `null` dans `src/app.src.html`, les données restent sur l'appareil. Une fois Firebase branché, un bouton propose d'envoyer vers la base les inventaires commencés sur l'appareil.
+- Données partagées : Firebase Firestore (projet `ltc-pointage-lots-4bfa7`). Tous les appareils voient le même inventaire en direct ; hors ligne, les actions sont gardées sur l'appareil et envoyées au retour du réseau.
+- La configuration Firebase est dans `src/app.src.html` (`FIREBASE_CONFIG`). Si des inventaires avaient été commencés sur un appareil avant le branchement, un bouton propose de les envoyer vers la base.
 - `firestore.rules` : règles d'accès à coller dans Firebase → Firestore Database → Règles.
 
 ## Utilisation
