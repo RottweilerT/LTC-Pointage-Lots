@@ -104,5 +104,32 @@ t('mot de contrôle au milieu -> confirmation', () => assert.strictEqual(dec('lo
 t('choix 2 hors confirmation', () => assert.strictEqual(dec('choix 2').action, 'confirm'));
 t('phrase sans numéro', () => assert.strictEqual(Parser.analyze('bonjour tout le monde').type, 'empty'));
 
+// --- dictée Android
+t('du 54 o 69', () => assert.deepStrictEqual(lbl('du 54 o 69'), ['54 → 69']));
+t('du 54 oh 69', () => assert.deepStrictEqual(lbl('du 54 oh 69'), ['54 → 69']));
+t('du 54 haut 69', () => assert.deepStrictEqual(lbl('Du 54 haut 69'), ['54 → 69']));
+t('du 54 a 69', () => assert.deepStrictEqual(lbl('du 54 a 69'), ['54 → 69']));
+t('54au69 collé', () => assert.deepStrictEqual(lbl('du 54au69'), ['54 → 69']));
+t('du l\'eau 54 au l\'eau 69', () => assert.deepStrictEqual(lbl("du l'eau 54 au l'eau 69"), ['54 → 69']));
+t('du loto 54 au loto 69', () => assert.deepStrictEqual(lbl('du loto 54 au loto 69'), ['54 → 69']));
+t('Du Lot 54 Au Lot 69 (majuscules)', () => assert.deepStrictEqual(lbl('Du Lot 54 Au Lot 69'), ['54 → 69']));
+t('lot54 collé', () => assert.deepStrictEqual(lbl('lot54'), ['54']));
+t('à partir du 54 jusqu\'au 69', () => assert.deepStrictEqual(lbl("à partir du 54 jusqu'au 69"), ['54 → 69']));
+t('dû 54 au 69', () => assert.deepStrictEqual(lbl('dû 54 au 69'), ['54 → 69']));
+t('du 54 69 sans au -> plage à confirmer', () => { assert.deepStrictEqual(lbl('du 54 69'), ['54 → 69']); assert.strictEqual(dec('du 54 69').action, 'confirm'); });
+t('du loto 200 haut loto 210', () => assert.deepStrictEqual(lbl('Du loto 200 haut loto 210'), ['200 → 210']));
+t('du lot 54 o lot 69', () => assert.deepStrictEqual(lbl('du lot 54 o lot 69'), ['54 → 69']));
+t('54 tiret 69', () => assert.deepStrictEqual(lbl('54 tiret 69'), ['54 → 69']));
+t('chiffres 6 530 jusqu\'à 6 656', () => assert.ok(lbl("du 6 530 au 6 656").includes('6530 → 6656')));
+// --- phrase coupée
+t('incomplet : du 54', () => assert.ok(Parser.isIncomplete('du 54')));
+t('incomplet : du lot 54 au', () => assert.ok(Parser.isIncomplete('du lot 54 au')));
+t('incomplet : du 200 au 250 sauf', () => assert.ok(Parser.isIncomplete('du 200 au 250 sauf')));
+t('incomplet : le 125 et', () => assert.ok(Parser.isIncomplete('le 125 et')));
+t('complet : du 54 au 69', () => assert.ok(!Parser.isIncomplete('du 54 au 69')));
+t('complet : lot 76', () => assert.ok(!Parser.isIncomplete('lot 76')));
+t('complet : annule', () => assert.ok(!Parser.isIncomplete('annule')));
+t('fusion : du 54 + au 69', () => assert.deepStrictEqual(lbl('du 54' + ' ' + 'au 69'), ['54 → 69']));
+
 console.log(`${pass} réussis, ${fail} échoués`);
 process.exit(fail ? 1 : 0);

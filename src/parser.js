@@ -17,6 +17,12 @@ const Parser = (function () {
   function normalize(text) {
     let s = (text || '').normalize('NFC').toLowerCase();
     s = s.replace(/[’`´]/g, "'");
+    // Variantes fréquentes de la dictée Android
+    s = s.replace(/(^|[\s,.;])(?:l'eau|l eau|l'eaux|l'os|l'o|loto|lotte|lote|los|lo|lots|lot)\s*(?=\d)/g, '$1lot ');
+    s = s.replace(/(^|\s)dû(?=\s)/g, '$1du');
+    s = s.replace(/à partir (du|de|des)(?=\s)/g, '$1');
+    s = s.replace(/(\d)\s*(?:au|aux|à)\s*(?=\d)/g, '$1 à ');
+    s = s.replace(/(\d)\s+(?:o|oh|ho|ô|haut|hauts|a|ah|tiret|jusqu'à|jusqu'au)\s+(?=(?:lot\s*)?\d)/g, '$1 à ');
     s = s.replace(/(\d)[  ](?=\d{3}\b)/g, '$1'); // espace insécable = séparateur de milliers
     s = s.replace(/jusqu'?\s*au(?![a-zà-ÿ])/g, ' jusquau ').replace(/jusqu'?\s*(à|a)(?![a-zà-ÿ])/g, ' jusqua ').replace(/jusque(?![a-zà-ÿ])/g, ' jusqua ');
     s = s.replace(/(\d)\s*(?:-|–|—)\s*(\d)/g, '$1 à $2');
@@ -153,7 +159,12 @@ const Parser = (function () {
       if (t.t === 'to') { plan.warnings.push('Plage incomplète'); continue; }
       if (t.t === 'n') {
         let item;
-        if (toks[k + 1]?.t === 'to' && toks[k + 2]?.t === 'n') {
+        const afterFrom = toks[k - 1]?.t === 'from';
+        if (afterFrom && toks[k + 1]?.t === 'n' && toks[k + 2]?.t !== 'to' && toks[k + 1].v > t.v) {
+          item = { kind: 'range', a: t.v, b: toks[k + 1].v };
+          plan.warnings.push('« au » non entendu entre ' + t.v + ' et ' + toks[k + 1].v);
+          k += 1;
+        } else if (toks[k + 1]?.t === 'to' && toks[k + 2]?.t === 'n') {
           let a = t.v, b = toks[k + 2].v;
           if (a > b) { [a, b] = [b, a]; plan.warnings.push(`Plage inversée (${b} → ${a})`); }
           item = { kind: 'range', a, b };
@@ -215,7 +226,18 @@ const Parser = (function () {
     return { type: 'plans', plans, norm };
   }
 
-  return { normalize, wordsToNumbers, lex, variants, grammar, analyze, describePlan, planKey };
+  // Phrase coupée au milieu d'une plage (« du 54 », « du 54 au », « … sauf ») : attendre la suite
+  function isIncomplete(text) {
+    const toks = lex(normalize(text)).filter(t => t.t !== 'unk');
+    if (!toks.length) return false;
+    const last = toks[toks.length - 1];
+    if (last.t === 'to' || last.t === 'from' || last.t === 'exc' || last.t === 'between') return true;
+    if (last.t === 'sep') return toks.some(t => t.t === 'n');
+    if (last.t === 'n') { const prev = toks[toks.length - 2]; if (prev && (prev.t === 'from' || prev.t === 'between')) return true; }
+    return false;
+  }
+
+  return { normalize, wordsToNumbers, lex, variants, grammar, analyze, describePlan, planKey, isIncomplete };
 })();
 
 /* ===== Index des lots de référence ===== */

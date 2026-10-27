@@ -236,6 +236,11 @@ select.btn { padding-right: 8px; max-width: 260px }
         <div class="log" id="anoLog"><div>Aucune anomalie.</div></div>
       </section>
       <section class="panel">
+        <h2>Ce que le micro a entendu</h2>
+        <div class="log" id="heardLog"><div>Rien pour le moment.</div></div>
+        <div class="hint">Le texte brut renvoyé par la dictée du navigateur. Utile pour comprendre une commande mal reconnue.</div>
+      </section>
+      <section class="panel">
         <h2>Historique</h2>
         <div class="log" id="histLog"><div>Aucune opération.</div></div>
       </section>
@@ -391,8 +396,28 @@ function repeatLast() {
 }
 
 /* ---------- Traitement d'une phrase ---------- */
-let confirmCtx = null;
+let confirmCtx = null, held = null;
+const HOLD_MS = 3500;
 function handlePhrase(alts, source) {
+  if (source === 'voice' && !confirmCtx) {
+    let text = String(alts[0] || '').trim();
+    if (!text) return;
+    if (held) {
+      clearTimeout(held.timer);
+      const h = held.text; held = null;
+      if (Parser.analyze(text).type === 'control') processPhrase([h], 'voice');      // « annule », « pause »… : la plage en attente part seule d'abord
+      else { text = text.toLowerCase().startsWith(h.toLowerCase()) ? text : h + ' ' + text; alts = [text]; }
+    }
+    if (Parser.isIncomplete(text)) {
+      held = { text, timer: setTimeout(() => { const h = held; held = null; if (h) processPhrase([h.text], 'voice'); }, HOLD_MS) };
+      $('#heard').textContent = '« ' + text + ' … »'; $('#heard').classList.add('interim');
+      setResult('J\'attends la fin de la plage…');
+      return;
+    }
+  }
+  processPhrase(alts, source);
+}
+function processPhrase(alts, source) {
   const text = alts[0];
   if (!text || !text.trim()) return;
   $('#heard').textContent = '« ' + text.trim() + ' »'; $('#heard').classList.remove('interim');
@@ -465,21 +490,22 @@ const voice = {
   boot() {
     const r = new SR();
     r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 3;
-    this.done = 0; this.lastFinal = '';
+    this.seen = new Map(); this.lastFinal = '';
     r.onresult = e => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
         if (!res.isFinal) { interim += res[0].transcript; continue; }
-        if (i < this.done) continue;           // déjà traité
-        this.done = i + 1;
-        let alts = Array.from(res).map(a => a.transcript.trim()).filter(Boolean);
-        if (!alts.length) continue;
-        // Chrome Android renvoie parfois le texte cumulé : ne garder que la partie nouvelle
-        const prev = this.lastFinal;
-        if (prev && alts[0].toLowerCase().startsWith(prev.toLowerCase()) && alts[0].length > prev.length) alts = [alts[0].slice(prev.length).trim()];
-        else if (prev && alts[0].toLowerCase() === prev.toLowerCase() && Date.now() - this.lastAt < 2500) continue;
-        this.lastFinal = Array.from(res)[0].transcript.trim(); this.lastAt = Date.now();
+        const raw = String(res[0].transcript || '').trim();
+        if (!raw || this.seen.get(i) === raw) continue;     // déjà traité (même index, même texte)
+        this.seen.set(i, raw);
+        let alts = Array.from(res).map(a => String(a.transcript || '').trim()).filter(Boolean);
+        // Chrome Android renvoie parfois tout le texte depuis le début : ne garder que la partie nouvelle
+        const prev = this.lastFinal, low = raw.toLowerCase(), pl = prev.toLowerCase();
+        if (prev && low.startsWith(pl) && low.length > pl.length) alts = [raw.slice(prev.length).trim()];
+        else if (prev && low === pl && Date.now() - this.lastAt < 2500) continue;
+        this.lastFinal = raw; this.lastAt = Date.now();
+        logHeard(raw, alts[0]);
         handlePhrase(alts, 'voice');
       }
       if (interim) { const h = $('#heard'); h.textContent = interim; h.classList.add('interim'); }
@@ -491,7 +517,7 @@ const voice = {
       else if (e.error === 'audio-capture') { this.want = false; this.ui('err', 'Aucun micro détecté'); }
       else this.ui('err', 'Erreur : ' + e.error);
     };
-    r.onend = () => { if (this.want) setTimeout(() => { if (this.want) { try { this.boot(); } catch (e) {} } }, 250); else this.ui('off'); };
+    r.onend = () => { if (this.want) setTimeout(() => { if (this.want) { try { this.boot(); } catch (e) {} } }, 30); else this.ui('off'); };
     this.rec = r;
     try { r.start(); } catch (e) {}
   },
@@ -600,6 +626,12 @@ function scrollToRow(row, center) {
   sc.scrollTop = target;
 }
 function setResult(html) { $('#result').innerHTML = html; }
+const heardItems = [];
+function logHeard(raw, used) {
+  heardItems.unshift({ t: Date.now(), raw, used });
+  heardItems.length = Math.min(heardItems.length, 25);
+  $('#heardLog').innerHTML = heardItems.map(x => `<div><time>${fmtT(x.t)}</time>« ${esc(x.raw)} »${x.used !== x.raw ? `<br><span class="hint">gardé : « ${esc(x.used)} »</span>` : ''}</div>`).join('');
+}
 
 /* ---------- Divers ---------- */
 let toastT;
