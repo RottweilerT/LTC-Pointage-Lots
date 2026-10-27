@@ -1,0 +1,1151 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style></head><body><title>Pointage vocal des lots</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* Poste de pointage : bandeau de commande vocale en haut, tableau des lots à gauche, panneau de contrôle à droite */
+:root {
+  --bg: #eef1f4; --surface: #ffffff; --surface-2: #f6f8fa; --line: #d5dbe2; --ink: #17202b; --muted: #5d6a79;
+  --accent: #1d4f91; --accent-ink: #ffffff; --accent-soft: #e3ecf8;
+  --ok: #1e7a46; --ok-soft: #dff2e6; --idle: #eceff2; --idle-ink: #6b7785;
+  --warn: #b25e00; --warn-soft: #fdebd2; --bad: #b42318; --bad-soft: #fbe0dd;
+  --live: #c2261c;
+  --f-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161c; --surface: #1a2028; --surface-2: #151b22; --line: #2e3844; --ink: #e6ebf0; --muted: #96a3b2;
+  --accent: #6ea4ec; --accent-ink: #0d1520; --accent-soft: #1e3150;
+  --ok: #5cc98a; --ok-soft: #173826; --idle: #222a33; --idle-ink: #8a97a6;
+  --warn: #f0a24a; --warn-soft: #3d2a12; --bad: #f2786d; --bad-soft: #43201d; --live: #ff6b5e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11161c; --surface: #1a2028; --surface-2: #151b22; --line: #2e3844; --ink: #e6ebf0; --muted: #96a3b2;
+  --accent: #6ea4ec; --accent-ink: #0d1520; --accent-soft: #1e3150;
+  --ok: #5cc98a; --ok-soft: #173826; --idle: #222a33; --idle-ink: #8a97a6;
+  --warn: #f0a24a; --warn-soft: #3d2a12; --bad: #f2786d; --bad-soft: #43201d; --live: #ff6b5e; color-scheme: dark }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+html, body { height: 100% }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f-ui); margin: 0 }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 20px; display: flex; flex-direction: column; gap: 12px; max-width: 1500px; margin: 0 auto }
+button, input, select { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums }
+
+/* barre du haut */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px }
+.brand { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; margin-right: auto; display: flex; align-items: baseline; gap: 10px; min-width: 0 }
+.brand small { font-weight: 400; color: var(--muted); font-size: 13px }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 9px 14px; min-height: 42px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap }
+.btn:hover { border-color: var(--accent) }
+.btn:disabled { opacity: .45; cursor: not-allowed }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.btn.danger { color: var(--bad) }
+.btn.big { min-height: 56px; padding: 12px 20px; font-size: 16px; font-weight: 600 }
+select.btn { padding-right: 8px; max-width: 260px }
+
+/* bandeau vocal */
+.voice { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center }
+.mic { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; position: relative }
+.mic svg { width: 32px; height: 32px }
+.mic.on { background: var(--live) }
+.mic.on::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 3px solid var(--live); opacity: .5; animation: pulse 1.6s ease-out infinite }
+.mic.paused { background: var(--warn) }
+@keyframes pulse { from { transform: scale(.9); opacity: .6 } to { transform: scale(1.25); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .mic.on::after { animation: none } .flash { animation: none !important } }
+.vstate { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 3px 9px; border-radius: 99px; background: var(--idle); color: var(--idle-ink); width: fit-content }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor }
+.pill.live { background: var(--bad-soft); color: var(--live) }
+.pill.pause { background: var(--warn-soft); color: var(--warn) }
+.pill.err { background: var(--bad-soft); color: var(--bad) }
+.heard { font-size: 20px; font-weight: 500; min-height: 30px; overflow-wrap: anywhere }
+.heard.interim { color: var(--muted); font-style: italic }
+.result { font-size: 14px; color: var(--muted); overflow-wrap: anywhere }
+.result b { color: var(--ink) }
+.result .ok { color: var(--ok); font-weight: 600 } .result .w { color: var(--warn); font-weight: 600 } .result .e { color: var(--bad); font-weight: 600 }
+.vbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end }
+.notice { font-size: 13px; padding: 10px 12px; border-radius: var(--r); background: var(--warn-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent) }
+.notice b { color: var(--warn) }
+
+/* tableau de bord */
+.dash { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 2fr; gap: 10px }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; min-width: 0 }
+.stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600 }
+.stat .v { font: 600 26px/1.15 var(--f-num); font-variant-numeric: tabular-nums }
+.stat.ok .v { color: var(--ok) } .stat.warn .v { color: var(--warn) }
+.prog { display: flex; flex-direction: column; justify-content: center; gap: 8px }
+.bar { height: 14px; border-radius: 7px; background: var(--idle); overflow: hidden }
+.bar i { display: block; height: 100%; background: var(--ok); width: 0; transition: width .25s }
+.prog .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); gap: 8px }
+
+/* zone principale */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; align-items: start }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0 }
+.tablebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line) }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-right: auto }
+.chip { border: 1px solid var(--line); background: var(--surface-2); border-radius: 99px; padding: 5px 12px; font-size: 13px; min-height: 34px }
+.chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); font-weight: 600 }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent) }
+.thead, .trow { display: grid; grid-template-columns: var(--cols); align-items: center; gap: 10px; padding: 0 12px }
+.thead { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; height: 34px; border-bottom: 1px solid var(--line); background: var(--surface-2) }
+.scroller { height: 62vh; min-height: 340px; overflow-y: auto; position: relative; overscroll-behavior: contain }
+.spacer { position: relative }
+.trow { position: absolute; left: 0; right: 0; height: 44px; border-bottom: 1px solid var(--line); background: var(--surface) }
+.trow .lot { font: 600 17px var(--f-num); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.trow .ex { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.trow .tm { font: 14px var(--f-num); color: var(--muted) }
+.trow.s1 { background: var(--ok-soft) }
+.trow.miss { background: var(--bad-soft) }
+.trow.next { box-shadow: inset 4px 0 0 var(--accent) }
+.trow.flash { animation: flash 1.4s ease-out }
+@keyframes flash { from { background: color-mix(in srgb, var(--ok) 45%, var(--surface)) } }
+.st { border: 0; border-radius: 99px; padding: 4px 10px; font-size: 13px; font-weight: 600; background: var(--idle); color: var(--idle-ink); width: fit-content; min-height: 30px }
+.st.s1 { background: var(--ok); color: var(--surface) }
+.st.miss { background: var(--bad); color: var(--surface) }
+.dup { font-size: 11px; font-weight: 700; color: var(--warn); background: var(--warn-soft); border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 2px; font-family: var(--f-ui) }
+.empty { padding: 40px 16px; text-align: center; color: var(--muted) }
+
+.side { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.side .panel { padding: 12px }
+.side h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 600 }
+.nextlist { display: flex; flex-wrap: wrap; gap: 6px }
+.nextlist span { font: 600 18px var(--f-num); padding: 4px 10px; border-radius: 6px; background: var(--accent-soft) }
+.nextlist span:first-child { background: var(--accent); color: var(--accent-ink) }
+.field { display: flex; gap: 6px }
+.field input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: var(--r); padding: 9px 11px; background: var(--surface-2); min-height: 44px }
+.hint { font-size: 12px; color: var(--muted); margin-top: 6px }
+.log { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px }
+.log div { padding: 6px 8px; border-radius: 6px; background: var(--surface-2); overflow-wrap: anywhere }
+.log .a { background: var(--warn-soft) }
+.log .u { opacity: .55; text-decoration: line-through }
+.log time { font-family: var(--f-num); color: var(--muted); margin-right: 6px }
+
+/* fenêtres */
+.modal-back { position: fixed; inset: 0; background: rgba(10, 16, 24, .5); display: grid; place-items: center; z-index: 50; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
+.modal { background: var(--surface); border-radius: 14px; width: min(640px, 100%); max-height: 100%; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--line) }
+.modal h3 { margin: 0; font-size: 18px }
+.modal p { margin: 0; color: var(--muted) }
+.cands { display: flex; flex-direction: column; gap: 8px }
+.cand { text-align: left; border: 2px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: 12px; display: flex; flex-direction: column; gap: 2px }
+.cand:hover, .cand:focus-visible { border-color: var(--accent) }
+.cand .t { font: 600 18px var(--f-num) } .cand .d { font-size: 13px; color: var(--muted) }
+.cand .d .w { color: var(--warn); font-weight: 600 }
+.mrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.grid2 label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted) }
+.grid2 select, .grid2 input { border: 1px solid var(--line); border-radius: var(--r); padding: 8px; background: var(--surface-2); min-height: 42px; color: var(--ink) }
+.preview { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r) }
+.preview table { border-collapse: collapse; font-size: 13px; width: 100% }
+.preview td, .preview th { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: left }
+.preview th { background: var(--surface-2) }
+.preview .sel { background: var(--accent-soft); font-weight: 600 }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 60; max-width: calc(100% - 32px) }
+
+:fullscreen .wrap, .fs .wrap { max-width: none }
+
+@media (max-width: 1100px) { .dash { grid-template-columns: repeat(3, minmax(0, 1fr)) } .prog { grid-column: 1 / -1 } .main { grid-template-columns: 1fr } }
+@media (max-width: 640px) {
+  .voice { grid-template-columns: auto 1fr } .vbtns { grid-column: 1 / -1; justify-content: stretch } .vbtns .btn { flex: 1 }
+  .mic { width: 64px; height: 64px } .heard { font-size: 17px }
+  .dash { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px } .stat { padding: 8px 10px } .stat .k { font-size: 10px } .stat .v { font-size: 20px }
+  .vbtns { flex-wrap: nowrap } .vbtns .btn.big { min-height: 50px; padding: 10px 12px; font-size: 15px; white-space: normal }
+  .grid2 { grid-template-columns: 1fr }
+  .brand small { display: none }
+  .scroller { height: 55vh }
+  .top .btn { flex: 1 } select.btn { max-width: none; flex-basis: 100% }
+}
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="brand">Pointage vocal des lots <small id="invMeta"></small></div>
+    <select class="btn" id="invSel" aria-label="Inventaire"></select>
+    <button class="btn" id="bImport">Importer Excel / CSV</button>
+    <button class="btn" id="bExport">Exporter Excel</button>
+    <button class="btn" id="bMore" aria-haspopup="true">Plus…</button>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv,.ods" hidden>
+  </header>
+
+  <div class="notice" id="voiceNotice" hidden></div>
+
+  <section class="voice" aria-label="Pointage vocal">
+    <button class="mic" id="bMic" aria-label="Démarrer le pointage vocal" title="Démarrer le pointage vocal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+    </button>
+    <div class="vstate">
+      <span class="pill" id="micPill">Micro inactif</span>
+      <div class="heard" id="heard">Appuyez sur le micro puis annoncez : « du lot 54 au lot 69, ensuite le 76 »</div>
+      <div class="result" id="result">Dernière commande : —</div>
+    </div>
+    <div class="vbtns">
+      <button class="btn big" id="bPause" disabled>Pause</button>
+      <button class="btn big" id="bUndo">Annuler la dernière action</button>
+    </div>
+  </section>
+
+  <section class="dash" aria-label="Tableau de bord">
+    <div class="stat"><div class="k">Lots attendus</div><div class="v" id="kTotal">0</div></div>
+    <div class="stat ok"><div class="k">Pointés</div><div class="v" id="kDone">0</div></div>
+    <div class="stat"><div class="k" id="kLeftLbl">Restant à vérifier</div><div class="v" id="kLeft">0</div></div>
+    <div class="stat warn"><div class="k">Anomalies</div><div class="v" id="kAno">0</div></div>
+    <div class="stat"><div class="k">Doublons fichier</div><div class="v" id="kDup">0</div></div>
+    <div class="stat prog"><div class="row"><span>Avancement</span><b class="num" id="kPct">0 %</b></div><div class="bar"><i id="kBar"></i></div><div class="row"><span id="kSave">Sauvegarde locale</span><span id="kNet"></span></div></div>
+  </section>
+
+  <div class="main">
+    <section class="panel" aria-label="Liste des lots">
+      <div class="tablebar">
+        <div class="chips" role="group" aria-label="Filtre">
+          <button class="chip" data-f="all" aria-pressed="true">Tous</button>
+          <button class="chip" data-f="todo" aria-pressed="false">Non pointés</button>
+          <button class="chip" data-f="done" aria-pressed="false">Pointés</button>
+          <button class="chip" data-f="dup" aria-pressed="false">Doublons</button>
+        </div>
+        <label class="toggle"><input type="checkbox" id="autoScroll" checked> Défilement auto</label>
+      </div>
+      <div class="thead" id="thead"></div>
+      <div class="scroller" id="scroller"><div class="spacer" id="spacer"></div></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h2>Prochains lots attendus</h2>
+        <div class="nextlist" id="nextList"><span>—</span></div>
+      </section>
+      <section class="panel">
+        <h2>Commande écrite ou correction</h2>
+        <form class="field" id="cmdForm"><input id="cmdInput" placeholder="ex. du 200 au 250 sauf 225" autocomplete="off" enterkeyhint="send"><button class="btn primary">Valider</button></form>
+        <div class="hint">Même syntaxe qu'à l'oral. Utile sans micro ou pour corriger une transcription.</div>
+      </section>
+      <section class="panel">
+        <h2>Recherche manuelle</h2>
+        <form class="field" id="findForm"><input id="findInput" placeholder="Numéro de lot" inputmode="numeric" autocomplete="off"><button class="btn">Trouver</button></form>
+        <div class="hint" id="findHint">Touchez le statut d'une ligne pour la pointer ou la dépointer.</div>
+      </section>
+      <section class="panel">
+        <h2>Anomalies <span class="num" id="anoCount"></span></h2>
+        <div class="log" id="anoLog"><div>Aucune anomalie.</div></div>
+      </section>
+      <section class="panel">
+        <h2>Historique</h2>
+        <div class="log" id="histLog"><div>Aucune opération.</div></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div class="modal-back" id="modal" hidden><div class="modal" role="dialog" aria-modal="true" id="modalBox"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ===== Moteur de commandes vocales (pur, testable) ===== */
+const Parser = (function () {
+  const UNITS = { zero: 0, 'zéro': 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9 };
+  const TEENS = { dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16 };
+  const TENS = { vingt: 20, vingts: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60, septante: 70, quatrevingt: 80, quatrevingts: 80, huitante: 80, octante: 80, nonante: 90 };
+  const BIG = { cent: 100, cents: 100, mille: 1000, mil: 1000, million: 1e6, millions: 1e6 };
+  const isNumWord = w => w in UNITS || w in TEENS || w in TENS || w in BIG;
+
+  const TO = new Set(['à', 'a', 'au', 'aux', 'jusqua', 'jusque', 'jusqu', 'jusquau']);
+  const SEP_HARD = new Set(['puis', 'ensuite', 'après', 'apres', '.', ';', 'plus']);
+  const SEP_SOFT = new Set([',', 'et']);
+  const EXC = new Set(['sauf', 'excepté', 'excepte', 'hormis', 'sans']);
+  const FROM = new Set(['du', 'de', 'des', 'depuis']);
+  const FILLER = new Set(['lot', 'lots', 'le', 'la', 'les', 'l', 'numéro', 'numéros', 'numero', 'numeros', 'n°', 'no', 'num', 'd', 'euh', 'alors', 'donc', 'voilà', 'voila', 'aussi', 'celui', 'ci', 'là']);
+  const CONTROL_WORDS = /\b(annule|annuler|annulez|retire|retirer|retirez|enlève|enleve|enlever|supprime|supprimer|décoche|decoche|décocher|répète|repete|répéter|pause|reprendre|reprends)\b/;
+
+  function normalize(text) {
+    let s = (text || '').normalize('NFC').toLowerCase();
+    s = s.replace(/[’`´]/g, "'");
+    s = s.replace(/(\d)[  ](?=\d{3}\b)/g, '$1'); // espace insécable = séparateur de milliers
+    s = s.replace(/jusqu'?\s*au(?![a-zà-ÿ])/g, ' jusquau ').replace(/jusqu'?\s*(à|a)(?![a-zà-ÿ])/g, ' jusqua ').replace(/jusque(?![a-zà-ÿ])/g, ' jusqua ');
+    s = s.replace(/(\d)\s*(?:-|–|—)\s*(\d)/g, '$1 à $2');
+    s = s.replace(/(\d+)\s*(?:e|è|ème|eme|er)\b/g, '$1');
+    s = s.replace(/n°\s*/g, ' ');
+    s = s.replace(/([a-zà-ÿ])['](?=\S)/g, '$1 ');
+    s = s.replace(/[-–—]/g, ' ');
+    s = s.replace(/\bquatre\s+vingts?\b/g, 'quatrevingt');
+    s = s.replace(/([,.;:!?])/g, ' $1 ');
+    s = s.replace(/[:!?]/g, ' . ');
+    return s.replace(/\s+/g, ' ').trim();
+  }
+
+  // Convertit une suite de mots-nombres en un ou plusieurs nombres
+  function wordsToNumbers(words) {
+    const out = [];
+    let total = 0, g = 0, any = false, single = true, wordsCount = 0;
+    const flush = () => { if (any) out.push({ v: total + g, single: single && wordsCount === 1 && (total + g) < 10 }); total = 0; g = 0; any = false; single = true; wordsCount = 0; };
+    for (const w of words) {
+      if (w in UNITS || w in TEENS || w in TENS) {
+        const v = UNITS[w] ?? TEENS[w] ?? TENS[w];
+        const r = g % 100;
+        let legal;
+        if (!any) legal = true;
+        else if (g === 0 && total === 0) legal = false;            // "zéro" suivi d'un autre mot
+        else if (r === 0) legal = true;                            // après cent / mille
+        else if (r === 10) legal = v >= 7 && v <= 9;               // dix-sept, dix-huit, dix-neuf
+        else if (r % 10 === 0 && v >= 1 && v <= 9) legal = true;   // vingt-deux, soixante-dix-sept
+        else if ((r === 60 || r === 80) && v >= 10 && v <= 16) legal = true; // soixante-dix, quatre-vingt-onze
+        else legal = false;
+        if (!legal) flush();
+        g += v;
+        any = true; wordsCount++;
+      } else if (w === 'cent' || w === 'cents') {
+        if (g >= 10 || (g === 0 && total === 0 && any)) flush();
+        g = (g === 0 ? 1 : g) * 100; any = true; wordsCount++;
+      } else if (w === 'mille' || w === 'mil') {
+        if (total >= 1000 && total % 1e6 !== 0) flush();
+        total += (g === 0 ? 1 : g) * 1000; g = 0; any = true; wordsCount++;
+      } else if (w === 'million' || w === 'millions') {
+        if (total >= 1e6) flush();
+        total += (g === 0 ? 1 : g) * 1e6; g = 0; any = true; wordsCount++;
+      }
+    }
+    flush();
+    return out;
+  }
+
+  // Texte normalisé -> liste de jetons de base
+  function lex(norm) {
+    const raw = norm.split(' ').filter(Boolean);
+    const toks = [];
+    let i = 0;
+    while (i < raw.length) {
+      const w = raw[i];
+      if (/^\d+$/.test(w)) {
+        toks.push({ t: 'n', v: Number(w), s: w, single: w.length === 1, gapBefore: true });
+        i++; continue;
+      }
+      if (isNumWord(w)) {
+        const run = [];
+        while (i < raw.length) {
+          const x = raw[i];
+          if (isNumWord(x)) { run.push(x); i++; continue; }
+          if (x === 'et' && run.length && (TENS[run[run.length - 1]] || 0) && raw[i + 1] && /^(un|une|onze)$/.test(raw[i + 1])) { i++; continue; }
+          break;
+        }
+        for (const n of wordsToNumbers(run)) toks.push({ t: 'n', v: n.v, s: String(n.v), single: n.single, word: true });
+        continue;
+      }
+      if (TO.has(w)) toks.push({ t: 'to' });
+      else if (EXC.has(w)) toks.push({ t: 'exc' });
+      else if (FROM.has(w)) toks.push({ t: 'from' });
+      else if (w === 'entre') toks.push({ t: 'between' });
+      else if (SEP_HARD.has(w)) toks.push({ t: 'sep', hard: true });
+      else if (SEP_SOFT.has(w)) toks.push({ t: 'sep', hard: false, et: w === 'et' });
+      else if (FILLER.has(w)) { /* ignoré */ }
+      else toks.push({ t: 'unk', w });
+      i++;
+    }
+    return toks;
+  }
+
+  // Produit les interprétations possibles (chiffre par chiffre, milliers séparés par espace)
+  function variants(toks) {
+    let list = [[]];
+    const push = (alts) => {
+      const next = [];
+      for (const v of list) for (const a of alts) next.push(v.concat(a));
+      list = next.slice(0, 16);
+    };
+    let i = 0;
+    while (i < toks.length) {
+      const t = toks[i];
+      if (t.t === 'n') {
+        // suite de chiffres isolés : 1 2 5 -> 125 ?
+        let j = i;
+        while (j < toks.length && toks[j].t === 'n' && toks[j].single) j++;
+        if (j - i >= 2) {
+          const run = toks.slice(i, j);
+          const joined = { t: 'n', v: Number(run.map(x => x.s).join('')), s: run.map(x => x.s).join(''), how: 'chiffre par chiffre' };
+          push([[joined], run]);
+          i = j; continue;
+        }
+        // "6 530" : milliers séparés par un espace
+        const n2 = toks[i + 1];
+        if (n2 && n2.t === 'n' && !t.word && !n2.word && t.s.length <= 3 && n2.s.length === 3 && t.v > 0) {
+          const joined = { t: 'n', v: Number(t.s + n2.s), s: t.s + n2.s, how: 'milliers' };
+          push([[t, n2], [joined]]);
+          i += 2; continue;
+        }
+        push([[t]]); i++; continue;
+      }
+      push([[t]]); i++;
+    }
+    return list;
+  }
+
+  // Jetons -> plan d'action
+  function grammar(toks) {
+    const plan = { items: [], except: [], warnings: [] };
+    // "entre X et Y" -> X à Y
+    toks = toks.slice();
+    for (let k = 0; k < toks.length; k++) {
+      if (toks[k].t === 'between' && toks[k + 1]?.t === 'n' && toks[k + 2]?.t === 'sep' && toks[k + 2].et && toks[k + 3]?.t === 'n') toks[k + 2] = { t: 'to' };
+    }
+    let exc = false;
+    for (let k = 0; k < toks.length; k++) {
+      const t = toks[k];
+      if (t.t === 'from' || t.t === 'between') { exc = false; continue; }
+      if (t.t === 'sep') { if (t.hard) exc = false; continue; }
+      if (t.t === 'exc') { exc = true; continue; }
+      if (t.t === 'unk') { plan.unknown = (plan.unknown || 0) + 1; continue; }
+      if (t.t === 'to') { plan.warnings.push('Plage incomplète'); continue; }
+      if (t.t === 'n') {
+        let item;
+        if (toks[k + 1]?.t === 'to' && toks[k + 2]?.t === 'n') {
+          let a = t.v, b = toks[k + 2].v;
+          if (a > b) { [a, b] = [b, a]; plan.warnings.push(`Plage inversée (${b} → ${a})`); }
+          item = { kind: 'range', a, b };
+          k += 2;
+        } else item = { kind: 'single', n: t.v };
+        (exc ? plan.except : plan.items).push(item);
+      }
+    }
+    return plan;
+  }
+
+  function planKey(p) {
+    const f = it => it.kind === 'range' ? `${it.a}-${it.b}` : `${it.n}`;
+    return p.mode + ':' + p.items.map(f).join(',') + '|' + p.except.map(f).join(',');
+  }
+
+  function describePlan(p) {
+    const f = it => it.kind === 'range' ? `${it.a} → ${it.b}` : `${it.n}`;
+    let s = p.items.map(f).join(', ');
+    if (p.except.length) s += ` sauf ${p.except.map(f).join(', ')}`;
+    return (p.mode === 'uncheck' ? 'Retirer ' : '') + s;
+  }
+
+  // Analyse complète d'une phrase -> {type:'control'|'plans'|'empty', ...}
+  function analyze(text) {
+    const norm = normalize(text);
+    const words = norm.split(' ');
+    const first = words[0] || '';
+    let mode = 'check', rest = norm;
+    if (/^(annule|annuler|annulez|annulation)$/.test(first)) {
+      const hasNum = lex(words.slice(1).join(' ')).some(t => t.t === 'n');
+      if (!hasNum) return { type: 'control', cmd: 'undo', norm };
+      mode = 'uncheck'; rest = words.slice(1).join(' ');
+    } else if (/^(retire|retirer|retirez|enlève|enleve|enlever|enlevez|supprime|supprimer|supprimez|décoche|decoche|décocher|decocher)$/.test(first)) {
+      mode = 'uncheck'; rest = words.slice(1).join(' ');
+    } else if (/^(répète|repete|répéter|repeter|rappelle|rappelle-moi|redis|redit)$/.test(first) || /^(quelle est la dernière|c'est quoi la dernière)/.test(norm)) {
+      return { type: 'control', cmd: 'repeat', norm };
+    } else if (/^(pause|stop|arrête|arrete|suspends|suspendre)$/.test(first) && words.length <= 4) {
+      return { type: 'control', cmd: 'pause', norm };
+    } else if (/^(reprendre|reprends|reprend|reprenez|continue|continuer|continuez)$/.test(first) && words.length <= 4) {
+      return { type: 'control', cmd: 'resume', norm };
+    }
+    const toks = lex(rest);
+    const vs = variants(toks);
+    const seen = new Set();
+    const plans = [];
+    for (const v of vs) {
+      const p = grammar(v);
+      p.mode = mode;
+      if (!p.items.length) continue;
+      if (mode === 'check' && CONTROL_WORDS.test(rest)) p.warnings.push('Mot de commande au milieu de la phrase');
+      if (/\b(choix|oui|non|premier|deuxième|ok|valide)\b/.test(rest)) p.warnings.push('Réponse de confirmation alors qu\'aucune question n\'est posée');
+      const k = planKey(p);
+      if (seen.has(k)) continue;
+      seen.add(k); p.key = k; p.label = describePlan(p);
+      plans.push(p);
+    }
+    if (!plans.length) return { type: 'empty', norm };
+    return { type: 'plans', plans, norm };
+  }
+
+  return { normalize, wordsToNumbers, lex, variants, grammar, analyze, describePlan, planKey };
+})();
+
+/* ===== Index des lots de référence ===== */
+function buildIndex(lotStrings) {
+  const map = new Map();          // valeur numérique -> [index de ligne]
+  const byText = new Map();       // texte exact -> [index]
+  for (let i = 0; i < lotStrings.length; i++) {
+    const s = String(lotStrings[i] ?? '').trim();
+    if (!byText.has(s)) byText.set(s, []);
+    byText.get(s).push(i);
+    const groups = s.match(/\d+/g);
+    if (groups && groups.length === 1) {
+      const v = Number(groups[0]);
+      if (!map.has(v)) map.set(v, []);
+      map.get(v).push(i);
+    }
+  }
+  const values = Array.from(map.keys()).sort((a, b) => a - b);
+  const dupRows = new Set();
+  for (const rows of byText.values()) if (rows.length > 1) rows.forEach(r => dupRows.add(r));
+  for (const rows of map.values()) if (rows.length > 1) rows.forEach(r => dupRows.add(r));
+  function lower(x) { let lo = 0, hi = values.length; while (lo < hi) { const m = (lo + hi) >> 1; if (values[m] < x) lo = m + 1; else hi = m; } return lo; }
+  function valuesIn(a, b) { const out = []; for (let k = lower(a); k < values.length && values[k] <= b; k++) out.push(values[k]); return out; }
+  return { map, byText, values, dupRows, valuesIn, has: v => map.has(v) };
+}
+
+// Résout un plan sur l'index : lignes concernées et anomalies
+function resolvePlan(plan, idx) {
+  const exclude = new Set();
+  for (const e of plan.except) {
+    if (e.kind === 'single') exclude.add(e.n); else idx.valuesIn(e.a, e.b).forEach(v => exclude.add(v));
+  }
+  const rows = new Set(), missing = [], emptyRanges = [];
+  let rangeLots = 0;
+  for (const it of plan.items) {
+    if (it.kind === 'single') {
+      if (exclude.has(it.n)) continue;
+      if (idx.has(it.n)) idx.map.get(it.n).forEach(r => rows.add(r)); else missing.push(it.n);
+    } else {
+      const vs = idx.valuesIn(it.a, it.b).filter(v => !exclude.has(v));
+      if (!vs.length) emptyRanges.push(it);
+      vs.forEach(v => idx.map.get(v).forEach(r => { rows.add(r); rangeLots++; }));
+    }
+  }
+  return { rows: Array.from(rows).sort((a, b) => a - b), missing, emptyRanges, rangeLots, complete: !missing.length && !emptyRanges.length };
+}
+
+// Choix de l'interprétation : auto, ou confirmation
+function decide(results, idx, opts) {
+  opts = opts || {};
+  const maxAuto = opts.maxAuto ?? 400;
+  const cands = [];
+  results.forEach((res, ai) => {
+    if (res.type !== 'plans') return;
+    res.plans.forEach(p => { if (!cands.some(c => c.plan.key === p.key)) cands.push({ plan: p, primary: ai === 0, r: resolvePlan(p, idx) }); });
+  });
+  if (!cands.length) return { action: 'none' };
+  const prim = cands.filter(c => c.primary);
+  const primFull = prim.filter(c => c.r.complete);
+  let chosen = null, reason = '';
+  if (primFull.length === 1) chosen = primFull[0];
+  else if (primFull.length > 1) reason = 'Plusieurs interprétations possibles';
+  else {
+    const altFull = cands.filter(c => !c.primary && c.r.complete);
+    if (altFull.length) reason = 'Numéro introuvable, une autre transcription correspond';
+    else if (prim.length === 1) chosen = prim[0];
+    else reason = 'Plusieurs interprétations possibles';
+  }
+  if (chosen) {
+    if (chosen.plan.warnings.length) reason = chosen.plan.warnings.join(' · ');
+    else if (chosen.r.rows.length > maxAuto) reason = `${chosen.r.rows.length} lots concernés, au-delà du seuil de ${maxAuto}`;
+    else if (opts.manual) reason = 'Validation manuelle activée';
+    if (!reason) return { action: 'apply', cand: chosen };
+  }
+  let list = primFull.length > 1 ? primFull : (chosen ? [chosen] : cands);
+  list = list.slice().sort((a, b) => (b.r.complete - a.r.complete) || (b.primary - a.primary));
+  return { action: 'confirm', reason, cands: list.slice(0, 4) };
+}
+
+if (typeof module !== 'undefined') module.exports = { Parser, buildIndex, resolvePlan, decide };
+
+</script>
+<script>
+(function () {
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmtT = ms => { if (!ms) return '—'; const d = new Date(ms); return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
+const fmtDT = ms => { const d = new Date(ms); return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR'); };
+const ROW_H = 44;
+
+/* ---------- Stockage local (IndexedDB) ---------- */
+const Store = {
+  db: null, ok: false,
+  async open() {
+    try {
+      this.db = await new Promise((res, rej) => {
+        const r = indexedDB.open('pointage-lots', 1);
+        r.onupgradeneeded = () => {
+          const d = r.result;
+          d.createObjectStore('inventories', { keyPath: 'id' });
+          d.createObjectStore('data', { keyPath: 'id' });
+          d.createObjectStore('state', { keyPath: 'id' });
+          d.createObjectStore('history', { keyPath: ['inv', 'seq'] });
+        };
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+        setTimeout(() => rej(new Error('timeout')), 4000);
+      });
+      this.ok = true;
+    } catch (e) { this.ok = false; }
+    return this.ok;
+  },
+  tx(stores, mode, fn) {
+    if (!this.ok) return Promise.resolve(null);
+    return new Promise((res, rej) => {
+      try {
+        const t = this.db.transaction(stores, mode); let out;
+        out = fn(t);
+        t.oncomplete = () => res(out && out.result !== undefined ? out.result : out);
+        t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  get(store, key) { return this.tx([store], 'readonly', t => t.objectStore(store).get(key)); },
+  all(store) { return this.tx([store], 'readonly', t => t.objectStore(store).getAll()); },
+  historyOf(inv) { return this.tx(['history'], 'readonly', t => t.objectStore('history').getAll(IDBKeyRange.bound([inv, 0], [inv, Infinity]))); },
+  put(pairs) { const stores = [...new Set(pairs.map(p => p[0]))]; return this.tx(stores, 'readwrite', t => { pairs.forEach(([s, v]) => t.objectStore(s).put(v)); }); },
+  async remove(inv) {
+    return this.tx(['inventories', 'data', 'state', 'history'], 'readwrite', t => {
+      ['inventories', 'data', 'state'].forEach(s => t.objectStore(s).delete(inv));
+      t.objectStore('history').delete(IDBKeyRange.bound([inv, 0], [inv, Infinity]));
+    });
+  }
+};
+const memFallback = { inventories: new Map(), data: new Map(), state: new Map(), history: new Map() };
+
+/* ---------- État de l'application ---------- */
+let INV = null, DATA = null, ST = null, HIST = [], IDX = null;
+let ORDER = [], VIEW = [], filter = 'all', flashRows = new Set(), lastRow = -1;
+const settings = loadSettings();
+function loadSettings() { try { return Object.assign({ maxAuto: 400, manual: false, autoScroll: true, last: null }, JSON.parse(localStorage.getItem('pointage-settings') || '{}')); } catch (e) { return { maxAuto: 400, manual: false, autoScroll: true, last: null }; } }
+function saveSettings() { try { localStorage.setItem('pointage-settings', JSON.stringify(settings)); } catch (e) {} }
+
+function newState(id, n) { return { id, status: new Uint8Array(n), time: new Array(n).fill(0), anomalies: [], seq: 0, lastRow: -1 }; }
+
+async function persist(histEntries) {
+  const pairs = [['state', ST]];
+  (histEntries || []).forEach(h => pairs.push(['history', h]));
+  pairs.push(['inventories', INV]);
+  if (!Store.ok) { memFallback.state.set(ST.id, ST); return; }
+  try { await Store.put(pairs); $('#kSave').textContent = 'Sauvegardé ' + fmtT(Date.now()); }
+  catch (e) { $('#kSave').textContent = 'Échec de sauvegarde'; toast('La sauvegarde locale a échoué : ' + (e && e.message || e)); }
+}
+
+async function loadInventory(id) {
+  let inv, data, st, hist;
+  if (Store.ok) { inv = await Store.get('inventories', id); data = await Store.get('data', id); st = await Store.get('state', id); hist = await Store.historyOf(id) || []; }
+  else { inv = memFallback.inventories.get(id); data = memFallback.data.get(id); st = memFallback.state.get(id); hist = memFallback.history.get(id) || []; }
+  if (!inv || !data) return false;
+  INV = inv; DATA = data; ST = st || newState(id, data.lots.length);
+  if (!(ST.status instanceof Uint8Array)) ST.status = Uint8Array.from(ST.status);
+  HIST = hist.sort((a, b) => a.seq - b.seq);
+  IDX = buildIndex(DATA.lots);
+  ORDER = DATA.lots.map((_, i) => i);
+  const key = i => { const g = String(DATA.lots[i]).match(/\d+/g); return g && g.length === 1 ? Number(g[0]) : Infinity; };
+  const keys = ORDER.map(key);
+  ORDER.sort((a, b) => (keys[a] - keys[b]) || String(DATA.lots[a]).localeCompare(String(DATA.lots[b]), 'fr', { numeric: true }) || a - b);
+  POS = new Int32Array(ORDER.length); ORDER.forEach((r, p) => POS[r] = p);
+  lastRow = ST.lastRow ?? -1; flashRows = new Set();
+  settings.last = id; saveSettings();
+  buildHead(); applyFilter(); renderAll();
+  return true;
+}
+let POS = new Int32Array(0);
+
+async function createInventory(name, columns, rows, lotCol) {
+  const id = 'inv' + Date.now().toString(36);
+  const lots = rows.map(r => String(r[lotCol] ?? '').trim());
+  const keep = []; const keptRows = [];
+  lots.forEach((l, i) => { if (l !== '') { keep.push(l); keptRows.push(rows[i]); } });
+  const inv = { id, name, created: Date.now(), closed: false, columns, lotCol, count: keep.length };
+  const data = { id, lots: keep, rows: keptRows };
+  const st = newState(id, keep.length);
+  const idx = buildIndex(keep);
+  const h = { inv: id, seq: 1, t: Date.now(), kind: 'import', cmd: '', label: `Import de ${keep.length} lots` + (idx.dupRows.size ? ` · ${idx.dupRows.size} lignes en doublon` : ''), rows: [] };
+  st.seq = 1;
+  if (Store.ok) await Store.put([['inventories', inv], ['data', data], ['state', st], ['history', h]]);
+  else { memFallback.inventories.set(id, inv); memFallback.data.set(id, data); memFallback.state.set(id, st); memFallback.history.set(id, [h]); }
+  await refreshInvList(id);
+  await loadInventory(id);
+  toast(`Inventaire « ${name} » créé : ${keep.length} lots`);
+}
+
+async function refreshInvList(sel) {
+  const list = Store.ok ? (await Store.all('inventories') || []) : Array.from(memFallback.inventories.values());
+  list.sort((a, b) => b.created - a.created);
+  const s = $('#invSel');
+  s.innerHTML = list.length ? list.map(i => `<option value="${esc(i.id)}">${esc(i.name)}${i.closed ? ' (clôturé)' : ''}</option>`).join('') : '<option value="">Aucun inventaire</option>';
+  if (sel) s.value = sel;
+  return list;
+}
+
+/* ---------- Opérations ---------- */
+function addHist(h) { ST.seq++; h.inv = INV.id; h.seq = ST.seq; h.t = Date.now(); HIST.push(h); if (!Store.ok) { const a = memFallback.history.get(INV.id) || []; a.push(h); memFallback.history.set(INV.id, a); } return h; }
+
+function applyPlan(plan, r, cmd) {
+  if (!INV) { toast("Importez d'abord une liste de lots."); return; }
+  const now = Date.now(), target = plan.mode === 'uncheck' ? 0 : 1;
+  const changed = [], prevS = [], prevT = [];
+  let already = 0;
+  for (const row of r.rows) {
+    if (ST.status[row] === target) { already++; continue; }
+    changed.push(row); prevS.push(ST.status[row]); prevT.push(ST.time[row]);
+    ST.status[row] = target; ST.time[row] = target ? now : 0;
+  }
+  const entries = [];
+  const anoAdd = [];
+  if (plan.mode === 'check') {
+    r.missing.forEach(n => anoAdd.push({ t: now, kind: 'Numéro absent de la liste', n: String(n), cmd }));
+    r.emptyRanges.forEach(it => anoAdd.push({ t: now, kind: 'Aucun lot attendu dans la plage', n: `${it.a} → ${it.b}`, cmd }));
+  }
+  ST.anomalies.push(...anoAdd);
+  let parts = [];
+  if (changed.length) parts.push(`<span class="ok">${target ? '✓' : '↺'} ${changed.length} lot${changed.length > 1 ? 's' : ''} ${target ? 'pointé' : 'retiré'}${changed.length > 1 ? 's' : ''}</span>`);
+  if (already) parts.push(`${already} ${target ? 'déjà présent' : 'déjà non pointé'}${already > 1 ? 's' : ''}`);
+  r.missing.forEach(n => parts.push(`<span class="w">⚠ Attention : le lot ${n} n'existe pas dans la liste attendue</span>`));
+  r.emptyRanges.forEach(it => parts.push(`<span class="w">⚠ Aucun lot attendu entre ${it.a} et ${it.b}</span>`));
+  const plain = parts.join(' · ').replace(/<[^>]+>/g, '');
+  entries.push(addHist({ kind: plan.mode, cmd, label: plan.label, rows: changed, prevS, prevT, result: plain }));
+  if (changed.length && target) { lastRow = changed.reduce((m, x) => POS[x] > POS[m] ? x : m, changed[0]); ST.lastRow = lastRow; }
+  flashRows = new Set(changed);
+  setResult(`<b>${esc(plan.label)}</b> — ${parts.join(' · ') || 'rien à changer'}`);
+  if (r.missing.length || r.emptyRanges.length) beep(); else if (changed.length) tick();
+  persist(entries); afterChange(true);
+}
+
+function undo() {
+  if (!INV) return;
+  for (let i = HIST.length - 1; i >= 0; i--) {
+    const h = HIST[i];
+    if ((h.kind === 'check' || h.kind === 'uncheck') && !h.undone && h.rows.length) {
+      h.rows.forEach((row, k) => { ST.status[row] = h.prevS[k]; ST.time[row] = h.prevT[k]; });
+      h.undone = true;
+      const u = addHist({ kind: 'undo', cmd: 'Annuler', label: `Annulation : ${h.label}`, rows: [], result: `${h.rows.length} lot(s) remis dans leur état précédent` });
+      flashRows = new Set(h.rows);
+      const lastChk = [...HIST].reverse().find(x => x.kind === 'check' && !x.undone && x.rows.length);
+      lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
+      setResult(`<b>Annulé</b> — ${esc(h.label)} (${h.rows.length} lot${h.rows.length > 1 ? 's' : ''})`);
+      persist([h, u]); afterChange(true);
+      return;
+    }
+  }
+  setResult('Rien à annuler.');
+}
+
+function toggleRow(row) {
+  if (!INV) return;
+  const p = { mode: ST.status[row] ? 'uncheck' : 'check', items: [], except: [], warnings: [], label: (ST.status[row] ? 'Retirer ' : '') + DATA.lots[row] + ' (manuel)' };
+  applyPlan(p, { rows: [row], missing: [], emptyRanges: [] }, 'Pointage manuel');
+}
+
+function repeatLast() {
+  const h = [...HIST].reverse().find(x => x.kind === 'check' || x.kind === 'uncheck' || x.kind === 'undo');
+  const txt = h ? `${h.label}. ${h.result || ''}${h.undone ? ' (annulée)' : ''}` : 'Aucune opération pour le moment.';
+  setResult('<b>Dernière opération</b> — ' + esc(txt));
+  speak(txt.replace(/→/g, ' à ').replace(/✓|↺|⚠/g, ''));
+}
+
+/* ---------- Traitement d'une phrase ---------- */
+let confirmCtx = null;
+function handlePhrase(alts, source) {
+  const text = alts[0];
+  if (!text || !text.trim()) return;
+  $('#heard').textContent = '« ' + text.trim() + ' »'; $('#heard').classList.remove('interim');
+  if (confirmCtx && source === 'voice') return answerConfirm(text);
+  const results = alts.map(a => Parser.analyze(a));
+  const main = results[0];
+  if (voice.paused && !(main.type === 'control' && main.cmd === 'resume')) { setResult('En pause — dites « reprendre » pour continuer.'); return; }
+  if (main.type === 'control') {
+    if (main.cmd === 'undo') return undo();
+    if (main.cmd === 'repeat') return repeatLast();
+    if (main.cmd === 'pause') return voice.pause();
+    if (main.cmd === 'resume') return voice.resume();
+  }
+  if (!INV) { setResult("Importez d'abord une liste de lots."); return; }
+  if (main.type === 'empty' && !results.some(r => r.type === 'plans')) {
+    setResult(`<span class="w">Aucun numéro reconnu</span> dans « ${esc(text)} ».`);
+    ST.anomalies.push({ t: Date.now(), kind: 'Commande non comprise', n: '', cmd: text }); persist([]); renderAno();
+    return;
+  }
+  const d = decide(results, IDX, { maxAuto: settings.maxAuto, manual: settings.manual });
+  if (d.action === 'apply') return applyPlan(d.cand.plan, d.cand.r, text);
+  if (d.action === 'confirm') return openConfirm(text, d);
+}
+
+function candDesc(c) {
+  const r = c.r; const bits = [];
+  bits.push(`${r.rows.length} lot${r.rows.length > 1 ? 's' : ''} ${c.plan.mode === 'uncheck' ? 'à retirer' : 'à pointer'}`);
+  if (r.missing.length) bits.push(`<span class="w">absent${r.missing.length > 1 ? 's' : ''} de la liste : ${r.missing.join(', ')}</span>`);
+  if (r.emptyRanges.length) bits.push(`<span class="w">plage sans lot attendu</span>`);
+  return bits.join(' · ');
+}
+
+function openConfirm(text, d) {
+  confirmCtx = { text, d };
+  ST.anomalies.push({ t: Date.now(), kind: 'Commande ambiguë', n: '', cmd: text + (d.reason ? ' — ' + d.reason : '') }); persist([]); renderAno();
+  modal(`
+    <h3>Confirmer la commande</h3>
+    <p>${esc(d.reason || 'Vérifiez avant de pointer.')}</p>
+    <div class="cands">${d.cands.map((c, i) => `<button class="cand" data-i="${i}"><span class="t">${i + 1}. ${esc(c.plan.label)}</span><span class="d">${candDesc(c)}</span></button>`).join('')}</div>
+    <label class="hint" for="fixInput">Corriger la transcription puis réanalyser :</label>
+    <form class="field" id="fixForm"><input id="fixInput" value="${esc(text)}" autocomplete="off"><button class="btn">Réanalyser</button></form>
+    <p class="hint">À la voix : « oui » pour le choix 1, « choix 2 », ou « non » pour ignorer.</p>
+    <div class="mrow"><button class="btn" id="cIgnore">Ignorer</button></div>`);
+  $('#modalBox').querySelectorAll('.cand').forEach(b => b.onclick = () => pickCand(+b.dataset.i));
+  $('#cIgnore').onclick = () => { closeConfirm(); setResult('Commande ignorée.'); };
+  $('#fixForm').onsubmit = e => { e.preventDefault(); const v = $('#fixInput').value; closeConfirm(); handlePhrase([v], 'text'); };
+  $('#modalBox').querySelector('.cand')?.focus();
+  beep();
+}
+function pickCand(i) { const c = confirmCtx.d.cands[i]; const t = confirmCtx.text; closeConfirm(); if (c) applyPlan(c.plan, c.r, t); }
+function closeConfirm() { confirmCtx = null; closeModal(); }
+function answerConfirm(text) {
+  const n = Parser.normalize(text);
+  if (/^(oui|ok|d'accord|valide|valider|confirme|confirmer|c'est bon)\b/.test(n) || /^(premier|choix un|choix 1|un)$/.test(n)) return pickCand(0);
+  const m = n.match(/^(?:choix|numéro|le)?\s*(deux|2|deuxième|second|trois|3|troisième|quatre|4|quatrième)$/);
+  if (m) { const k = { deux: 1, '2': 1, 'deuxième': 1, second: 1, trois: 2, '3': 2, 'troisième': 2, quatre: 3, '4': 3, 'quatrième': 3 }[m[1]]; return pickCand(k); }
+  if (/^(non|ignore|ignorer|annule|annuler|laisse tomber)\b/.test(n)) { closeConfirm(); setResult('Commande ignorée.'); return; }
+  toast('Répondez « oui », « choix 2 » ou « non ».');
+}
+
+/* ---------- Reconnaissance vocale ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const voice = {
+  rec: null, want: false, paused: false, done: 0, lastFinal: '', lastAt: 0, wake: null,
+  start() {
+    if (!SR) { showVoiceNotice('unsupported'); return; }
+    this.want = true; this.paused = false; this.boot(); this.ui('live');
+    try { navigator.wakeLock?.request('screen').then(w => this.wake = w).catch(() => {}); } catch (e) {}
+  },
+  boot() {
+    const r = new SR();
+    r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 3;
+    this.done = 0; this.lastFinal = '';
+    r.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i];
+        if (!res.isFinal) { interim += res[0].transcript; continue; }
+        if (i < this.done) continue;           // déjà traité
+        this.done = i + 1;
+        let alts = Array.from(res).map(a => a.transcript.trim()).filter(Boolean);
+        if (!alts.length) continue;
+        // Chrome Android renvoie parfois le texte cumulé : ne garder que la partie nouvelle
+        const prev = this.lastFinal;
+        if (prev && alts[0].toLowerCase().startsWith(prev.toLowerCase()) && alts[0].length > prev.length) alts = [alts[0].slice(prev.length).trim()];
+        else if (prev && alts[0].toLowerCase() === prev.toLowerCase() && Date.now() - this.lastAt < 2500) continue;
+        this.lastFinal = Array.from(res)[0].transcript.trim(); this.lastAt = Date.now();
+        handlePhrase(alts, 'voice');
+      }
+      if (interim) { const h = $('#heard'); h.textContent = interim; h.classList.add('interim'); }
+    };
+    r.onerror = e => {
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { this.want = false; this.ui('err', 'Micro refusé'); showVoiceNotice('denied'); }
+      else if (e.error === 'network') { this.ui('err', 'Connexion requise'); showVoiceNotice('network'); }
+      else if (e.error === 'audio-capture') { this.want = false; this.ui('err', 'Aucun micro détecté'); }
+      else this.ui('err', 'Erreur : ' + e.error);
+    };
+    r.onend = () => { if (this.want) setTimeout(() => { if (this.want) { try { this.boot(); } catch (e) {} } }, 250); else this.ui('off'); };
+    this.rec = r;
+    try { r.start(); } catch (e) {}
+  },
+  stop() { this.want = false; this.paused = false; try { this.rec?.stop(); } catch (e) {} this.ui('off'); try { this.wake?.release(); } catch (e) {} },
+  pause() { if (!this.want) return; this.paused = true; this.ui('pause'); setResult('<b>Pause</b> — dites « reprendre » ou touchez Reprendre.'); },
+  resume() { this.paused = false; if (!this.want) this.start(); else this.ui('live'); setResult('<b>Reprise</b> du pointage.'); },
+  ui(state, msg) {
+    const p = $('#micPill'), m = $('#bMic'), b = $('#bPause');
+    p.className = 'pill'; m.className = 'mic';
+    if (state === 'live') { p.classList.add('live'); p.textContent = 'Micro actif — écoute'; m.classList.add('on'); m.setAttribute('aria-label', 'Arrêter le micro'); b.disabled = false; b.textContent = 'Pause'; }
+    else if (state === 'pause') { p.classList.add('pause'); p.textContent = 'En pause'; m.classList.add('paused'); b.disabled = false; b.textContent = 'Reprendre'; }
+    else if (state === 'err') { p.classList.add('err'); p.textContent = msg || 'Erreur micro'; b.disabled = true; }
+    else { p.textContent = 'Micro inactif'; m.setAttribute('aria-label', 'Démarrer le pointage vocal'); b.disabled = true; b.textContent = 'Pause'; }
+  }
+};
+function showVoiceNotice(kind) {
+  const n = $('#voiceNotice'); n.hidden = false;
+  const local = 'Pour utiliser la voix, ouvrez le fichier <b>pointage-lots.html</b> téléchargé dans Chrome ou Edge sur l\'ordinateur ou la tablette, et autorisez le micro.';
+  n.innerHTML = {
+    unsupported: '<b>Reconnaissance vocale indisponible dans ce navigateur.</b> ' + local + ' Le pointage manuel et la commande écrite fonctionnent ici.',
+    denied: '<b>Le micro est bloqué ici.</b> Cette page affichée dans claude.ai n\'a pas accès au micro. ' + local + ' En attendant, tapez les commandes dans « Commande écrite ».',
+    network: '<b>Pas de connexion au service vocal.</b> La dictée de Chrome et Edge passe par un service en ligne : vérifiez la connexion Internet. Le pointage manuel reste disponible hors ligne.'
+  }[kind];
+}
+
+/* ---------- Rendu ---------- */
+function extraCols() { if (!INV) return []; return INV.columns.map((c, i) => i).filter(i => i !== INV.lotCol).slice(0, 2); }
+function buildHead() {
+  const ex = extraCols();
+  const narrow = matchMedia('(max-width: 640px)').matches;
+  const cols = narrow ? 'minmax(0,1.3fr) auto 56px' : `minmax(90px,1fr) 130px 70px ${ex.map(() => 'minmax(0,1.4fr)').join(' ')}`;
+  document.documentElement.style.setProperty('--cols', cols);
+  $('#thead').innerHTML = INV ? `<span>N° du lot</span><span>Statut</span><span>Heure</span>${narrow ? '' : ex.map(i => `<span>${esc(INV.columns[i] || 'Colonne ' + (i + 1))}</span>`).join('')}` : '';
+}
+function applyFilter() {
+  if (!INV) { VIEW = []; return; }
+  if (filter === 'all') VIEW = ORDER;
+  else if (filter === 'todo') VIEW = ORDER.filter(r => !ST.status[r]);
+  else if (filter === 'done') VIEW = ORDER.filter(r => ST.status[r]);
+  else VIEW = ORDER.filter(r => IDX.dupRows.has(r));
+}
+let nextRow = -1;
+function renderRows() {
+  const sc = $('#scroller'), sp = $('#spacer');
+  if (!INV) { sp.style.height = 'auto'; sp.innerHTML = `<div class="empty"><b>Aucun inventaire.</b><br>Touchez « Importer Excel / CSV » pour charger votre liste de lots.</div>`; return; }
+  if (!VIEW.length) { sp.style.height = 'auto'; sp.innerHTML = `<div class="empty">Aucun lot dans ce filtre.</div>`; return; }
+  sp.style.height = VIEW.length * ROW_H + 'px';
+  const first = Math.max(0, Math.floor(sc.scrollTop / ROW_H) - 8), last = Math.min(VIEW.length, Math.ceil((sc.scrollTop + sc.clientHeight) / ROW_H) + 8);
+  const ex = matchMedia('(max-width: 640px)').matches ? [] : extraCols();
+  let html = '';
+  for (let p = first; p < last; p++) {
+    const r = VIEW[p], s = ST.status[r], miss = INV.closed && !s;
+    const cls = `trow ${s ? 's1' : ''} ${miss ? 'miss' : ''} ${r === nextRow ? 'next' : ''} ${flashRows.has(r) ? 'flash' : ''}`;
+    const lbl = s ? 'Présent' : miss ? 'Manquant' : 'Non pointé';
+    html += `<div class="${cls}" style="top:${p * ROW_H}px"><span class="lot">${esc(DATA.lots[r])}${IDX.dupRows.has(r) ? '<span class="dup">DOUBLON</span>' : ''}</span><button class="st ${s ? 's1' : ''} ${miss ? 'miss' : ''}" data-r="${r}" aria-label="${lbl} — toucher pour ${s ? 'dépointer' : 'pointer'} le lot ${esc(DATA.lots[r])}">${lbl}</button><span class="tm">${fmtT(ST.time[r])}</span>${ex.map(i => `<span class="ex">${esc(DATA.rows[r][i])}</span>`).join('')}</div>`;
+  }
+  sp.innerHTML = html;
+}
+function computeNext() {
+  nextRow = -1; const list = [];
+  if (!INV) return list;
+  const startPos = lastRow >= 0 ? POS[lastRow] + 1 : 0;
+  for (let p = startPos; p < ORDER.length && list.length < 8; p++) if (!ST.status[ORDER[p]]) list.push(ORDER[p]);
+  if (!list.length) for (let p = 0; p < ORDER.length && list.length < 8; p++) if (!ST.status[ORDER[p]]) list.push(ORDER[p]);
+  nextRow = list[0] ?? -1;
+  return list;
+}
+function renderStats() {
+  const total = INV ? DATA.lots.length : 0;
+  let done = 0; if (INV) for (let i = 0; i < total; i++) done += ST.status[i];
+  $('#kTotal').textContent = total.toLocaleString('fr-FR');
+  $('#kDone').textContent = done.toLocaleString('fr-FR');
+  $('#kLeft').textContent = (total - done).toLocaleString('fr-FR');
+  $('#kLeftLbl').textContent = INV && INV.closed ? 'Manquants (clôturé)' : 'Restant à vérifier';
+  $('#kAno').textContent = INV ? ST.anomalies.length : 0;
+  $('#kDup').textContent = INV ? IDX.dupRows.size : 0;
+  const pct = total ? Math.round(done / total * 1000) / 10 : 0;
+  $('#kPct').textContent = pct.toLocaleString('fr-FR') + ' %';
+  $('#kBar').style.width = pct + '%';
+  $('#invMeta').textContent = INV ? `${INV.name}${INV.closed ? ' · clôturé' : ''}` : '';
+  const nx = computeNext();
+  $('#nextList').innerHTML = nx.length ? nx.map(r => `<span>${esc(DATA.lots[r])}</span>`).join('') : `<span>${INV ? 'Tout est pointé' : '—'}</span>`;
+}
+function renderAno() {
+  if (!INV) { $('#anoLog').innerHTML = '<div>Aucune anomalie.</div>'; $('#anoCount').textContent = ''; return; }
+  const a = ST.anomalies.slice(-60).reverse();
+  $('#anoCount').textContent = ST.anomalies.length ? `(${ST.anomalies.length})` : '';
+  $('#anoLog').innerHTML = a.length ? a.map(x => `<div class="a"><time>${fmtT(x.t)}</time><b>${esc(x.kind)}</b>${x.n ? ' : ' + esc(x.n) : ''}${x.cmd ? `<br><span class="hint">« ${esc(x.cmd)} »</span>` : ''}</div>`).join('') : '<div>Aucune anomalie.</div>';
+  $('#kAno').textContent = ST.anomalies.length;
+}
+function renderHist() {
+  const h = HIST.slice(-60).reverse();
+  $('#histLog').innerHTML = h.length ? h.map(x => `<div class="${x.undone ? 'u' : ''}"><time>${fmtT(x.t)}</time><b>${esc(x.label)}</b>${x.result ? '<br>' + esc(x.result) : ''}</div>`).join('') : '<div>Aucune opération.</div>';
+}
+function renderAll() { renderStats(); renderRows(); renderAno(); renderHist(); }
+function afterChange(scroll) {
+  if (filter !== 'all') applyFilter();
+  renderStats(); renderAno(); renderHist();
+  if (scroll && settings.autoScroll && nextRow >= 0) scrollToRow(nextRow, false);
+  renderRows();
+}
+function scrollToRow(row, center) {
+  const p = VIEW.indexOf(row); if (p < 0) return;
+  const sc = $('#scroller');
+  const target = Math.max(0, p * ROW_H - (center ? sc.clientHeight / 2 : sc.clientHeight / 3));
+  sc.scrollTop = target;
+}
+function setResult(html) { $('#result').innerHTML = html; }
+
+/* ---------- Divers ---------- */
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); }
+function modal(html) { $('#modalBox').innerHTML = html; $('#modal').hidden = false; }
+function closeModal() { $('#modal').hidden = true; $('#modalBox').innerHTML = ''; }
+let actx;
+function tone(f, d) { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; g.gain.value = .06; o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {} }
+const tick = () => tone(880, .06), beep = () => { tone(330, .15); setTimeout(() => tone(260, .2), 160); };
+function speak(t) { try { const u = new SpeechSynthesisUtterance(t); u.lang = 'fr-FR'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
+function askConfirm(title, text, okLabel, fn, danger) {
+  modal(`<h3>${esc(title)}</h3><p>${text}</p><div class="mrow"><button class="btn" id="mNo">Annuler</button><button class="btn ${danger ? 'danger' : 'primary'}" id="mYes">${esc(okLabel)}</button></div>`);
+  $('#mNo').onclick = closeModal; $('#mYes').onclick = () => { closeModal(); fn(); };
+  $('#mNo').focus();
+}
+
+/* ---------- Import ---------- */
+function guessLotCol(header, rows) {
+  const re = /(lot|n°|num|numéro|numero|ref|référence)/i;
+  let best = header.findIndex(h => re.test(String(h || '')));
+  if (best >= 0) return best;
+  let bestScore = -1;
+  const width = Math.max(header.length, ...rows.slice(0, 50).map(r => r.length));
+  for (let c = 0; c < width; c++) {
+    const vals = rows.slice(0, 300).map(r => String(r[c] ?? '').trim()).filter(Boolean);
+    const numeric = vals.filter(v => /^\D{0,4}\d+\D{0,4}$/.test(v)).length;
+    const uniq = new Set(vals).size;
+    const score = numeric * 2 + uniq;
+    if (score > bestScore) { bestScore = score; best = c; }
+  }
+  return Math.max(0, best);
+}
+async function onFile(file) {
+  if (!window.XLSX) { toast("La bibliothèque Excel n'a pas pu se charger (connexion requise pour l'import)."); return; }
+  const buf = await file.arrayBuffer();
+  const isCsv = /\.csv$/i.test(file.name);
+  let wb;
+  try { wb = isCsv ? XLSX.read(new TextDecoder('utf-8').decode(buf), { type: 'string', raw: true }) : XLSX.read(buf, { type: 'array' }); }
+  catch (e) { toast('Fichier illisible : ' + e.message); return; }
+  showImport(file.name.replace(/\.[^.]+$/, ''), wb);
+}
+function sheetRows(wb, name) { return XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '', blankrows: false }); }
+function showImport(baseName, wb) {
+  let sheet = wb.SheetNames[0], aoa = sheetRows(wb, sheet);
+  let hasHeader = aoa.length > 1 && aoa[0].some(v => /[a-zé]/i.test(String(v)));
+  const draw = () => {
+    const header = hasHeader ? aoa[0].map(String) : (aoa[0] || []).map((_, i) => 'Colonne ' + (i + 1));
+    const body = hasHeader ? aoa.slice(1) : aoa;
+    const width = Math.max(header.length, ...body.slice(0, 50).map(r => r.length));
+    const cols = Array.from({ length: width }, (_, i) => header[i] || 'Colonne ' + (i + 1));
+    const lc = state.col ?? guessLotCol(cols, body);
+    state.col = lc; state.cols = cols; state.body = body;
+    const lots = body.map(r => String(r[lc] ?? '').trim()).filter(Boolean);
+    const idx = buildIndex(lots);
+    modal(`
+      <h3>Importer la liste des lots</h3>
+      <div class="grid2">
+        <label>Nom de l'inventaire<input id="iName" value="${esc(state.name)}"></label>
+        <label>Feuille<select id="iSheet">${wb.SheetNames.map(n => `<option ${n === sheet ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+        <label>Colonne des numéros de lots<select id="iCol">${cols.map((c, i) => `<option value="${i}" ${i === lc ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+        <label>Première ligne<select id="iHead"><option value="1" ${hasHeader ? 'selected' : ''}>Ligne d'en-têtes</option><option value="0" ${!hasHeader ? 'selected' : ''}>Déjà des données</option></select></label>
+      </div>
+      <p><b>${lots.length.toLocaleString('fr-FR')}</b> lots trouvés${idx.dupRows.size ? ` · <b style="color:var(--warn)">${idx.dupRows.size} lignes en doublon</b> (signalées dans le tableau)` : ' · aucun doublon'}. Les numéros sont conservés tels quels, zéros initiaux compris.</p>
+      <div class="preview"><table><tr>${cols.map((c, i) => `<th class="${i === lc ? 'sel' : ''}">${esc(c)}</th>`).join('')}</tr>${body.slice(0, 5).map(r => `<tr>${cols.map((_, i) => `<td class="${i === lc ? 'sel' : ''}">${esc(r[i])}</td>`).join('')}</tr>`).join('')}</table></div>
+      <div class="mrow"><button class="btn" id="iCancel">Annuler</button><button class="btn primary" id="iOk" ${lots.length ? '' : 'disabled'}>Créer l'inventaire</button></div>`);
+    $('#iName').oninput = e => state.name = e.target.value;
+    $('#iSheet').onchange = e => { sheet = e.target.value; aoa = sheetRows(wb, sheet); state.col = null; draw(); };
+    $('#iCol').onchange = e => { state.col = +e.target.value; draw(); };
+    $('#iHead').onchange = e => { hasHeader = e.target.value === '1'; state.col = null; draw(); };
+    $('#iCancel').onclick = closeModal;
+    $('#iOk').onclick = () => { closeModal(); createInventory(state.name.trim() || baseName, state.cols, state.body, state.col); };
+  };
+  const state = { name: baseName, col: null };
+  draw();
+}
+
+
+/* ---------- Export ---------- */
+async function exportXlsx() {
+  if (!INV) { toast('Aucun inventaire à exporter.'); return; }
+  if (!window.XLSX) { toast("La bibliothèque Excel n'a pas pu se charger : une connexion est nécessaire pour l'export."); return; }
+  const cols = INV.columns.slice();
+  const stat = r => ST.status[r] ? 'Présent' : INV.closed ? 'Manquant' : 'Non pointé';
+  const line = r => { const base = cols.map((_, i) => DATA.rows[r][i] ?? ''); base[INV.lotCol] = DATA.lots[r]; return [...base, stat(r), ST.time[r] ? fmtDT(ST.time[r]) : '', IDX.dupRows.has(r) ? 'Doublon dans le fichier' : '']; };
+  const head = [...cols, 'Statut', 'Pointé le', 'Remarque'];
+  const all = DATA.lots.map((_, r) => r);
+  const s1 = [head, ...all.map(line)];
+  const s2 = [head, ...all.filter(r => !ST.status[r]).map(line)];
+  const s3 = [['Date et heure', 'Type', 'Numéro', 'Commande / détail'],
+    ...ST.anomalies.map(a => [fmtDT(a.t), a.kind, a.n, a.cmd]),
+    ...all.filter(r => IDX.dupRows.has(r)).map(r => [fmtDT(INV.created), 'Doublon dans le fichier importé', DATA.lots[r], 'Ligne ' + (r + 1)])];
+  const s4 = [['Date', 'Heure', 'Opération', 'Commande', 'Détail', 'Lots modifiés', 'Annulée'],
+    ...HIST.map(h => [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture' }[h.kind] || h.kind, h.cmd || '', h.label + (h.result ? ' — ' + h.result : ''), h.rows ? h.rows.length : 0, h.undone ? 'Oui' : ''])];
+  const wb = XLSX.utils.book_new();
+  const add = (aoa, name, widths) => { const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = widths.map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
+  const w1 = [...cols.map(c => Math.max(10, String(c).length + 4)), 12, 20, 22];
+  add(s1, 'Inventaire complet', w1); add(s2, 'Lots manquants', w1); add(s3, 'Anomalies', [20, 30, 14, 50]); add(s4, 'Historique', [12, 10, 12, 40, 60, 12, 9]);
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const d = new Date();
+  const fname = `inventaire_${INV.name.replace(/[^\w\-]+/g, '_')}_${d.toISOString().slice(0, 10)}_${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}.xlsx`;
+  const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  if (window.claude && typeof window.claude.use === 'function') {
+    const dl = await window.claude.use('downloads');
+    if (dl) { try { await dl.save({ filename: fname, data: blob }); toast('Export enregistré : ' + fname); } catch (e) { if (e.code !== 'declined') toast('Export impossible ici (' + (e.code || 'erreur') + ').'); } return; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('Export : ' + fname);
+}
+
+/* ---------- Menu « Plus… » ---------- */
+function moreMenu() {
+  modal(`
+    <h3>Options</h3>
+    <div class="cands">
+      <button class="cand" id="oClose"><span class="t" style="font-family:var(--f-ui)">${INV && INV.closed ? 'Rouvrir l\'inventaire' : 'Clôturer l\'inventaire'}</span><span class="d">${INV && INV.closed ? 'Les lots non pointés redeviennent « non pointés ».' : 'Les lots non pointés passent en rouge « manquant ».'}</span></button>
+      <button class="cand" id="oFs"><span class="t" style="font-family:var(--f-ui)">Plein écran</span><span class="d">Masque la barre du navigateur.</span></button>
+      <button class="cand" id="oReset"><span class="t" style="font-family:var(--f-ui);color:var(--bad)">Réinitialiser le pointage</span><span class="d">Remet tous les lots à « non pointé » (avec confirmation).</span></button>
+      <button class="cand" id="oDel"><span class="t" style="font-family:var(--f-ui);color:var(--bad)">Supprimer cet inventaire</span><span class="d">Efface la liste et son historique de cet appareil.</span></button>
+    </div>
+    <div class="grid2">
+      <label>Seuil de confirmation des plages (lots)<input id="oMax" type="number" min="10" step="10" value="${settings.maxAuto}"></label>
+      <label>Validation des commandes<select id="oManual"><option value="0" ${!settings.manual ? 'selected' : ''}>Automatique si certaine</option><option value="1" ${settings.manual ? 'selected' : ''}>Toujours demander</option></select></label>
+    </div>
+    <p class="hint">Les données sont enregistrées dans ce navigateur, sur cet appareil${Store.ok ? '' : ' — <b style="color:var(--bad)">stockage local indisponible ici : rien ne sera conservé après fermeture</b>'}. La dictée de Chrome et Edge nécessite Internet ; le pointage manuel fonctionne hors ligne.</p>
+    <div class="mrow"><button class="btn primary" id="oDone">Fermer</button></div>`);
+  $('#oDone').onclick = closeModal;
+  $('#oMax').onchange = e => { settings.maxAuto = Math.max(10, +e.target.value || 400); saveSettings(); };
+  $('#oManual').onchange = e => { settings.manual = e.target.value === '1'; saveSettings(); };
+  $('#oFs').onclick = () => { closeModal(); const el = document.documentElement; (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => toast('Plein écran non disponible ici.')); };
+  $('#oClose').onclick = () => {
+    if (!INV) return closeModal();
+    const reopen = INV.closed;
+    askConfirm(reopen ? 'Rouvrir l\'inventaire ?' : 'Clôturer l\'inventaire ?', reopen ? 'Vous pourrez continuer le pointage.' : 'Les lots non pointés seront marqués manquants. Vous pourrez rouvrir ensuite.', reopen ? 'Rouvrir' : 'Clôturer', () => {
+      INV.closed = !reopen; const h = addHist({ kind: reopen ? 'reopen' : 'close', cmd: '', label: reopen ? 'Inventaire rouvert' : 'Inventaire clôturé', rows: [] });
+      persist([h]); refreshInvList(INV.id); renderAll();
+    });
+  };
+  $('#oReset').onclick = () => {
+    if (!INV) return closeModal();
+    askConfirm('Réinitialiser le pointage ?', `Les ${DATA.lots.length.toLocaleString('fr-FR')} lots repasseront à « non pointé ». L'opération reste annulable avec « Annuler la dernière action ».`, 'Réinitialiser', () => {
+      const rows = [], prevS = [], prevT = [];
+      for (let i = 0; i < DATA.lots.length; i++) if (ST.status[i]) { rows.push(i); prevS.push(1); prevT.push(ST.time[i]); ST.status[i] = 0; ST.time[i] = 0; }
+      const h = addHist({ kind: 'uncheck', cmd: 'Réinitialisation', label: 'Réinitialisation complète', rows, prevS, prevT, result: rows.length + ' lots remis à zéro' });
+      lastRow = -1; ST.lastRow = -1; persist([h]); afterChange(false); $('#scroller').scrollTop = 0; renderRows();
+    }, true);
+  };
+  $('#oDel').onclick = () => {
+    if (!INV) return closeModal();
+    askConfirm('Supprimer cet inventaire ?', `« ${esc(INV.name)} » et tout son historique seront effacés de cet appareil. Pensez à exporter avant.`, 'Supprimer définitivement', async () => {
+      const id = INV.id;
+      if (Store.ok) await Store.remove(id); else ['inventories', 'data', 'state', 'history'].forEach(s => memFallback[s].delete(id));
+      INV = null; DATA = null; ST = null; HIST = []; VIEW = [];
+      const list = await refreshInvList();
+      if (list.length) { $('#invSel').value = list[0].id; await loadInventory(list[0].id); } else { buildHead(); renderAll(); }
+    }, true);
+  };
+}
+
+/* ---------- Événements ---------- */
+$('#bMic').onclick = () => voice.want ? voice.stop() : voice.start();
+$('#bPause').onclick = () => voice.paused ? voice.resume() : voice.pause();
+$('#bUndo').onclick = undo;
+$('#bImport').onclick = () => $('#file').click();
+$('#file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) onFile(f); };
+$('#bExport').onclick = exportXlsx;
+$('#bMore').onclick = moreMenu;
+$('#invSel').onchange = e => { if (e.target.value) loadInventory(e.target.value); };
+$('#cmdForm').onsubmit = e => { e.preventDefault(); const v = $('#cmdInput').value; if (!v.trim()) return; handlePhrase([v], 'text'); $('#cmdInput').value = ''; };
+$('#findForm').onsubmit = e => {
+  e.preventDefault(); if (!INV) return;
+  const q = $('#findInput').value.trim(); if (!q) return;
+  let rows = IDX.byText.get(q) || (/^\d+$/.test(q) ? IDX.map.get(Number(q)) : null);
+  if (!rows) { const ql = q.toLowerCase(); const r = ORDER.find(i => String(DATA.lots[i]).toLowerCase().includes(ql)); rows = r !== undefined ? [r] : null; }
+  if (!rows) { $('#findHint').textContent = `Le lot ${q} n'existe pas dans la liste.`; return; }
+  if (filter !== 'all') { filter = 'all'; document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.f === 'all')); applyFilter(); }
+  flashRows = new Set(rows); scrollToRow(rows[0], true); renderRows();
+  $('#findHint').textContent = `Lot ${DATA.lots[rows[0]]} : ${ST.status[rows[0]] ? 'présent, pointé à ' + fmtT(ST.time[rows[0]]) : 'non pointé'}. Touchez son statut pour le modifier.`;
+};
+document.querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = c.dataset.f; document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === c)); applyFilter(); $('#scroller').scrollTop = 0; renderRows(); });
+$('#autoScroll').checked = settings.autoScroll;
+$('#autoScroll').onchange = e => { settings.autoScroll = e.target.checked; saveSettings(); };
+$('#scroller').addEventListener('scroll', () => requestAnimationFrame(renderRows), { passive: true });
+$('#spacer').addEventListener('click', e => { const b = e.target.closest('.st'); if (b) toggleRow(+b.dataset.r); });
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') { if (confirmCtx) closeConfirm(); else closeModal(); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('#modal').hidden) { if (confirmCtx) closeConfirm(); else closeModal(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); undo(); }
+});
+addEventListener('resize', () => { buildHead(); renderRows(); });
+const net = () => { $('#kNet').textContent = navigator.onLine ? 'En ligne' : 'Hors ligne (voix indisponible)'; };
+addEventListener('online', net); addEventListener('offline', net); net();
+
+/* ---------- Démarrage ---------- */
+(async function boot() {
+  if (!SR) showVoiceNotice('unsupported');
+  await Store.open();
+  if (!Store.ok) $('#kSave').textContent = 'Stockage local indisponible';
+  let list = await refreshInvList();
+  for (const i of list.filter(i => /^Démo\b/.test(i.name))) { if (Store.ok) await Store.remove(i.id); else ['inventories', 'data', 'state', 'history'].forEach(s => memFallback[s].delete(i.id)); }
+  list = await refreshInvList();
+  if (!list.length) { buildHead(); renderAll(); return; }
+  const id = list.some(i => i.id === settings.last) ? settings.last : list[0].id;
+  $('#invSel').value = id;
+  await loadInventory(id);
+})();
+})();
+</script>
+</body></html>
