@@ -1,0 +1,24 @@
+name: Tests des commandes vocales
+
+# Vérifie à chaque modification que les commandes (numéros, plages, « sauf », annulations,
+# numéros inexistants, doublons) sont toujours comprises comme prévu, et que index.html est à jour.
+on:
+  push:
+    paths: ["index.html", "src/**", "tests/**", "build.js"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lancer les tests
+        run: node tests/test.js
+      - name: Vérifier que index.html correspond aux sources
+        run: |
+          cp index.html /tmp/avant.html
+          node build.js
+          cmp -s index.html /tmp/avant.html || { echo "::error::index.html n'est pas à jour : lancer « node build.js » puis enregistrer"; exit 1; }

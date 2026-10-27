@@ -1,4 +1,4 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style></head><body><title>Pointage vocal des lots</title>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1d4f91"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon-32.png" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style></head><body><title>Pointage vocal des lots</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
@@ -71,6 +71,8 @@ select.btn { padding-right: 8px; max-width: 260px }
 .vbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end }
 .notice { font-size: 13px; padding: 10px 12px; border-radius: var(--r); background: var(--warn-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent) }
 .notice b { color: var(--warn) }
+.notice code { font-family: var(--f-num); font-size: 12px }
+.notice .btn { margin-top: 8px; min-height: 36px }
 
 /* tableau de bord */
 .dash { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 2fr; gap: 10px }
@@ -173,6 +175,7 @@ select.btn { padding-right: 8px; max-width: 260px }
   </header>
 
   <div class="notice" id="voiceNotice" hidden></div>
+  <div class="notice" id="dbNotice" hidden></div>
 
   <section class="voice" aria-label="Pointage vocal">
     <button class="mic" id="bMic" aria-label="Démarrer le pointage vocal" title="Démarrer le pointage vocal">
@@ -243,6 +246,12 @@ select.btn { padding-right: 8px; max-width: 260px }
 <div class="modal-back" id="modal" hidden><div class="modal" role="dialog" aria-modal="true" id="modalBox"></div></div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* Projet Firebase dédié : ltc-pointage-lots. Tant que FIREBASE_CONFIG vaut null, les données restent sur l'appareil. */
+const FIREBASE_CONFIG = null;
+</script>
 <script>
 /* ===== Moteur de commandes vocales (pur, testable) ===== */
 const Parser = (function () {
@@ -596,8 +605,6 @@ const Store = {
     });
   }
 };
-const memFallback = { inventories: new Map(), data: new Map(), state: new Map(), history: new Map() };
-
 /* ---------- État de l'application ---------- */
 let INV = null, DATA = null, ST = null, HIST = [], IDX = null;
 let ORDER = [], VIEW = [], filter = 'all', flashRows = new Set(), lastRow = -1;
@@ -607,65 +614,262 @@ function saveSettings() { try { localStorage.setItem('pointage-settings', JSON.s
 
 function newState(id, n) { return { id, status: new Uint8Array(n), time: new Array(n).fill(0), anomalies: [], seq: 0, lastRow: -1 }; }
 
-async function persist(histEntries) {
-  const pairs = [['state', ST]];
-  (histEntries || []).forEach(h => pairs.push(['history', h]));
-  pairs.push(['inventories', INV]);
+const memFallback = { inventories: new Map(), data: new Map(), state: new Map(), history: new Map() };
+
+/* ---------- Base partagée Firebase (Firestore) ----------
+   pt_inventaires/{inv}        nom, colonnes, colonne des lots, clôture
+   pt_lignes/{inv}_{k}         tranche de 500 lignes du fichier importé (numéros + autres colonnes)
+   pt_etat/{inv}_{k}           pointage de la tranche : t.{i} = heure du pointage (absent = non pointé)
+   pt_journal/{inv}_{id}       historique des opérations (avec de quoi les annuler)
+   pt_anomalies/{inv}_{id}     numéros absents, commandes ambiguës ou non comprises            */
+const CHUNK = 500;
+const DEVICE = (() => { try { let d = localStorage.getItem('pointage-appareil'); if (!d) { d = 'a' + Math.random().toString(36).slice(2, 10); localStorage.setItem('pointage-appareil', d); } return d; } catch (e) { return 'a' + Math.random().toString(36).slice(2, 10); } })();
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+const Cloud = {
+  db: null, ok: false, denied: false, unsubs: [], invUnsub: null,
+  init() {
+    if (typeof FIREBASE_CONFIG === 'undefined' || !FIREBASE_CONFIG || !window.firebase) return false;
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      this.db = firebase.firestore();
+      this.db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+      this.ok = true;
+    } catch (e) { this.ok = false; }
+    return this.ok;
+  },
+  col(n) { return this.db.collection(n); },
+  FV() { return firebase.firestore.FieldValue; },
+  fail(e) {
+    if (e && e.code === 'permission-denied') { this.denied = true; showDbNotice('denied'); }
+    else if (e && e.code === 'resource-exhausted') toast('Limite gratuite Firebase du jour atteinte : réessayez demain.');
+  },
+  async commit(ops) {
+    // ops : [type, ref, data, options]
+    for (let i = 0; i < ops.length; i += 450) {
+      const b = this.db.batch();
+      ops.slice(i, i + 450).forEach(([t, ref, d, o]) => t === 'del' ? b.delete(ref) : b.set(ref, d, o || {}));
+      await b.commit();
+    }
+  },
+  histDoc(h) {
+    return { inv: h.inv, id: h.id, seq: h.seq, t: h.t, dev: h.dev || '', kind: h.kind, cmd: h.cmd || '', label: h.label || '', result: h.result || '', undone: !!h.undone,
+      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [] }) };
+  },
+  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [] }; },
+  invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, count: inv.count, chunk: CHUNK }; },
+  watchList(cb) {
+    if (this.invUnsub) this.invUnsub();
+    this.invUnsub = this.col('pt_inventaires').onSnapshot(s => cb(s.docs.map(d => d.data())), e => this.fail(e));
+  },
+  async create(inv, data, st, hist) {
+    const ops = [['set', this.col('pt_inventaires').doc(inv.id), this.invDoc(inv)]];
+    const n = data.lots.length;
+    for (let k = 0; k * CHUNK < n; k++) {
+      const a = k * CHUNK, b = Math.min(n, a + CHUNK);
+      ops.push(['set', this.col('pt_lignes').doc(`${inv.id}_${k}`), { inv: inv.id, k, lots: data.lots.slice(a, b), rows: data.rows.slice(a, b).map(r => JSON.stringify(r)) }]);
+      const t = {};
+      for (let i = a; i < b; i++) if (st.status[i]) t[i - a] = st.time[i] || Date.now();
+      ops.push(['set', this.col('pt_etat').doc(`${inv.id}_${k}`), { inv: inv.id, k, t }]);
+    }
+    (hist || []).forEach(h => ops.push(['set', this.col('pt_journal').doc(`${inv.id}_${h.id}`), this.histDoc(h)]));
+    (st.anomalies || []).forEach(a => ops.push(['set', this.col('pt_anomalies').doc(`${inv.id}_${a.id}`), Object.assign({ inv: inv.id }, a)]));
+    await this.commit(ops);
+  },
+  async save(c) {
+    const ops = [];
+    if (c.rows && c.rows.length) {
+      const byChunk = new Map();
+      for (const r of c.rows) { const k = Math.floor(r / CHUNK); if (!byChunk.has(k)) byChunk.set(k, {}); byChunk.get(k)[r - k * CHUNK] = ST.status[r] ? (ST.time[r] || Date.now()) : this.FV().delete(); }
+      for (const [k, t] of byChunk) ops.push(['set', this.col('pt_etat').doc(`${INV.id}_${k}`), { inv: INV.id, k, t }, { merge: true }]);
+    }
+    (c.hist || []).forEach(h => ops.push(['set', this.col('pt_journal').doc(`${INV.id}_${h.id}`), this.histDoc(h)]));
+    (c.ano || []).forEach(a => ops.push(['set', this.col('pt_anomalies').doc(`${INV.id}_${a.id}`), Object.assign({ inv: INV.id }, a)]));
+    if (c.meta) ops.push(['set', this.col('pt_inventaires').doc(INV.id), { closed: !!INV.closed }, { merge: true }]);
+    if (!ops.length) return;
+    const p = this.commit(ops);
+    // hors ligne, l'envoi attend le retour du réseau : l'action est déjà gardée sur l'appareil
+    if (!navigator.onLine) { $('#kSave').textContent = 'Hors ligne : enregistré sur l\'appareil'; p.catch(e => this.fail(e)); return; }
+    await p;
+  },
+  async load(id, onRemote) {
+    this.stop();
+    const invSnap = await this.col('pt_inventaires').doc(id).get();
+    if (!invSnap.exists) return null;
+    const inv = invSnap.data();
+    const lignes = await this.col('pt_lignes').where('inv', '==', id).get();
+    const parts = lignes.docs.map(d => d.data()).sort((a, b) => a.k - b.k);
+    const data = { id, lots: [], rows: [] };
+    parts.forEach(p => { data.lots.push(...p.lots); p.rows.forEach(r => { try { data.rows.push(JSON.parse(r)); } catch (e) { data.rows.push([]); } }); });
+    const st = newState(id, data.lots.length);
+    const ready = [];
+    const listen = (name, apply) => ready.push(new Promise(res => {
+      let first = true;
+      this.unsubs.push(this.col(name).where('inv', '==', id).onSnapshot(s => { apply(s.docs.map(d => d.data())); if (first) { first = false; res(); } else onRemote(name); },
+        e => { this.fail(e); if (first) { first = false; res(); } }));
+    }));
+    listen('pt_etat', docs => {
+      for (const d of docs) {
+        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {};
+        for (let i = a; i < b; i++) { const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0; }
+      }
+    });
+    const hist = [];   // même tableau que HIST une fois l'inventaire ouvert
+    listen('pt_journal', docs => {
+      const h = docs.map(x => this.histFrom(x)).sort((a, b) => (a.t - b.t) || (a.seq - b.seq) || String(a.id).localeCompare(String(b.id)));
+      hist.length = 0; hist.push(...h);
+      st.seq = Math.max(st.seq || 0, ...h.map(x => x.seq || 0));
+    });
+    listen('pt_anomalies', docs => { st.anomalies.length = 0; st.anomalies.push(...docs.sort((x, y) => x.t - y.t)); });
+    this.unsubs.push(this.col('pt_inventaires').doc(id).onSnapshot(s => { if (s.exists && INV && INV.id === id) { const c = !!s.data().closed; if (c !== INV.closed) { INV.closed = c; onRemote('pt_inventaires'); } } }, () => {}));
+    await Promise.all(ready);
+    return { inv, data, st, hist };
+  },
+  stop() { this.unsubs.forEach(u => { try { u(); } catch (e) {} }); this.unsubs = []; },
+  async remove(id) {
+    this.stop();
+    const ops = [];
+    for (const n of ['pt_lignes', 'pt_etat', 'pt_journal', 'pt_anomalies']) {
+      const s = await this.col(n).where('inv', '==', id).get();
+      s.docs.forEach(d => ops.push(['del', d.ref]));
+    }
+    ops.push(['del', this.col('pt_inventaires').doc(id)]);
+    await this.commit(ops);
+  }
+};
+
+/* ---------- Choix de la base : Firebase si configuré, sinon cet appareil ---------- */
+let MODE = 'local';
+let invList = [];
+
+async function persist(c) {
+  c = c || {};
+  if (MODE === 'cloud') {
+    try { await Cloud.save(c); if (navigator.onLine) $('#kSave').textContent = 'Base partagée · enregistré ' + fmtT(Date.now()); }
+    catch (e) { Cloud.fail(e); $('#kSave').textContent = 'Échec d\'enregistrement'; if (!Cloud.denied) toast('Enregistrement impossible pour le moment : ' + (e && e.message || e)); }
+    return;
+  }
+  const pairs = [['state', ST], ['inventories', INV]];
+  (c.hist || []).forEach(h => pairs.push(['history', h]));
   if (!Store.ok) { memFallback.state.set(ST.id, ST); return; }
-  try { await Store.put(pairs); $('#kSave').textContent = 'Sauvegardé ' + fmtT(Date.now()); }
+  try { await Store.put(pairs); $('#kSave').textContent = 'Sur cet appareil · enregistré ' + fmtT(Date.now()); }
   catch (e) { $('#kSave').textContent = 'Échec de sauvegarde'; toast('La sauvegarde locale a échoué : ' + (e && e.message || e)); }
 }
 
-async function loadInventory(id) {
+async function localLoad(id) {
   let inv, data, st, hist;
   if (Store.ok) { inv = await Store.get('inventories', id); data = await Store.get('data', id); st = await Store.get('state', id); hist = await Store.historyOf(id) || []; }
   else { inv = memFallback.inventories.get(id); data = memFallback.data.get(id); st = memFallback.state.get(id); hist = memFallback.history.get(id) || []; }
-  if (!inv || !data) return false;
-  INV = inv; DATA = data; ST = st || newState(id, data.lots.length);
-  if (!(ST.status instanceof Uint8Array)) ST.status = Uint8Array.from(ST.status);
-  HIST = hist.sort((a, b) => a.seq - b.seq);
+  if (!inv || !data) return null;
+  st = st || newState(id, data.lots.length);
+  if (!(st.status instanceof Uint8Array)) st.status = Uint8Array.from(st.status);
+  return { inv, data, st, hist: hist.sort((a, b) => a.seq - b.seq) };
+}
+
+let remoteT = null;
+function onRemote() {
+  clearTimeout(remoteT);
+  remoteT = setTimeout(() => { if (!INV) return; applyFilter(); renderAll(); refreshInvSelect(INV.id); }, 120);
+}
+
+async function loadInventory(id) {
+  const got = MODE === 'cloud' ? await Cloud.load(id, onRemote) : await localLoad(id);
+  if (!got) return false;
+  INV = got.inv; DATA = got.data; ST = got.st; HIST = got.hist;
   IDX = buildIndex(DATA.lots);
   ORDER = DATA.lots.map((_, i) => i);
   const key = i => { const g = String(DATA.lots[i]).match(/\d+/g); return g && g.length === 1 ? Number(g[0]) : Infinity; };
   const keys = ORDER.map(key);
   ORDER.sort((a, b) => (keys[a] - keys[b]) || String(DATA.lots[a]).localeCompare(String(DATA.lots[b]), 'fr', { numeric: true }) || a - b);
   POS = new Int32Array(ORDER.length); ORDER.forEach((r, p) => POS[r] = p);
-  lastRow = ST.lastRow ?? -1; flashRows = new Set();
+  const lastChk = [...HIST].reverse().find(x => x.kind === 'check' && !x.undone && x.rows.length && (x.dev === DEVICE || !x.dev));
+  lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
+  flashRows = new Set();
   settings.last = id; saveSettings();
   buildHead(); applyFilter(); renderAll();
   return true;
 }
 let POS = new Int32Array(0);
 
-async function createInventory(name, columns, rows, lotCol) {
-  const id = 'inv' + Date.now().toString(36);
-  const lots = rows.map(r => String(r[lotCol] ?? '').trim());
-  const keep = []; const keptRows = [];
-  lots.forEach((l, i) => { if (l !== '') { keep.push(l); keptRows.push(rows[i]); } });
-  const inv = { id, name, created: Date.now(), closed: false, columns, lotCol, count: keep.length };
+function makeInventory(name, columns, rows, lotCol) {
+  const id = 'inv' + uid();
+  const keep = [], keptRows = [];
+  rows.forEach(r => { const l = String(r[lotCol] ?? '').trim(); if (l !== '') { keep.push(l); keptRows.push(r.map(v => String(v ?? ''))); } });
+  const inv = { id, name, created: Date.now(), closed: false, columns: columns.map(String), lotCol, count: keep.length };
   const data = { id, lots: keep, rows: keptRows };
   const st = newState(id, keep.length);
   const idx = buildIndex(keep);
-  const h = { inv: id, seq: 1, t: Date.now(), kind: 'import', cmd: '', label: `Import de ${keep.length} lots` + (idx.dupRows.size ? ` · ${idx.dupRows.size} lignes en doublon` : ''), rows: [] };
+  const h = { inv: id, id: uid(), seq: 1, t: Date.now(), dev: DEVICE, kind: 'import', cmd: '', label: `Import de ${keep.length} lots` + (idx.dupRows.size ? ` · ${idx.dupRows.size} lignes en doublon` : ''), rows: [] };
   st.seq = 1;
-  if (Store.ok) await Store.put([['inventories', inv], ['data', data], ['state', st], ['history', h]]);
-  else { memFallback.inventories.set(id, inv); memFallback.data.set(id, data); memFallback.state.set(id, st); memFallback.history.set(id, [h]); }
-  await refreshInvList(id);
-  await loadInventory(id);
-  toast(`Inventaire « ${name} » créé : ${keep.length} lots`);
+  return { inv, data, st, hist: [h] };
 }
 
-async function refreshInvList(sel) {
-  const list = Store.ok ? (await Store.all('inventories') || []) : Array.from(memFallback.inventories.values());
-  list.sort((a, b) => b.created - a.created);
-  const s = $('#invSel');
+async function createInventory(name, columns, rows, lotCol) {
+  const x = makeInventory(name, columns, rows, lotCol);
+  const n = x.data.lots.length;
+  try {
+    if (MODE === 'cloud') { toast(`Envoi de ${n} lots vers la base…`); await Cloud.create(x.inv, x.data, x.st, x.hist); invList = invList.filter(i => i.id !== x.inv.id).concat([x.inv]); }
+    else if (Store.ok) await Store.put([['inventories', x.inv], ['data', x.data], ['state', x.st], ['history', x.hist[0]]]);
+    else { memFallback.inventories.set(x.inv.id, x.inv); memFallback.data.set(x.inv.id, x.data); memFallback.state.set(x.inv.id, x.st); memFallback.history.set(x.inv.id, x.hist); }
+  } catch (e) { Cloud.fail(e); toast('Création impossible : ' + (e && e.message || e)); return; }
+  await refreshInvList(x.inv.id);
+  await loadInventory(x.inv.id);
+  toast(`Inventaire « ${name} » créé : ${n} lots`);
+}
+
+function refreshInvSelect(sel) {
+  const list = invList.slice().sort((a, b) => b.created - a.created);
+  const s = $('#invSel'), cur = sel || s.value;
   s.innerHTML = list.length ? list.map(i => `<option value="${esc(i.id)}">${esc(i.name)}${i.closed ? ' (clôturé)' : ''}</option>`).join('') : '<option value="">Aucun inventaire</option>';
-  if (sel) s.value = sel;
+  if (cur && list.some(i => i.id === cur)) s.value = cur;
   return list;
+}
+async function refreshInvList(sel) {
+  if (MODE === 'local') invList = Store.ok ? (await Store.all('inventories') || []) : Array.from(memFallback.inventories.values());
+  return refreshInvSelect(sel);
+}
+
+async function removeInventory(id) {
+  if (MODE === 'cloud') { await Cloud.remove(id); invList = invList.filter(i => i.id !== id); }
+  else if (Store.ok) await Store.remove(id);
+  else ['inventories', 'data', 'state', 'history'].forEach(s => memFallback[s].delete(id));
+}
+
+// Inventaires commencés sur cet appareil avant le branchement de Firebase
+async function localInventories() { if (!Store.ok) return []; try { return await Store.all('inventories') || []; } catch (e) { return []; } }
+async function sendLocalToCloud() {
+  const list = await localInventories();
+  let n = 0;
+  for (const i of list) {
+    const x = await localLoad(i.id); if (!x) continue;
+    x.hist.forEach(h => { h.id = h.id || uid(); h.dev = h.dev || DEVICE; });
+    x.st.anomalies.forEach(a => a.id = a.id || uid());
+    await Cloud.create(x.inv, x.data, x.st, x.hist);
+    await Store.remove(i.id); n++;
+  }
+  toast(n ? `${n} inventaire${n > 1 ? 's' : ''} envoyé${n > 1 ? 's' : ''} vers la base partagée` : 'Rien à envoyer.');
+  return n;
+}
+
+function showDbNotice(kind) {
+  const n = $('#dbNotice'); n.hidden = false;
+  n.innerHTML = {
+    denied: '<b>La base Firebase refuse l\'accès.</b> Les règles de sécurité ne sont pas encore publiées : copiez le contenu de <code>firestore.rules</code> dans Firebase → Firestore Database → Règles, puis « Publier ».',
+    local: '<b>Base partagée pas encore branchée.</b> Les inventaires sont enregistrés sur cet appareil uniquement.',
+    pending: `<b>Inventaires sur cet appareil.</b> Des inventaires commencés avant le branchement de la base sont encore ici seulement. <button class="btn" id="bSendCloud">Les envoyer vers la base partagée</button>`
+  }[kind];
+  if (kind === 'pending') $('#bSendCloud').onclick = async () => { $('#bSendCloud').disabled = true; try { await sendLocalToCloud(); n.hidden = true; } catch (e) { Cloud.fail(e); toast('Envoi impossible : ' + (e && e.message || e)); $('#bSendCloud').disabled = false; } };
 }
 
 /* ---------- Opérations ---------- */
-function addHist(h) { ST.seq++; h.inv = INV.id; h.seq = ST.seq; h.t = Date.now(); HIST.push(h); if (!Store.ok) { const a = memFallback.history.get(INV.id) || []; a.push(h); memFallback.history.set(INV.id, a); } return h; }
+function addHist(h) {
+  ST.seq = (ST.seq || 0) + 1; h.inv = INV.id; h.seq = ST.seq; h.t = Date.now(); h.id = uid(); h.dev = DEVICE;
+  HIST.push(h);
+  if (MODE === 'local' && !Store.ok) { const a = memFallback.history.get(INV.id) || []; a.push(h); memFallback.history.set(INV.id, a); }
+  return h;
+}
+function addAno(a) { a.id = uid(); a.dev = DEVICE; ST.anomalies.push(a); return a; }
+
 
 function applyPlan(plan, r, cmd) {
   if (!INV) { toast("Importez d'abord une liste de lots."); return; }
@@ -680,10 +884,9 @@ function applyPlan(plan, r, cmd) {
   const entries = [];
   const anoAdd = [];
   if (plan.mode === 'check') {
-    r.missing.forEach(n => anoAdd.push({ t: now, kind: 'Numéro absent de la liste', n: String(n), cmd }));
-    r.emptyRanges.forEach(it => anoAdd.push({ t: now, kind: 'Aucun lot attendu dans la plage', n: `${it.a} → ${it.b}`, cmd }));
+    r.missing.forEach(n => anoAdd.push(addAno({ t: now, kind: 'Numéro absent de la liste', n: String(n), cmd })));
+    r.emptyRanges.forEach(it => anoAdd.push(addAno({ t: now, kind: 'Aucun lot attendu dans la plage', n: `${it.a} → ${it.b}`, cmd })));
   }
-  ST.anomalies.push(...anoAdd);
   let parts = [];
   if (changed.length) parts.push(`<span class="ok">${target ? '✓' : '↺'} ${changed.length} lot${changed.length > 1 ? 's' : ''} ${target ? 'pointé' : 'retiré'}${changed.length > 1 ? 's' : ''}</span>`);
   if (already) parts.push(`${already} ${target ? 'déjà présent' : 'déjà non pointé'}${already > 1 ? 's' : ''}`);
@@ -695,14 +898,17 @@ function applyPlan(plan, r, cmd) {
   flashRows = new Set(changed);
   setResult(`<b>${esc(plan.label)}</b> — ${parts.join(' · ') || 'rien à changer'}`);
   if (r.missing.length || r.emptyRanges.length) beep(); else if (changed.length) tick();
-  persist(entries); afterChange(true);
+  persist({ rows: changed, hist: entries, ano: anoAdd }); afterChange(true);
 }
 
 function undo() {
   if (!INV) return;
+  // d'abord la dernière action faite sur cet appareil (une autre personne peut pointer en même temps)
+  const can = h => (h.kind === 'check' || h.kind === 'uncheck') && !h.undone && h.rows.length;
+  const mine = HIST.some(h => can(h) && h.dev === DEVICE);
   for (let i = HIST.length - 1; i >= 0; i--) {
     const h = HIST[i];
-    if ((h.kind === 'check' || h.kind === 'uncheck') && !h.undone && h.rows.length) {
+    if (can(h) && (!mine || h.dev === DEVICE)) {
       h.rows.forEach((row, k) => { ST.status[row] = h.prevS[k]; ST.time[row] = h.prevT[k]; });
       h.undone = true;
       const u = addHist({ kind: 'undo', cmd: 'Annuler', label: `Annulation : ${h.label}`, rows: [], result: `${h.rows.length} lot(s) remis dans leur état précédent` });
@@ -710,7 +916,7 @@ function undo() {
       const lastChk = [...HIST].reverse().find(x => x.kind === 'check' && !x.undone && x.rows.length);
       lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
       setResult(`<b>Annulé</b> — ${esc(h.label)} (${h.rows.length} lot${h.rows.length > 1 ? 's' : ''})`);
-      persist([h, u]); afterChange(true);
+      persist({ rows: h.rows, hist: [h, u] }); afterChange(true);
       return;
     }
   }
@@ -749,7 +955,7 @@ function handlePhrase(alts, source) {
   if (!INV) { setResult("Importez d'abord une liste de lots."); return; }
   if (main.type === 'empty' && !results.some(r => r.type === 'plans')) {
     setResult(`<span class="w">Aucun numéro reconnu</span> dans « ${esc(text)} ».`);
-    ST.anomalies.push({ t: Date.now(), kind: 'Commande non comprise', n: '', cmd: text }); persist([]); renderAno();
+    persist({ ano: [addAno({ t: Date.now(), kind: 'Commande non comprise', n: '', cmd: text })] }); renderAno();
     return;
   }
   const d = decide(results, IDX, { maxAuto: settings.maxAuto, manual: settings.manual });
@@ -767,7 +973,7 @@ function candDesc(c) {
 
 function openConfirm(text, d) {
   confirmCtx = { text, d };
-  ST.anomalies.push({ t: Date.now(), kind: 'Commande ambiguë', n: '', cmd: text + (d.reason ? ' — ' + d.reason : '') }); persist([]); renderAno();
+  persist({ ano: [addAno({ t: Date.now(), kind: 'Commande ambiguë', n: '', cmd: text + (d.reason ? ' — ' + d.reason : '') })] }); renderAno();
   modal(`
     <h3>Confirmer la commande</h3>
     <p>${esc(d.reason || 'Vérifiez avant de pointer.')}</p>
@@ -849,10 +1055,10 @@ const voice = {
 };
 function showVoiceNotice(kind) {
   const n = $('#voiceNotice'); n.hidden = false;
-  const local = 'Pour utiliser la voix, ouvrez le fichier <b>pointage-lots.html</b> téléchargé dans Chrome ou Edge sur l\'ordinateur ou la tablette, et autorisez le micro.';
+  const local = 'Pour utiliser la voix, ouvrez le site <b>rottweilert.github.io/LTC-pointage-lots</b> dans Chrome ou Edge (ordinateur, tablette ou téléphone) et autorisez le micro.';
   n.innerHTML = {
     unsupported: '<b>Reconnaissance vocale indisponible dans ce navigateur.</b> ' + local + ' Le pointage manuel et la commande écrite fonctionnent ici.',
-    denied: '<b>Le micro est bloqué ici.</b> Cette page affichée dans claude.ai n\'a pas accès au micro. ' + local + ' En attendant, tapez les commandes dans « Commande écrite ».',
+    denied: '<b>Le micro est bloqué ici.</b> Le navigateur ou la page n\'a pas l\'autorisation d\'utiliser le micro. ' + local + ' En attendant, tapez les commandes dans « Commande écrite ».',
     network: '<b>Pas de connexion au service vocal.</b> La dictée de Chrome et Edge passe par un service en ligne : vérifiez la connexion Internet. Le pointage manuel reste disponible hors ligne.'
   }[kind];
 }
@@ -1064,7 +1270,7 @@ function moreMenu() {
       <label>Seuil de confirmation des plages (lots)<input id="oMax" type="number" min="10" step="10" value="${settings.maxAuto}"></label>
       <label>Validation des commandes<select id="oManual"><option value="0" ${!settings.manual ? 'selected' : ''}>Automatique si certaine</option><option value="1" ${settings.manual ? 'selected' : ''}>Toujours demander</option></select></label>
     </div>
-    <p class="hint">Les données sont enregistrées dans ce navigateur, sur cet appareil${Store.ok ? '' : ' — <b style="color:var(--bad)">stockage local indisponible ici : rien ne sera conservé après fermeture</b>'}. La dictée de Chrome et Edge nécessite Internet ; le pointage manuel fonctionne hors ligne.</p>
+    <p class="hint">${MODE === 'cloud' ? 'Les données sont dans la base partagée Firebase : tous les appareils voient le même inventaire en direct. Hors ligne, les actions sont gardées sur l\'appareil et envoyées au retour du réseau.' : 'Les données sont enregistrées dans ce navigateur, sur cet appareil' + (Store.ok ? '.' : ' — <b style="color:var(--bad)">stockage local indisponible ici : rien ne sera conservé après fermeture</b>.')} La dictée de Chrome et Edge nécessite Internet ; le pointage manuel fonctionne hors ligne.</p>
     <div class="mrow"><button class="btn primary" id="oDone">Fermer</button></div>`);
   $('#oDone').onclick = closeModal;
   $('#oMax').onchange = e => { settings.maxAuto = Math.max(10, +e.target.value || 400); saveSettings(); };
@@ -1075,7 +1281,8 @@ function moreMenu() {
     const reopen = INV.closed;
     askConfirm(reopen ? 'Rouvrir l\'inventaire ?' : 'Clôturer l\'inventaire ?', reopen ? 'Vous pourrez continuer le pointage.' : 'Les lots non pointés seront marqués manquants. Vous pourrez rouvrir ensuite.', reopen ? 'Rouvrir' : 'Clôturer', () => {
       INV.closed = !reopen; const h = addHist({ kind: reopen ? 'reopen' : 'close', cmd: '', label: reopen ? 'Inventaire rouvert' : 'Inventaire clôturé', rows: [] });
-      persist([h]); refreshInvList(INV.id); renderAll();
+      const it = invList.find(i => i.id === INV.id); if (it) it.closed = INV.closed;
+      persist({ hist: [h], meta: true }); refreshInvList(INV.id); renderAll();
     });
   };
   $('#oReset').onclick = () => {
@@ -1084,14 +1291,14 @@ function moreMenu() {
       const rows = [], prevS = [], prevT = [];
       for (let i = 0; i < DATA.lots.length; i++) if (ST.status[i]) { rows.push(i); prevS.push(1); prevT.push(ST.time[i]); ST.status[i] = 0; ST.time[i] = 0; }
       const h = addHist({ kind: 'uncheck', cmd: 'Réinitialisation', label: 'Réinitialisation complète', rows, prevS, prevT, result: rows.length + ' lots remis à zéro' });
-      lastRow = -1; ST.lastRow = -1; persist([h]); afterChange(false); $('#scroller').scrollTop = 0; renderRows();
+      lastRow = -1; ST.lastRow = -1; persist({ rows, hist: [h] }); afterChange(false); $('#scroller').scrollTop = 0; renderRows();
     }, true);
   };
   $('#oDel').onclick = () => {
     if (!INV) return closeModal();
     askConfirm('Supprimer cet inventaire ?', `« ${esc(INV.name)} » et tout son historique seront effacés de cet appareil. Pensez à exporter avant.`, 'Supprimer définitivement', async () => {
       const id = INV.id;
-      if (Store.ok) await Store.remove(id); else ['inventories', 'data', 'state', 'history'].forEach(s => memFallback[s].delete(id));
+      try { await removeInventory(id); } catch (e) { Cloud.fail(e); toast('Suppression impossible : ' + (e && e.message || e)); return; }
       INV = null; DATA = null; ST = null; HIST = []; VIEW = [];
       const list = await refreshInvList();
       if (list.length) { $('#invSel').value = list[0].id; await loadInventory(list[0].id); } else { buildHead(); renderAll(); }
@@ -1137,10 +1344,26 @@ addEventListener('online', net); addEventListener('offline', net); net();
 (async function boot() {
   if (!SR) showVoiceNotice('unsupported');
   await Store.open();
-  if (!Store.ok) $('#kSave').textContent = 'Stockage local indisponible';
-  let list = await refreshInvList();
-  for (const i of list.filter(i => /^Démo\b/.test(i.name))) { if (Store.ok) await Store.remove(i.id); else ['inventories', 'data', 'state', 'history'].forEach(s => memFallback[s].delete(i.id)); }
-  list = await refreshInvList();
+  if (Cloud.init()) {
+    MODE = 'cloud';
+    $('#kSave').textContent = 'Base partagée';
+    let first = true;
+    await new Promise(res => {
+      Cloud.watchList(list => {
+        invList = list; refreshInvSelect(INV && INV.id);
+        if (INV && !list.some(i => i.id === INV.id) && !first) { Cloud.stop(); INV = null; DATA = null; ST = null; HIST = []; VIEW = []; buildHead(); renderAll(); toast('Cet inventaire a été supprimé depuis un autre appareil.'); }
+        if (first) { first = false; res(); }
+      });
+      setTimeout(() => { if (first) { first = false; res(); } }, 6000);
+    });
+    if ((await localInventories()).length) showDbNotice('pending');
+  } else {
+    if (!Store.ok) $('#kSave').textContent = 'Stockage local indisponible';
+    else $('#kSave').textContent = 'Sur cet appareil';
+    const old = (await localInventories()).filter(i => /^Démo\b/.test(i.name));
+    for (const i of old) await Store.remove(i.id);
+  }
+  const list = await refreshInvList();
   if (!list.length) { buildHead(); renderAll(); return; }
   const id = list.some(i => i.id === settings.last) ? settings.last : list[0].id;
   $('#invSel').value = id;
@@ -1148,4 +1371,4 @@ addEventListener('online', net); addEventListener('offline', net); net();
 })();
 })();
 </script>
-</body></html>
+<script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));</script></body></html>
