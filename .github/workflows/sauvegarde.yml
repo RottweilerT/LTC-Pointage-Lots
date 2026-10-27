@@ -31,7 +31,7 @@ jobs:
               print("::notice::Firebase n'est pas encore branché (FIREBASE_CONFIG vide dans index.html) : rien à sauvegarder"); raise SystemExit(0)
           KEY = m.group(1)
           os.environ["PROJET"] = re.search(r'projectId:\s*"([^"]+)"', page).group(1)
-          HDR = {"Referer": "https://rottweilert.github.io/LTC-pointage-lots/"}
+          HDR = {"Referer": "https://rottweilert.github.io/LTC-Pointage-Lots/"}
           base = f"https://firestore.googleapis.com/v1/projects/{os.environ['PROJET']}/databases/(default)/documents"
           out, total = {}, 0
           for col in os.environ["COLLECTIONS"].split():
