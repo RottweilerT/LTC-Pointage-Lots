@@ -1,4 +1,4 @@
-name: Tests des commandes vocales
+name: Tests des commandes
 
 # Vérifie à chaque modification que les commandes (numéros, plages, « sauf », annulations,
 # numéros inexistants, doublons) sont toujours comprises comme prévu, et que index.html est à jour.

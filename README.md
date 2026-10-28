@@ -1,6 +1,6 @@
-# LTC – Pointage vocal des lots
+# LTC – Pointage des lots
 
-Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on annonce à voix haute les numéros présents. L'appli les coche automatiquement et exporte le résultat en Excel.
+Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on pointe les lots présents au scanner de codes-barres, au clavier ou en touchant la ligne dans le tableau. L'appli exporte le résultat en Excel.
 
 - Site : https://rottweilert.github.io/LTC-Pointage-Lots/ (GitHub Pages, mis à jour à chaque modification de la branche `main`). Installable sur téléphone et tablette (« Ajouter à l'écran d'accueil »).
 - Données partagées : Firebase Firestore (projet `ltc-pointage-lots-4bfa7`). Tous les appareils voient le même inventaire en direct ; hors ligne, les actions sont gardées sur l'appareil et envoyées au retour du réseau.
@@ -11,26 +11,24 @@ Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on an
 
 1. Ouvrir le site dans **Chrome** ou **Edge**.
 2. « Importer Excel / CSV » : choisir le fichier, la colonne des numéros de lots, éventuellement un **deuxième numéro pour pointer** (ex. code-barres à 6 chiffres + n° de lot à 5 chiffres, détecté automatiquement), et les autres colonnes à garder (affichées dans le tableau et reprises dans l'export ; le choix est proposé à nouveau au prochain import).
-   Avec deux colonnes de numéros, un lot se pointe par l'un ou l'autre, à la voix comme au scanner ; si un même numéro existe dans les deux colonnes pour des lots différents, l'appli demande laquelle.
-3. Toucher le micro et annoncer les lots (les exemples de commandes sont affichés sous le micro), ou scanner les codes-barres : la case « Saisie manuelle / scanner » pointe directement un numéro scanné ou tapé (6 chiffres, zéros initiaux tolérés).
+   Avec deux colonnes de numéros, un lot se pointe par l'un ou l'autre ; si un même numéro existe dans les deux colonnes pour des lots différents, l'appli demande laquelle.
+3. Scanner les codes-barres ou taper un numéro dans la case « Saisie manuelle / scanner » : le lot est pointé tout de suite (zéros initiaux tolérés). Dans le tableau, **toucher une ligne la coche ou la décoche**. « ↺ Annuler la dernière action » défait le dernier pointage.
    Le tableau affiche toutes les colonnes gardées (n° de lot, 2e numéro, statut, heure, puis les autres) ; s'il y en a beaucoup, il défile sur le côté et le n° de lot reste visible.
 4. « Gérer les listes » (en haut) : supprimer une ou plusieurs listes déjà traitées, ou toutes (« Cocher les clôturées », « Tout cocher »), avec confirmation.
 5. « Exporter Excel » à tout moment : 4 feuilles (inventaire complet, lots manquants, anomalies, historique). Lignes **vertes** = lots pointés, **rouges** = non pointés (ou manquants à la clôture), orange = anomalies ; filtres activés et ligne de titres figée. L'export est fabriqué par `src/xlsx-writer.js` et fonctionne hors ligne.
 
-### Commandes vocales
+### Saisies au clavier possibles
 
 | Exemple | Effet |
 | --- | --- |
-| « Lot 76 », « 79 », « le 125, le 126 et le 130 » | Pointe les lots cités |
-| « Du lot 54 au lot 69 », « de 100 à 150 », « 100 jusqu'à 150 » | Pointe tous les lots attendus de la plage |
-| « Du 200 au 250, sauf le 225 » | Plage avec exclusion |
-| « Du 54 au 69, ensuite le 76, ensuite du 80 au 100 » | Commande mixte |
-| « Annule la dernière action » | Annule le dernier pointage fait sur cet appareil (numéro ou plage) |
-| « Retire le lot 125 », « Retire les lots de 200 à 220 » | Dépointe |
-| « Répète la dernière opération » | Affiche et énonce la dernière opération |
-| « Pause » / « Reprendre » | Suspend / reprend l'écoute |
+| `20076` ou `111376` (scan) | Pointe le lot |
+| `20054 à 20069`, `du 20054 au 20069` | Pointe tous les lots attendus de la plage |
+| `20200 à 20250 sauf 20225` | Plage avec exclusion |
+| `20054 à 20069 puis 20076` | Plusieurs éléments à la suite |
+| `retire 20125`, `retire 20200 à 20220` | Dépointe |
+| `annule` | Annule la dernière action faite sur cet appareil |
 
-En cas de doute (chiffre par chiffre, plage de plus de 400 lots, transcription incertaine), une confirmation est demandée : répondre « oui », « choix 2 » ou « non ».
+Une plage de plus de 400 lots demande une confirmation.
 
 ## Base Firebase
 
@@ -48,11 +46,11 @@ Pointer une plage ne coûte qu'une écriture par tranche touchée : un inventair
 
 - **Sauvegarde de la base** : chaque nuit, copie chiffrée de toute la base dans `sauvegarde/base.json.enc` (secret du dépôt `SAUVEGARDE_CLE` requis).
 - **Restaurer la base** : remet une sauvegarde dans Firebase (taper RESTAURER pour confirmer).
-- **Tests des commandes vocales** : lancés à chaque modification.
+- **Tests des commandes** : lancés à chaque modification.
 
 ## Développement
 
-- `src/parser.js` : compréhension des commandes (nombres en français, plages, exclusions, ambiguïtés).
+- `src/parser.js` : compréhension des saisies (numéros, plages, exclusions, ambiguïtés).
 - `src/data-layer.js` : enregistrement (Firebase ou appareil) et synchronisation en direct.
 - `src/app.src.html` : interface. **Modifier ces fichiers, puis lancer `node build.js`** pour reconstruire `index.html`.
 - `node tests/test.js` : tests du moteur de commandes. `tests/fake-firebase.js` : faux Firebase pour tester dans un navigateur sans connexion.

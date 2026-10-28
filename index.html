@@ -1,10 +1,10 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1d4f91"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon-32.png" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style></head><body><title>Pointage vocal des lots</title>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1d4f91"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon-32.png" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style></head><body><title>Pointage des lots</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* Poste de pointage : bandeau de commande vocale en haut, tableau des lots à gauche, panneau de contrôle à droite */
+/* Poste de pointage : bandeau de saisie / scanner en haut, tableau des lots à gauche, panneau de suivi à droite */
 :root {
   --bg: #eef1f4; --surface: #ffffff; --surface-2: #f6f8fa; --line: #d5dbe2; --ink: #17202b; --muted: #5d6a79;
   --accent: #1d4f91; --accent-ink: #ffffff; --accent-soft: #e3ecf8;
@@ -48,27 +48,8 @@ button { cursor: pointer }
 .btn.big { min-height: 56px; padding: 12px 20px; font-size: 16px; font-weight: 600 }
 select.btn { padding-right: 8px; max-width: 260px }
 
-/* bandeau vocal */
-.voice { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center }
-.mic { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; position: relative }
-.mic svg { width: 32px; height: 32px }
-.mic.on { background: var(--live) }
-.mic.on::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 3px solid var(--live); opacity: .5; animation: pulse 1.6s ease-out infinite }
-.mic.paused { background: var(--warn) }
-@keyframes pulse { from { transform: scale(.9); opacity: .6 } to { transform: scale(1.25); opacity: 0 } }
-@media (prefers-reduced-motion: reduce) { .mic.on::after { animation: none } .flash { animation: none !important } }
-.vstate { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
-.examples { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 10px }
-.examples summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; width: fit-content; min-height: 28px; display: flex; align-items: center; gap: 6px }
-.exgrid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; align-items: baseline; margin-top: 8px }
-.exk { font-size: 13px; font-weight: 600; color: var(--muted) }
-.exv { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0 }
-.exv q { quotes: "« " " »"; font-size: 14px; background: var(--accent-soft); color: var(--ink); border-radius: 6px; padding: 3px 8px; overflow-wrap: anywhere }
-.examples .hint { margin: 8px 0 0 }
-.examples summary::-webkit-details-marker { display: none }
-.examples summary::before { content: "▸"; font-size: 14px; transition: transform .15s }
-.examples[open] summary::before { transform: rotate(90deg) }
-.examples:not([open]) summary::after { content: "— toucher pour afficher"; text-transform: none; letter-spacing: 0; font-weight: 400 }
+
+@media (prefers-reduced-motion: reduce) { .flash { animation: none !important } }
 .scan { background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center }
 .scanform { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
 .scanlbl { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600 }
@@ -76,6 +57,9 @@ select.btn { padding-right: 8px; max-width: 260px }
 .scan .field input::placeholder { font: 400 16px var(--f-ui); letter-spacing: 0 }
 .scan .field .btn { min-height: 54px; padding: 0 20px; font-size: 16px }
 .scan .hint { margin: 0 }
+.scanfoot { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 10px }
+.scanfoot .result { flex: 1 1 260px; min-width: 0 }
+.scanfoot .btn { flex: 0 0 auto }
 .lastscan { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; min-width: 150px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2) }
 .lastscan .lsk { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600 }
 .lastscan .lsv { font-size: 28px; font-weight: 600; line-height: 1.1 }
@@ -83,18 +67,9 @@ select.btn { padding-right: 8px; max-width: 260px }
 .lastscan.ok { background: var(--ok-soft) } .lastscan.ok .lss { color: var(--ok) }
 .lastscan.dup { background: var(--accent-soft) } .lastscan.dup .lss { color: var(--accent) }
 .lastscan.bad { background: var(--warn-soft) } .lastscan.bad .lss { color: var(--warn) }
-.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 3px 9px; border-radius: 99px; background: var(--idle); color: var(--idle-ink); width: fit-content }
-.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor }
-.pill.live { background: var(--bad-soft); color: var(--live) }
-.pill.pause { background: var(--warn-soft); color: var(--warn) }
-.pill.err { background: var(--bad-soft); color: var(--bad) }
-.heard { font-size: 20px; font-weight: 500; min-height: 30px; overflow-wrap: anywhere }
-.heard.interim { color: var(--muted); font-style: italic }
-.heard:empty { display: none }
 .result { font-size: 14px; color: var(--muted); overflow-wrap: anywhere }
 .result b { color: var(--ink) }
 .result .ok { color: var(--ok); font-weight: 600 } .result .w { color: var(--warn); font-weight: 600 } .result .e { color: var(--bad); font-weight: 600 }
-.vbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end }
 .notice { font-size: 13px; padding: 10px 12px; border-radius: var(--r); background: var(--warn-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent) }
 .notice b { color: var(--warn) }
 .notice code { font-family: var(--f-num); font-size: 12px }
@@ -133,6 +108,9 @@ select.btn { padding-right: 8px; max-width: 260px }
 .trow .lot { font: 600 17px var(--f-num); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .trow .ex { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .trow .tm { font: 14px var(--f-num); color: var(--muted) }
+.trow { cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none }
+@media (hover: hover) { .trow:hover { box-shadow: inset 0 0 0 2px var(--accent-soft) } }
+.trow:active { filter: brightness(.94) }
 .trow.s1 { background: var(--ok-soft) }
 .trow.miss { background: var(--bad-soft) }
 .trow.next { box-shadow: inset 4px 0 0 var(--accent) }
@@ -205,12 +183,8 @@ select.btn { padding-right: 8px; max-width: 260px }
 
 @media (max-width: 1100px) { .dash { grid-template-columns: repeat(3, minmax(0, 1fr)) } .prog { grid-column: 1 / -1 } .main { grid-template-columns: 1fr } }
 @media (max-width: 640px) {
-  .exgrid { grid-template-columns: 1fr; gap: 4px } .exk { margin-top: 4px }
-  .scan { grid-template-columns: 1fr } .lastscan { flex-direction: row; align-items: baseline; justify-content: space-between; min-width: 0 } .lastscan .lsv { font-size: 22px }
-  .voice { grid-template-columns: auto 1fr } .vbtns { grid-column: 1 / -1; justify-content: stretch } .vbtns .btn { flex: 1 }
-  .mic { width: 64px; height: 64px } .heard { font-size: 17px }
+  .scan { grid-template-columns: 1fr } .lastscan { flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; min-width: 0 } .lastscan .lsv { font-size: 19px }
   .dash { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px } .stat { padding: 8px 10px } .stat .k { font-size: 10px } .stat .v { font-size: 20px }
-  .vbtns { flex-wrap: nowrap } .vbtns .btn.big { min-height: 50px; padding: 10px 12px; font-size: 15px; white-space: normal }
   .grid2 { grid-template-columns: 1fr }
   .brand small { display: none }
   .scroller { height: 55vh }
@@ -220,7 +194,7 @@ select.btn { padding-right: 8px; max-width: 260px }
 
 <div class="wrap" id="app">
   <header class="top">
-    <div class="brand">Pointage vocal des lots <small id="invMeta"></small></div>
+    <div class="brand">Pointage des lots <small id="invMeta"></small></div>
     <select class="btn" id="invSel" aria-label="Inventaire"></select>
     <button class="btn" id="bManage" title="Gérer et supprimer les listes">Gérer les listes</button>
     <button class="btn" id="bImport">Importer Excel / CSV</button>
@@ -229,41 +203,7 @@ select.btn { padding-right: 8px; max-width: 260px }
     <input type="file" id="file" accept=".xlsx,.xls,.csv,.ods" hidden>
   </header>
 
-  <div class="notice" id="voiceNotice" hidden></div>
   <div class="notice" id="dbNotice" hidden></div>
-
-  <section class="voice" aria-label="Pointage vocal">
-    <button class="mic" id="bMic" aria-label="Démarrer le pointage vocal" title="Démarrer le pointage vocal">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
-    </button>
-    <div class="vstate">
-      <span class="pill" id="micPill">Micro inactif</span>
-      <div class="heard" id="heard"></div>
-      <div class="result" id="result">Dernière commande : —</div>
-    </div>
-    <div class="vbtns">
-      <button class="btn big" id="bPause" disabled>Pause</button>
-      <button class="btn big" id="bUndo">Annuler la dernière action</button>
-    </div>
-    <details class="examples" id="examples" open>
-      <summary>Commandes vocales reconnues</summary>
-      <div class="exgrid">
-        <span class="exk">Un ou plusieurs lots</span>
-        <span class="exv"><q>lot 76</q><q>79</q><q>le 125, le 126 et le 130</q><q>lot 100 puis lot 108</q><q>mille deux cent cinquante</q></span>
-        <span class="exk">Une plage</span>
-        <span class="exv"><q>du 54 au 69</q><q>du lot 54 au lot 69</q><q>de 100 à 150</q><q>les lots 100 à 150</q><q>100 jusqu'à 150</q><q>entre 100 et 150</q></span>
-        <span class="exk">Exclure, enchaîner</span>
-        <span class="exv"><q>du 200 au 250 sauf le 225</q><q>du 54 au 69, ensuite le 76, ensuite du 80 au 100</q></span>
-        <span class="exk">Corriger</span>
-        <span class="exv"><q>annule</q><q>retire le lot 125</q><q>retire les lots de 200 à 220</q><q>répète la dernière opération</q></span>
-        <span class="exk">Micro</span>
-        <span class="exv"><q>pause</q><q>reprendre</q></span>
-        <span class="exk">Confirmer</span>
-        <span class="exv"><q>oui</q><q>choix 2</q><q>non</q></span>
-      </div>
-      <p class="hint">Le mot « lot » est facultatif. Dites les numéros en entier plutôt que chiffre par chiffre, et marquez une courte pause entre deux phrases.</p>
-    </details>
-  </section>
 
   <section class="scan" aria-label="Saisie manuelle et scanner">
     <form class="scanform" id="scanForm">
@@ -272,9 +212,13 @@ select.btn { padding-right: 8px; max-width: 260px }
         <input id="scanInput" placeholder="Code-barres ou n° de lot" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
         <button class="btn primary">Pointer</button>
       </div>
-      <div class="hint">Un numéro seul est pointé directement. Vous pouvez aussi taper une commande comme à l'oral : « du 200 au 250 sauf 225 ».</div>
+      <div class="hint">Un numéro scanné ou tapé est pointé tout de suite. Plage possible : « 20000 à 20050 sauf 20025 ». Dans le tableau, touchez une ligne pour la cocher ou la décocher.</div>
     </form>
-    <div class="lastscan" id="lastScan" aria-live="polite"><span class="lsk">Dernier scan</span><span class="lsv num" id="lsNum">—</span><span class="lss" id="lsState">Prêt</span></div>
+    <div class="lastscan" id="lastScan" aria-live="polite"><span class="lsk">Dernier pointage</span><span class="lsv num" id="lsNum">—</span><span class="lss" id="lsState">Prêt</span></div>
+    <div class="scanfoot">
+      <div class="result" id="result">Dernière opération : —</div>
+      <button class="btn" id="bUndo">↺ Annuler la dernière action</button>
+    </div>
   </section>
 
   <section class="dash" aria-label="Tableau de bord">
@@ -306,18 +250,8 @@ select.btn { padding-right: 8px; max-width: 260px }
         <div class="nextlist" id="nextList"><span>—</span></div>
       </section>
       <section class="panel">
-        <h2>Recherche manuelle</h2>
-        <form class="field" id="findForm"><input id="findInput" placeholder="Numéro de lot" inputmode="numeric" autocomplete="off"><button class="btn">Trouver</button></form>
-        <div class="hint" id="findHint">Touchez le statut d'une ligne pour la pointer ou la dépointer.</div>
-      </section>
-      <section class="panel">
         <h2>Anomalies <span class="num" id="anoCount"></span></h2>
         <div class="log" id="anoLog"><div>Aucune anomalie.</div></div>
-      </section>
-      <section class="panel">
-        <h2>Ce que le micro a entendu</h2>
-        <div class="log" id="heardLog"><div>Rien pour le moment.</div></div>
-        <div class="hint">Le texte brut renvoyé par la dictée du navigateur. Utile pour comprendre une commande mal reconnue.</div>
       </section>
       <section class="panel">
         <h2>Historique</h2>
@@ -1157,6 +1091,9 @@ function applyPlan(plan, r, cmd) {
   if (changed.length && target) { lastRow = changed.reduce((m, x) => POS[x] > POS[m] ? x : m, changed[0]); ST.lastRow = lastRow; }
   flashRows = new Set(changed);
   setResult(`<b>${esc(plan.label)}</b> — ${parts.join(' · ') || 'rien à changer'}`);
+  if (r.rows.length === 1) showScan(lotLabel(r.rows[0]), target ? (changed.length ? 'Pointé ✓' : 'Déjà pointé') : (changed.length ? 'Décoché' : 'Déjà non pointé'), target ? (changed.length ? 'ok' : 'dup') : '');
+  else if (r.rows.length) showScan(plan.label.replace(/ \((manuel|scan)\)$/, ''), `${changed.length} ${target ? 'pointé' : 'retiré'}${changed.length > 1 ? 's' : ''}${already ? ' · ' + already + ' déjà' : ''}`, target ? 'ok' : '');
+  else if (r.missing.length || r.emptyRanges.length) showScan(plan.label, 'Absent de la liste', 'bad');
   if (r.missing.length || r.emptyRanges.length) beep(); else if (changed.length) tick();
   persist({ rows: changed, hist: entries, ano: anoAdd }); afterChange(true);
 }
@@ -1176,6 +1113,7 @@ function undo() {
       const lastChk = [...HIST].reverse().find(x => x.kind === 'check' && !x.undone && x.rows.length);
       lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
       setResult(`<b>Annulé</b> — ${esc(h.label)} (${h.rows.length} lot${h.rows.length > 1 ? 's' : ''})`);
+      showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Annulé', '');
       persist({ rows: h.rows, hist: [h, u] }); afterChange(true);
       return;
     }
@@ -1186,51 +1124,29 @@ function undo() {
 function toggleRow(row) {
   if (!INV) return;
   const p = { mode: ST.status[row] ? 'uncheck' : 'check', items: [], except: [], warnings: [], label: (ST.status[row] ? 'Retirer ' : '') + DATA.lots[row] + ' (manuel)' };
+  const was = !!ST.status[row];
   applyPlan(p, { rows: [row], missing: [], emptyRanges: [] }, 'Pointage manuel');
+  showScan(lotLabel(row), was ? 'Décoché' : 'Pointé ✓', was ? '' : 'ok');
 }
 
 function repeatLast() {
   const h = [...HIST].reverse().find(x => x.kind === 'check' || x.kind === 'uncheck' || x.kind === 'undo');
   const txt = h ? `${h.label}. ${h.result || ''}${h.undone ? ' (annulée)' : ''}` : 'Aucune opération pour le moment.';
   setResult('<b>Dernière opération</b> — ' + esc(txt));
-  speak(txt.replace(/→/g, ' à ').replace(/✓|↺|⚠/g, ''));
 }
 
 /* ---------- Traitement d'une phrase ---------- */
-let confirmCtx = null, held = null;
-const HOLD_MS = 3500;
-function handlePhrase(alts, source) {
-  if (source === 'voice' && !confirmCtx) {
-    let text = String(alts[0] || '').trim();
-    if (!text) return;
-    if (held) {
-      clearTimeout(held.timer);
-      const h = held.text; held = null;
-      if (Parser.analyze(text).type === 'control') processPhrase([h], 'voice');      // « annule », « pause »… : la plage en attente part seule d'abord
-      else { text = text.toLowerCase().startsWith(h.toLowerCase()) ? text : h + ' ' + text; alts = [text]; }
-    }
-    if (Parser.isIncomplete(text)) {
-      held = { text, timer: setTimeout(() => { const h = held; held = null; if (h) processPhrase([h.text], 'voice'); }, HOLD_MS) };
-      $('#heard').textContent = '« ' + text + ' … »'; $('#heard').classList.add('interim');
-      setResult('J\'attends la fin de la plage…');
-      return;
-    }
-  }
-  processPhrase(alts, source);
-}
+let confirmCtx = null;
+function handlePhrase(alts, source) { processPhrase(alts, source); }
 function processPhrase(alts, source) {
   const text = alts[0];
   if (!text || !text.trim()) return;
-  $('#heard').textContent = '« ' + text.trim() + ' »'; $('#heard').classList.remove('interim');
-  if (confirmCtx && source === 'voice') return answerConfirm(text);
   const results = alts.map(a => Parser.analyze(a));
   const main = results[0];
-  if (voice.paused && !(main.type === 'control' && main.cmd === 'resume')) { setResult('En pause — dites « reprendre » pour continuer.'); return; }
   if (main.type === 'control') {
     if (main.cmd === 'undo') return undo();
     if (main.cmd === 'repeat') return repeatLast();
-    if (main.cmd === 'pause') return voice.pause();
-    if (main.cmd === 'resume') return voice.resume();
+    if (main.cmd === 'pause' || main.cmd === 'resume') return;
   }
   if (!INV) { setResult("Importez d'abord une liste de lots."); return; }
   if (main.type === 'empty' && !results.some(r => r.type === 'plans')) {
@@ -1261,7 +1177,6 @@ function openConfirm(text, d) {
     <div class="cands">${d.cands.map((c, i) => `<button class="cand" data-i="${i}"><span class="t">${i + 1}. ${esc(c.plan.label)}${c.via ? ' — par « ' + esc(c.via) + ' »' : ''}</span><span class="d">${candDesc(c)}</span></button>`).join('')}</div>
     <label class="hint" for="fixInput">Corriger la transcription puis réanalyser :</label>
     <form class="field" id="fixForm"><input id="fixInput" value="${esc(text)}" autocomplete="off"><button class="btn">Réanalyser</button></form>
-    <p class="hint">À la voix : « oui » pour le choix 1, « choix 2 », ou « non » pour ignorer.</p>
     <div class="mrow"><button class="btn" id="cIgnore">Ignorer</button></div>`);
   $('#modalBox').querySelectorAll('.cand').forEach(b => b.onclick = () => pickCand(+b.dataset.i));
   $('#cIgnore').onclick = () => { closeConfirm(); setResult('Commande ignorée.'); };
@@ -1271,80 +1186,6 @@ function openConfirm(text, d) {
 }
 function pickCand(i) { const c = confirmCtx.d.cands[i]; const t = confirmCtx.text; closeConfirm(); if (c) applyPlan(c.plan, c.r, t); }
 function closeConfirm() { confirmCtx = null; closeModal(); }
-function answerConfirm(text) {
-  const n = Parser.normalize(text);
-  if (/^(oui|ok|d'accord|valide|valider|confirme|confirmer|c'est bon)\b/.test(n) || /^(premier|choix un|choix 1|un)$/.test(n)) return pickCand(0);
-  const m = n.match(/^(?:choix|numéro|le)?\s*(deux|2|deuxième|second|trois|3|troisième|quatre|4|quatrième)$/);
-  if (m) { const k = { deux: 1, '2': 1, 'deuxième': 1, second: 1, trois: 2, '3': 2, 'troisième': 2, quatre: 3, '4': 3, 'quatrième': 3 }[m[1]]; return pickCand(k); }
-  if (/^(non|ignore|ignorer|annule|annuler|laisse tomber)\b/.test(n)) { closeConfirm(); setResult('Commande ignorée.'); return; }
-  toast('Répondez « oui », « choix 2 » ou « non ».');
-}
-
-/* ---------- Reconnaissance vocale ---------- */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-const voice = {
-  rec: null, want: false, paused: false, done: 0, lastFinal: '', lastAt: 0, wake: null,
-  start() {
-    if (!SR) { showVoiceNotice('unsupported'); return; }
-    this.want = true; this.paused = false; this.boot(); this.ui('live');
-    try { navigator.wakeLock?.request('screen').then(w => this.wake = w).catch(() => {}); } catch (e) {}
-  },
-  boot() {
-    const r = new SR();
-    r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 3;
-    this.seen = new Map(); this.lastFinal = '';
-    r.onresult = e => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i];
-        if (!res.isFinal) { interim += res[0].transcript; continue; }
-        const raw = String(res[0].transcript || '').trim();
-        if (!raw || this.seen.get(i) === raw) continue;     // déjà traité (même index, même texte)
-        this.seen.set(i, raw);
-        let alts = Array.from(res).map(a => String(a.transcript || '').trim()).filter(Boolean);
-        // Chrome Android renvoie parfois tout le texte depuis le début : ne garder que la partie nouvelle
-        const prev = this.lastFinal, low = raw.toLowerCase(), pl = prev.toLowerCase();
-        if (prev && low.startsWith(pl) && low.length > pl.length) alts = [raw.slice(prev.length).trim()];
-        else if (prev && low === pl && Date.now() - this.lastAt < 2500) continue;
-        this.lastFinal = raw; this.lastAt = Date.now();
-        logHeard(raw, alts[0]);
-        handlePhrase(alts, 'voice');
-      }
-      if (interim) { const h = $('#heard'); h.textContent = interim; h.classList.add('interim'); }
-    };
-    r.onerror = e => {
-      if (e.error === 'no-speech' || e.error === 'aborted') return;
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { this.want = false; this.ui('err', 'Micro refusé'); showVoiceNotice('denied'); }
-      else if (e.error === 'network') { this.ui('err', 'Connexion requise'); showVoiceNotice('network'); }
-      else if (e.error === 'audio-capture') { this.want = false; this.ui('err', 'Aucun micro détecté'); }
-      else this.ui('err', 'Erreur : ' + e.error);
-    };
-    r.onend = () => { if (this.want) setTimeout(() => { if (this.want) { try { this.boot(); } catch (e) {} } }, 30); else this.ui('off'); };
-    this.rec = r;
-    try { r.start(); } catch (e) {}
-  },
-  stop() { this.want = false; this.paused = false; try { this.rec?.stop(); } catch (e) {} this.ui('off'); try { this.wake?.release(); } catch (e) {} },
-  pause() { if (!this.want) return; this.paused = true; this.ui('pause'); setResult('<b>Pause</b> — dites « reprendre » ou touchez Reprendre.'); },
-  resume() { this.paused = false; if (!this.want) this.start(); else this.ui('live'); setResult('<b>Reprise</b> du pointage.'); },
-  ui(state, msg) {
-    const p = $('#micPill'), m = $('#bMic'), b = $('#bPause');
-    p.className = 'pill'; m.className = 'mic';
-    if (state === 'live') { p.classList.add('live'); p.textContent = 'Micro actif — écoute'; m.classList.add('on'); m.setAttribute('aria-label', 'Arrêter le micro'); b.disabled = false; b.textContent = 'Pause'; }
-    else if (state === 'pause') { p.classList.add('pause'); p.textContent = 'En pause'; m.classList.add('paused'); b.disabled = false; b.textContent = 'Reprendre'; }
-    else if (state === 'err') { p.classList.add('err'); p.textContent = msg || 'Erreur micro'; b.disabled = true; }
-    else { p.textContent = 'Micro inactif'; m.setAttribute('aria-label', 'Démarrer le pointage vocal'); b.disabled = true; b.textContent = 'Pause'; }
-  }
-};
-function showVoiceNotice(kind) {
-  const n = $('#voiceNotice'); n.hidden = false;
-  const local = 'Pour utiliser la voix, ouvrez le site <b>rottweilert.github.io/LTC-Pointage-Lots</b> dans Chrome ou Edge (ordinateur, tablette ou téléphone) et autorisez le micro.';
-  n.innerHTML = {
-    unsupported: '<b>Reconnaissance vocale indisponible dans ce navigateur.</b> ' + local + ' Le pointage manuel, le scanner et la saisie au clavier fonctionnent ici.',
-    denied: '<b>Le micro est bloqué ici.</b> Le navigateur ou la page n\'a pas l\'autorisation d\'utiliser le micro. ' + local + ' En attendant, tapez les numéros ou les commandes dans « Saisie manuelle / scanner ».',
-    network: '<b>Pas de connexion au service vocal.</b> La dictée de Chrome et Edge passe par un service en ligne : vérifiez la connexion Internet. Le pointage manuel reste disponible hors ligne.'
-  }[kind];
-}
-
 /* ---------- Rendu ---------- */
 function extraCols() { if (!INV) return []; const alt = INV.altCol ?? -1; const rest = INV.columns.map((c, i) => i).filter(i => i !== INV.lotCol && i !== alt); return (alt >= 0 && alt !== INV.lotCol ? [alt] : []).concat(rest).slice(0, 3); }
 // Numéro affiché pour une ligne : n° principal, et le 2e numéro entre parenthèses s'il existe
@@ -1395,7 +1236,7 @@ function renderRows() {
       : c.k === 'st' ? `<button class="st ${s ? 's1' : ''} ${miss ? 'miss' : ''}" data-r="${r}" aria-label="${lbl} — toucher pour ${s ? 'dépointer' : 'pointer'} le lot ${esc(DATA.lots[r])}">${lbl}</button>`
       : c.k === 'tm' ? `<span class="tm">${fmtT(ST.time[r])}</span>`
       : `<span class="ex" title="${esc(DATA.rows[r][c.i])}">${esc(DATA.rows[r][c.i])}</span>`;
-    html += `<div class="${cls}" style="top:${p * ROW_H}px">${tc.map(cell).join('')}</div>`;
+    html += `<div class="${cls}" data-r="${r}" style="top:${p * ROW_H}px">${tc.map(cell).join('')}</div>`;
   }
   sp.innerHTML = html;
 }
@@ -1449,12 +1290,6 @@ function scrollToRow(row, center) {
   sc.scrollTop = target;
 }
 function setResult(html) { $('#result').innerHTML = html; }
-const heardItems = [];
-function logHeard(raw, used) {
-  heardItems.unshift({ t: Date.now(), raw, used });
-  heardItems.length = Math.min(heardItems.length, 25);
-  $('#heardLog').innerHTML = heardItems.map(x => `<div><time>${fmtT(x.t)}</time>« ${esc(x.raw)} »${x.used !== x.raw ? `<br><span class="hint">gardé : « ${esc(x.used)} »</span>` : ''}</div>`).join('');
-}
 
 /* ---------- Divers ---------- */
 let toastT;
@@ -1464,7 +1299,6 @@ function closeModal() { $('#modal').hidden = true; $('#modalBox').innerHTML = ''
 let actx;
 function tone(f, d) { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; g.gain.value = .06; o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {} }
 const tick = () => tone(880, .06), beep = () => { tone(330, .15); setTimeout(() => tone(260, .2), 160); };
-function speak(t) { try { const u = new SpeechSynthesisUtterance(t); u.lang = 'fr-FR'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
 function askConfirm(title, text, okLabel, fn, danger) {
   modal(`<h3>${esc(title)}</h3><p>${text}</p><div class="mrow"><button class="btn" id="mNo">Annuler</button><button class="btn ${danger ? 'danger' : 'primary'}" id="mYes">${esc(okLabel)}</button></div>`);
   $('#mNo').onclick = closeModal; $('#mYes').onclick = () => { closeModal(); fn(); };
@@ -1718,9 +1552,11 @@ function manageInventories() {
 
 /* ---------- Événements ---------- */
 $('#bManage').onclick = async () => { await refreshInvList(INV && INV.id); manageInventories(); };
-$('#bMic').onclick = () => voice.want ? voice.stop() : voice.start();
-$('#bPause').onclick = () => voice.paused ? voice.resume() : voice.pause();
 $('#bUndo').onclick = undo;
+let wake = null;
+const keepAwake = () => { try { if (!wake && navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wake = w; w.addEventListener('release', () => wake = null); }).catch(() => {}); } catch (e) {} };
+document.addEventListener('pointerdown', keepAwake); document.addEventListener('keydown', keepAwake);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) wake = null; });
 $('#bImport').onclick = () => $('#file').click();
 $('#file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) onFile(f); };
 $('#bExport').onclick = exportXlsx;
@@ -1744,7 +1580,6 @@ function scanSubmit() {
   if (!v) return;
   if (!/^\d+$/.test(v)) { handlePhrase([v], 'text'); return; }       // commande écrite
   if (!INV) { showScan(v, 'Aucun inventaire ouvert', 'bad'); setResult("Importez d'abord une liste de lots."); beep(); return; }
-  if (voice.paused) voice.resume();
   const found = lookupRows(IDX, v).found;
   if (found.length > 1) {
     // même numéro dans les deux colonnes, pour des lots différents : demander
@@ -1783,24 +1618,16 @@ document.addEventListener('keydown', e => {
   if (e.key.length === 1 && /[0-9&é"'(\-è_çà]/.test(e.key)) { e.preventDefault(); scanIn.value += e.key; scanInput(); }
 });
 try { if (matchMedia('(pointer: fine)').matches) scanIn.focus({ preventScroll: true }); } catch (e) {}
-$('#findForm').onsubmit = e => {
-  e.preventDefault(); if (!INV) return;
-  const q = $('#findInput').value.trim(); if (!q) return;
-  const fd = lookupRows(IDX, q).found;
-  let rows = fd.length ? fd.flatMap(f => f.rows) : null;
-  if (!rows) { const ql = q.toLowerCase(); const r = ORDER.find(i => String(DATA.lots[i]).toLowerCase().includes(ql)); rows = r !== undefined ? [r] : null; }
-  if (!rows) { $('#findHint').textContent = `Le lot ${q} n'existe pas dans la liste.`; return; }
-  if (filter !== 'all') { filter = 'all'; document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.f === 'all')); applyFilter(); }
-  flashRows = new Set(rows); scrollToRow(rows[0], true); renderRows();
-  $('#findHint').textContent = `Lot ${lotLabel(rows[0])} : ${ST.status[rows[0]] ? 'présent, pointé à ' + fmtT(ST.time[rows[0]]) : 'non pointé'}. Touchez son statut pour le modifier.`;
-};
 document.querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = c.dataset.f; document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === c)); applyFilter(); $('#scroller').scrollTop = 0; renderRows(); });
 $('#autoScroll').checked = settings.autoScroll;
-$('#examples').open = settings.examplesClosed === undefined ? !matchMedia('(max-width: 640px)').matches : !settings.examplesClosed;   // replié par défaut sur téléphone
-$('#examples').addEventListener('toggle', () => { settings.examplesClosed = !$('#examples').open; saveSettings(); });
 $('#autoScroll').onchange = e => { settings.autoScroll = e.target.checked; saveSettings(); };
 $('#scroller').addEventListener('scroll', () => requestAnimationFrame(renderRows), { passive: true });
-$('#spacer').addEventListener('click', e => { const b = e.target.closest('.st'); if (b) toggleRow(+b.dataset.r); });
+// Toucher n'importe où sur une ligne la coche ou la décoche (un glissement pour faire défiler ne compte pas)
+$('#spacer').addEventListener('click', e => {
+  const row = e.target.closest('.trow'); if (!row) return;
+  if (String(window.getSelection && window.getSelection()) !== '') return;
+  toggleRow(+row.dataset.r);
+});
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') { if (confirmCtx) closeConfirm(); else closeModal(); } });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('#modal').hidden) { if (confirmCtx) closeConfirm(); else closeModal(); }
@@ -1812,7 +1639,6 @@ addEventListener('online', net); addEventListener('offline', net); net();
 
 /* ---------- Démarrage ---------- */
 (async function boot() {
-  if (!SR) showVoiceNotice('unsupported');
   await Store.open();
   if (Cloud.init()) {
     MODE = 'cloud';
