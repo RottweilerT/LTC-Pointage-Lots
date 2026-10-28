@@ -58,6 +58,31 @@ select.btn { padding-right: 8px; max-width: 260px }
 @keyframes pulse { from { transform: scale(.9); opacity: .6 } to { transform: scale(1.25); opacity: 0 } }
 @media (prefers-reduced-motion: reduce) { .mic.on::after { animation: none } .flash { animation: none !important } }
 .vstate { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.examples { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 10px }
+.examples summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; width: fit-content; min-height: 28px; display: flex; align-items: center; gap: 6px }
+.exgrid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; align-items: baseline; margin-top: 8px }
+.exk { font-size: 13px; font-weight: 600; color: var(--muted) }
+.exv { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0 }
+.exv q { quotes: "« " " »"; font-size: 14px; background: var(--accent-soft); color: var(--ink); border-radius: 6px; padding: 3px 8px; overflow-wrap: anywhere }
+.examples .hint { margin: 8px 0 0 }
+.examples summary::-webkit-details-marker { display: none }
+.examples summary::before { content: "▸"; font-size: 14px; transition: transform .15s }
+.examples[open] summary::before { transform: rotate(90deg) }
+.examples:not([open]) summary::after { content: "— toucher pour afficher"; text-transform: none; letter-spacing: 0; font-weight: 400 }
+.scan { background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center }
+.scanform { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.scanlbl { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600 }
+.scan .field input { font: 600 22px var(--f-num); min-height: 54px; letter-spacing: .04em }
+.scan .field input::placeholder { font: 400 16px var(--f-ui); letter-spacing: 0 }
+.scan .field .btn { min-height: 54px; padding: 0 20px; font-size: 16px }
+.scan .hint { margin: 0 }
+.lastscan { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; min-width: 150px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2) }
+.lastscan .lsk { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600 }
+.lastscan .lsv { font-size: 28px; font-weight: 600; line-height: 1.1 }
+.lastscan .lss { font-size: 13px; font-weight: 600; color: var(--muted) }
+.lastscan.ok { background: var(--ok-soft) } .lastscan.ok .lss { color: var(--ok) }
+.lastscan.dup { background: var(--accent-soft) } .lastscan.dup .lss { color: var(--accent) }
+.lastscan.bad { background: var(--warn-soft) } .lastscan.bad .lss { color: var(--warn) }
 .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 3px 9px; border-radius: 99px; background: var(--idle); color: var(--idle-ink); width: fit-content }
 .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor }
 .pill.live { background: var(--bad-soft); color: var(--live) }
@@ -153,6 +178,8 @@ select.btn { padding-right: 8px; max-width: 260px }
 
 @media (max-width: 1100px) { .dash { grid-template-columns: repeat(3, minmax(0, 1fr)) } .prog { grid-column: 1 / -1 } .main { grid-template-columns: 1fr } }
 @media (max-width: 640px) {
+  .exgrid { grid-template-columns: 1fr; gap: 4px } .exk { margin-top: 4px }
+  .scan { grid-template-columns: 1fr } .lastscan { flex-direction: row; align-items: baseline; justify-content: space-between; min-width: 0 } .lastscan .lsv { font-size: 22px }
   .voice { grid-template-columns: auto 1fr } .vbtns { grid-column: 1 / -1; justify-content: stretch } .vbtns .btn { flex: 1 }
   .mic { width: 64px; height: 64px } .heard { font-size: 17px }
   .dash { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px } .stat { padding: 8px 10px } .stat .k { font-size: 10px } .stat .v { font-size: 20px }
@@ -183,13 +210,43 @@ select.btn { padding-right: 8px; max-width: 260px }
     </button>
     <div class="vstate">
       <span class="pill" id="micPill">Micro inactif</span>
-      <div class="heard" id="heard">Appuyez sur le micro puis annoncez : « du lot 54 au lot 69, ensuite le 76 »</div>
+      <div class="heard" id="heard">Touchez le micro puis annoncez les lots, par exemple « du 54 au 69, ensuite le 76 »</div>
       <div class="result" id="result">Dernière commande : —</div>
     </div>
     <div class="vbtns">
       <button class="btn big" id="bPause" disabled>Pause</button>
       <button class="btn big" id="bUndo">Annuler la dernière action</button>
     </div>
+    <details class="examples" id="examples" open>
+      <summary>Commandes vocales reconnues</summary>
+      <div class="exgrid">
+        <span class="exk">Un ou plusieurs lots</span>
+        <span class="exv"><q>lot 76</q><q>79</q><q>le 125, le 126 et le 130</q><q>lot 100 puis lot 108</q><q>mille deux cent cinquante</q></span>
+        <span class="exk">Une plage</span>
+        <span class="exv"><q>du 54 au 69</q><q>du lot 54 au lot 69</q><q>de 100 à 150</q><q>les lots 100 à 150</q><q>100 jusqu'à 150</q><q>entre 100 et 150</q></span>
+        <span class="exk">Exclure, enchaîner</span>
+        <span class="exv"><q>du 200 au 250 sauf le 225</q><q>du 54 au 69, ensuite le 76, ensuite du 80 au 100</q></span>
+        <span class="exk">Corriger</span>
+        <span class="exv"><q>annule</q><q>retire le lot 125</q><q>retire les lots de 200 à 220</q><q>répète la dernière opération</q></span>
+        <span class="exk">Micro</span>
+        <span class="exv"><q>pause</q><q>reprendre</q></span>
+        <span class="exk">Confirmer</span>
+        <span class="exv"><q>oui</q><q>choix 2</q><q>non</q></span>
+      </div>
+      <p class="hint">Le mot « lot » est facultatif. Dites les numéros en entier plutôt que chiffre par chiffre, et marquez une courte pause entre deux phrases.</p>
+    </details>
+  </section>
+
+  <section class="scan" aria-label="Saisie manuelle et scanner">
+    <form class="scanform" id="scanForm">
+      <label for="scanInput" class="scanlbl">Saisie manuelle / scanner</label>
+      <div class="field">
+        <input id="scanInput" placeholder="Code-barres ou n° de lot" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+        <button class="btn primary">Pointer</button>
+      </div>
+      <div class="hint">Un numéro seul est pointé directement. Vous pouvez aussi taper une commande comme à l'oral : « du 200 au 250 sauf 225 ».</div>
+    </form>
+    <div class="lastscan" id="lastScan" aria-live="polite"><span class="lsk">Dernier scan</span><span class="lsv num" id="lsNum">—</span><span class="lss" id="lsState">Prêt</span></div>
   </section>
 
   <section class="dash" aria-label="Tableau de bord">
@@ -220,11 +277,6 @@ select.btn { padding-right: 8px; max-width: 260px }
       <section class="panel">
         <h2>Prochains lots attendus</h2>
         <div class="nextlist" id="nextList"><span>—</span></div>
-      </section>
-      <section class="panel">
-        <h2>Commande écrite ou correction</h2>
-        <form class="field" id="cmdForm"><input id="cmdInput" placeholder="ex. du 200 au 250 sauf 225" autocomplete="off" enterkeyhint="send"><button class="btn primary">Valider</button></form>
-        <div class="hint">Même syntaxe qu'à l'oral. Utile sans micro ou pour corriger une transcription.</div>
       </section>
       <section class="panel">
         <h2>Recherche manuelle</h2>
@@ -537,8 +589,8 @@ function showVoiceNotice(kind) {
   const n = $('#voiceNotice'); n.hidden = false;
   const local = 'Pour utiliser la voix, ouvrez le site <b>rottweilert.github.io/LTC-Pointage-Lots</b> dans Chrome ou Edge (ordinateur, tablette ou téléphone) et autorisez le micro.';
   n.innerHTML = {
-    unsupported: '<b>Reconnaissance vocale indisponible dans ce navigateur.</b> ' + local + ' Le pointage manuel et la commande écrite fonctionnent ici.',
-    denied: '<b>Le micro est bloqué ici.</b> Le navigateur ou la page n\'a pas l\'autorisation d\'utiliser le micro. ' + local + ' En attendant, tapez les commandes dans « Commande écrite ».',
+    unsupported: '<b>Reconnaissance vocale indisponible dans ce navigateur.</b> ' + local + ' Le pointage manuel, le scanner et la saisie au clavier fonctionnent ici.',
+    denied: '<b>Le micro est bloqué ici.</b> Le navigateur ou la page n\'a pas l\'autorisation d\'utiliser le micro. ' + local + ' En attendant, tapez les numéros ou les commandes dans « Saisie manuelle / scanner ».',
     network: '<b>Pas de connexion au service vocal.</b> La dictée de Chrome et Edge passe par un service en ligne : vérifiez la connexion Internet. Le pointage manuel reste disponible hors ligne.'
   }[kind];
 }
@@ -801,7 +853,56 @@ $('#file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; i
 $('#bExport').onclick = exportXlsx;
 $('#bMore').onclick = moreMenu;
 $('#invSel').onchange = e => { if (e.target.value) loadInventory(e.target.value); };
-$('#cmdForm').onsubmit = e => { e.preventDefault(); const v = $('#cmdInput').value; if (!v.trim()) return; handlePhrase([v], 'text'); $('#cmdInput').value = ''; };
+/* ---------- Saisie manuelle et scanner de codes-barres ----------
+   Le scanner se comporte comme un clavier : il tape les chiffres du code puis (le plus souvent) Entrée.
+   - un numéro seul est pointé directement, zéros initiaux tolérés (000076 = lot 76) ;
+   - un scanner réglé en clavier QWERTY sur un PC français tape « à&é"'(-è_ç » au lieu de « 0123456789 » : corrigé ;
+   - les codes scannés sont captés même si la case n'a pas le focus (sans ouvrir le clavier du téléphone) ;
+   - si le scanner n'envoie pas Entrée, un code de 6 chiffres tapé en rafale est validé tout seul. */
+const AZERTY = { '&': '1', 'é': '2', '"': '3', "'": '4', '(': '5', '-': '6', 'è': '7', '_': '8', 'ç': '9', 'à': '0' };
+const fixScan = v => { const t = String(v || '').trim(); return /^[&é"'(\-è_çà0-9]+$/.test(t) && /[&é"'(è_çà]/.test(t) && !/[a-z]/i.test(t.replace(/[éèçà]/g, '')) ? t.replace(/[&é"'(\-è_çà]/g, c => AZERTY[c]) : t; };
+const scanIn = $('#scanInput');
+let scanStart = 0, scanTimer = null;
+function showScan(num, state, cls) { const b = $('#lastScan'); b.className = 'lastscan ' + (cls || ''); $('#lsNum').textContent = num; $('#lsState').textContent = state; }
+function scanSubmit() {
+  clearTimeout(scanTimer);
+  const raw = scanIn.value; scanIn.value = ''; scanStart = 0;
+  const v = fixScan(raw);
+  if (!v) return;
+  if (!/^\d+$/.test(v)) { handlePhrase([v], 'text'); return; }       // commande écrite
+  if (!INV) { showScan(v, 'Aucun inventaire ouvert', 'bad'); setResult("Importez d'abord une liste de lots."); beep(); return; }
+  if (voice.paused) voice.resume();
+  const rows = IDX.byText.get(v) || IDX.map.get(Number(v));
+  if (!rows) {
+    const a = addAno({ t: Date.now(), kind: 'Code scanné absent de la liste', n: v, cmd: 'Scan ' + raw.trim() });
+    persist({ ano: [a] }); renderAno();
+    showScan(v, 'Absent de la liste', 'bad');
+    setResult(`<b>Scan ${esc(v)}</b> — <span class="w">⚠ Attention : le lot ${esc(v)} n'existe pas dans la liste attendue</span>`);
+    beep(); return;
+  }
+  const was = rows.every(r => ST.status[r]);
+  applyPlan({ mode: 'check', items: [{ kind: 'single', n: Number(v) }], except: [], warnings: [], label: DATA.lots[rows[0]] + ' (scan)' }, { rows, missing: [], emptyRanges: [] }, 'Scan ' + raw.trim());
+  showScan(DATA.lots[rows[0]], was ? 'Déjà pointé' : 'Pointé ✓', was ? 'dup' : 'ok');
+  if (was) tone(520, .12);
+  if (filter === 'all' && settings.autoScroll) { scrollToRow(rows[0], true); renderRows(); }
+}
+function scanInput() {
+  const now = Date.now();
+  if (!scanStart || !scanIn.value) scanStart = now;
+  clearTimeout(scanTimer);
+  const v = fixScan(scanIn.value);
+  if (/^\d{6}$/.test(v) && now - scanStart < 400) scanTimer = setTimeout(() => { if (fixScan(scanIn.value) === v) scanSubmit(); }, 120);
+}
+$('#scanForm').onsubmit = e => { e.preventDefault(); scanSubmit(); };
+scanIn.addEventListener('input', scanInput);
+scanIn.addEventListener('keydown', e => { if (e.key === 'Tab' && scanIn.value.trim()) { e.preventDefault(); scanSubmit(); } });
+document.addEventListener('keydown', e => {
+  const tg = e.target, typing = tg && (/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName) || tg.isContentEditable);
+  if (typing || e.ctrlKey || e.metaKey || e.altKey || !$('#modal').hidden) return;
+  if ((e.key === 'Enter' || e.key === 'Tab') && scanIn.value.trim()) { e.preventDefault(); scanSubmit(); return; }
+  if (e.key.length === 1 && /[0-9&é"'(\-è_çà]/.test(e.key)) { e.preventDefault(); scanIn.value += e.key; scanInput(); }
+});
+try { if (matchMedia('(pointer: fine)').matches) scanIn.focus({ preventScroll: true }); } catch (e) {}
 $('#findForm').onsubmit = e => {
   e.preventDefault(); if (!INV) return;
   const q = $('#findInput').value.trim(); if (!q) return;
@@ -814,6 +915,8 @@ $('#findForm').onsubmit = e => {
 };
 document.querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = c.dataset.f; document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === c)); applyFilter(); $('#scroller').scrollTop = 0; renderRows(); });
 $('#autoScroll').checked = settings.autoScroll;
+$('#examples').open = settings.examplesClosed === undefined ? !matchMedia('(max-width: 640px)').matches : !settings.examplesClosed;   // replié par défaut sur téléphone
+$('#examples').addEventListener('toggle', () => { settings.examplesClosed = !$('#examples').open; saveSettings(); });
 $('#autoScroll').onchange = e => { settings.autoScroll = e.target.checked; saveSettings(); };
 $('#scroller').addEventListener('scroll', () => requestAnimationFrame(renderRows), { passive: true });
 $('#spacer').addEventListener('click', e => { const b = e.target.closest('.st'); if (b) toggleRow(+b.dataset.r); });

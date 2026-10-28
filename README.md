@@ -11,7 +11,7 @@ Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on an
 
 1. Ouvrir le site dans **Chrome** ou **Edge**.
 2. « Importer Excel / CSV » : choisir le fichier et la colonne des numéros de lots.
-3. Toucher le micro et annoncer les lots.
+3. Toucher le micro et annoncer les lots (les exemples de commandes sont affichés sous le micro), ou scanner les codes-barres : la case « Saisie manuelle / scanner » pointe directement un numéro scanné ou tapé (6 chiffres, zéros initiaux tolérés).
 4. « Exporter Excel » à la fin : 4 feuilles (inventaire complet, lots manquants, anomalies, historique).
 
 ### Commandes vocales
