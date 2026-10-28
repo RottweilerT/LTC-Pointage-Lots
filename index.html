@@ -90,6 +90,7 @@ select.btn { padding-right: 8px; max-width: 260px }
 .pill.err { background: var(--bad-soft); color: var(--bad) }
 .heard { font-size: 20px; font-weight: 500; min-height: 30px; overflow-wrap: anywhere }
 .heard.interim { color: var(--muted); font-style: italic }
+.heard:empty { display: none }
 .result { font-size: 14px; color: var(--muted); overflow-wrap: anywhere }
 .result b { color: var(--ink) }
 .result .ok { color: var(--ok); font-weight: 600 } .result .w { color: var(--warn); font-weight: 600 } .result .e { color: var(--bad); font-weight: 600 }
@@ -210,7 +211,7 @@ select.btn { padding-right: 8px; max-width: 260px }
     </button>
     <div class="vstate">
       <span class="pill" id="micPill">Micro inactif</span>
-      <div class="heard" id="heard">Touchez le micro puis annoncez les lots, par exemple « du 54 au 69, ensuite le 76 »</div>
+      <div class="heard" id="heard"></div>
       <div class="result" id="result">Dernière commande : —</div>
     </div>
     <div class="vbtns">
