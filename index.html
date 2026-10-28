@@ -173,6 +173,19 @@ select.btn { padding-right: 8px; max-width: 260px }
 .preview td, .preview th { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: left }
 .preview th { background: var(--surface-2) }
 .preview .sel { background: var(--accent-soft); font-weight: 600 }
+.preview .off { opacity: .35; text-decoration: line-through }
+.colpick { display: flex; flex-direction: column; gap: 8px }
+.colhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px }
+.colhead .hint { margin: 0 }
+.colall { margin-left: auto; font-size: 13px; color: var(--muted) }
+.linkbtn { border: 0; background: none; color: var(--accent); padding: 4px 2px; font-size: 13px; font-weight: 600; text-decoration: underline }
+.colchips { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 6px }
+.colchip { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: var(--surface-2); cursor: pointer; min-height: 44px }
+.colchip:has(input:checked) { border-color: var(--accent); background: var(--accent-soft) }
+.colchip.lot { cursor: default }
+.colchip input { width: 18px; height: 18px; accent-color: var(--accent); grid-row: span 2; margin: 0 }
+.colchip .cn { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.colchip .cx { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 60; max-width: calc(100% - 32px) }
 
 :fullscreen .wrap, .fs .wrap { max-width: none }
@@ -1172,7 +1185,7 @@ function showVoiceNotice(kind) {
 }
 
 /* ---------- Rendu ---------- */
-function extraCols() { if (!INV) return []; return INV.columns.map((c, i) => i).filter(i => i !== INV.lotCol).slice(0, 2); }
+function extraCols() { if (!INV) return []; return INV.columns.map((c, i) => i).filter(i => i !== INV.lotCol).slice(0, 3); }
 function buildHead() {
   const ex = extraCols();
   const narrow = matchMedia('(max-width: 640px)').matches;
@@ -1312,6 +1325,15 @@ function showImport(baseName, wb) {
     const cols = Array.from({ length: width }, (_, i) => header[i] || 'Colonne ' + (i + 1));
     const lc = state.col ?? guessLotCol(cols, body);
     state.col = lc; state.cols = cols; state.body = body;
+    const sample = body.slice(0, 300);
+    const example = i => { const r = sample.find(r => String(r[i] ?? '').trim()); return r ? String(r[i]).trim() : ''; };
+    if (!state.keep) {
+      // par défaut : les colonnes choisies au dernier import (mêmes titres), sinon toutes celles qui contiennent des données
+      const prev = Array.isArray(settings.keepCols) ? settings.keepCols : null;
+      const same = prev ? cols.map((c, i) => prev.includes(c) ? i : -1).filter(i => i >= 0) : [];
+      state.keep = new Set(same.length ? same : cols.map((_, i) => i).filter(i => example(i) !== ''));
+    }
+    state.keep.add(lc);
     const lots = body.map(r => String(r[lc] ?? '').trim()).filter(Boolean);
     const idx = buildIndex(lots);
     modal(`
@@ -1323,16 +1345,29 @@ function showImport(baseName, wb) {
         <label>Première ligne<select id="iHead"><option value="1" ${hasHeader ? 'selected' : ''}>Ligne d'en-têtes</option><option value="0" ${!hasHeader ? 'selected' : ''}>Déjà des données</option></select></label>
       </div>
       <p><b>${lots.length.toLocaleString('fr-FR')}</b> lots trouvés${idx.dupRows.size ? ` · <b style="color:var(--warn)">${idx.dupRows.size} lignes en doublon</b> (signalées dans le tableau)` : ' · aucun doublon'}. Les numéros sont conservés tels quels, zéros initiaux compris.</p>
-      <div class="preview"><table><tr>${cols.map((c, i) => `<th class="${i === lc ? 'sel' : ''}">${esc(c)}</th>`).join('')}</tr>${body.slice(0, 5).map(r => `<tr>${cols.map((_, i) => `<td class="${i === lc ? 'sel' : ''}">${esc(r[i])}</td>`).join('')}</tr>`).join('')}</table></div>
+      <div class="colpick">
+        <div class="colhead"><b>Colonnes à garder</b> <span class="hint">${state.keep.size} sur ${cols.length}</span><span class="colall"><button type="button" class="linkbtn" id="iAll">Tout</button> · <button type="button" class="linkbtn" id="iNone">Seulement les lots</button></span></div>
+        <div class="colchips">${cols.map((c, i) => `<label class="colchip ${i === lc ? 'lot' : ''}"><input type="checkbox" data-c="${i}" ${state.keep.has(i) ? 'checked' : ''} ${i === lc ? 'disabled' : ''}><span class="cn">${esc(c)}${i === lc ? ' · n° de lot' : ''}</span><span class="cx">${esc(example(i).slice(0, 40)) || 'vide'}</span></label>`).join('')}</div>
+        <div class="hint">Les colonnes gardées s'affichent dans le tableau et sont reprises dans l'export Excel. Les autres ne sont pas enregistrées.</div>
+      </div>
+      <div class="preview"><table><tr>${cols.map((c, i) => `<th class="${i === lc ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(c)}</th>`).join('')}</tr>${body.slice(0, 5).map(r => `<tr>${cols.map((_, i) => `<td class="${i === lc ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(r[i])}</td>`).join('')}</tr>`).join('')}</table></div>
       <div class="mrow"><button class="btn" id="iCancel">Annuler</button><button class="btn primary" id="iOk" ${lots.length ? '' : 'disabled'}>Créer l'inventaire</button></div>`);
     $('#iName').oninput = e => state.name = e.target.value;
-    $('#iSheet').onchange = e => { sheet = e.target.value; aoa = sheetRows(wb, sheet); state.col = null; draw(); };
+    $('#iSheet').onchange = e => { sheet = e.target.value; aoa = sheetRows(wb, sheet); state.col = null; state.keep = null; draw(); };
     $('#iCol').onchange = e => { state.col = +e.target.value; draw(); };
-    $('#iHead').onchange = e => { hasHeader = e.target.value === '1'; state.col = null; draw(); };
+    $('#iHead').onchange = e => { hasHeader = e.target.value === '1'; state.col = null; state.keep = null; draw(); };
+    $('#modalBox').querySelectorAll('.colchip input').forEach(cb => cb.onchange = () => { const c = +cb.dataset.c; cb.checked ? state.keep.add(c) : state.keep.delete(c); draw(); });
+    $('#iAll').onclick = () => { state.keep = new Set(cols.map((_, i) => i)); draw(); };
+    $('#iNone').onclick = () => { state.keep = new Set([lc]); draw(); };
     $('#iCancel').onclick = closeModal;
-    $('#iOk').onclick = () => { closeModal(); createInventory(state.name.trim() || baseName, state.cols, state.body, state.col); };
+    $('#iOk').onclick = () => {
+      const idxs = [...state.keep].sort((a, b) => a - b);
+      settings.keepCols = idxs.map(i => state.cols[i]); saveSettings();
+      closeModal();
+      createInventory(state.name.trim() || baseName, idxs.map(i => state.cols[i]), state.body.map(r => idxs.map(i => r[i] ?? '')), idxs.indexOf(state.col));
+    };
   };
-  const state = { name: baseName, col: null };
+  const state = { name: baseName, col: null, keep: null };
   draw();
 }
 
