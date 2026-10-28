@@ -41,7 +41,7 @@ const Cloud = {
       d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [] }) };
   },
   histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [] }; },
-  invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, count: inv.count, chunk: CHUNK }; },
+  invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, altCol: inv.altCol ?? null, count: inv.count, chunk: CHUNK }; },
   watchList(cb) {
     if (this.invUnsub) this.invUnsub();
     this.invUnsub = this.col('pt_inventaires').onSnapshot(s => cb(s.docs.map(d => d.data())), e => this.fail(e));
@@ -160,7 +160,7 @@ async function loadInventory(id) {
   const got = MODE === 'cloud' ? await Cloud.load(id, onRemote) : await localLoad(id);
   if (!got) return false;
   INV = got.inv; DATA = got.data; ST = got.st; HIST = got.hist;
-  IDX = buildIndex(DATA.lots);
+  IDX = makeIndex(INV, DATA);
   ORDER = DATA.lots.map((_, i) => i);
   const key = i => { const g = String(DATA.lots[i]).match(/\d+/g); return g && g.length === 1 ? Number(g[0]) : Infinity; };
   const keys = ORDER.map(key);
@@ -175,21 +175,28 @@ async function loadInventory(id) {
 }
 let POS = new Int32Array(0);
 
-function makeInventory(name, columns, rows, lotCol) {
+// Index des numéros : colonne principale + éventuellement une deuxième colonne de numéros
+function makeIndex(inv, data) {
+  const alt = inv.altCol != null && inv.altCol >= 0 && inv.altCol !== inv.lotCol ? inv.altCol : null;
+  return buildMultiIndex(data.lots, alt == null ? null : data.rows.map(r => String(r[alt] ?? '').trim()), [inv.columns[inv.lotCol], alt == null ? '' : inv.columns[alt]]);
+}
+
+function makeInventory(name, columns, rows, lotCol, altCol) {
   const id = 'inv' + uid();
   const keep = [], keptRows = [];
-  rows.forEach(r => { const l = String(r[lotCol] ?? '').trim(); if (l !== '') { keep.push(l); keptRows.push(r.map(v => String(v ?? ''))); } });
-  const inv = { id, name, created: Date.now(), closed: false, columns: columns.map(String), lotCol, count: keep.length };
+  const hasAlt = altCol != null && altCol >= 0;
+  rows.forEach(r => { const l = String(r[lotCol] ?? '').trim() || (hasAlt ? String(r[altCol] ?? '').trim() : ''); if (l !== '') { keep.push(l); keptRows.push(r.map(v => String(v ?? ''))); } });
+  const inv = { id, name, created: Date.now(), closed: false, columns: columns.map(String), lotCol, altCol: altCol != null && altCol >= 0 ? altCol : null, count: keep.length };
   const data = { id, lots: keep, rows: keptRows };
   const st = newState(id, keep.length);
-  const idx = buildIndex(keep);
+  const idx = makeIndex(inv, data);
   const h = { inv: id, id: uid(), seq: 1, t: Date.now(), dev: DEVICE, kind: 'import', cmd: '', label: `Import de ${keep.length} lots` + (idx.dupRows.size ? ` · ${idx.dupRows.size} lignes en doublon` : ''), rows: [] };
   st.seq = 1;
   return { inv, data, st, hist: [h] };
 }
 
-async function createInventory(name, columns, rows, lotCol) {
-  const x = makeInventory(name, columns, rows, lotCol);
+async function createInventory(name, columns, rows, lotCol, altCol) {
+  const x = makeInventory(name, columns, rows, lotCol, altCol);
   const n = x.data.lots.length;
   try {
     if (MODE === 'cloud') { toast(`Envoi de ${n} lots vers la base…`); await Cloud.create(x.inv, x.data, x.st, x.hist); invList = invList.filter(i => i.id !== x.inv.id).concat([x.inv]); }

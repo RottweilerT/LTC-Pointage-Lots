@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { Parser, buildIndex, resolvePlan, decide } = require('../src/parser.js');
+const { Parser, buildIndex, buildMultiIndex, lookupRows, resolvePlan, decide } = require('../src/parser.js');
 
 let pass = 0, fail = 0;
 function t(name, fn) { try { fn(); pass++; } catch (e) { fail++; console.log('ÉCHEC', name, '\n  ', e.message); } }
@@ -130,6 +130,28 @@ t('complet : du 54 au 69', () => assert.ok(!Parser.isIncomplete('du 54 au 69')))
 t('complet : lot 76', () => assert.ok(!Parser.isIncomplete('lot 76')));
 t('complet : annule', () => assert.ok(!Parser.isIncomplete('annule')));
 t('fusion : du 54 + au 69', () => assert.deepStrictEqual(lbl('du 54' + ' ' + 'au 69'), ['54 → 69']));
+
+// --- deux colonnes de numéros : code à 6 chiffres + n° de lot à 5 chiffres
+{
+  const codes = [], nums = [];
+  for (let i = 0; i < 300; i++) { codes.push(String(111300 + i)); nums.push(String(20000 + i)); }
+  codes.push('020010'); nums.push('99999');          // un code égal (en valeur) à un n° de lot d'une autre ligne
+  codes.push('20005'); nums.push('99998');           // vraie collision : même écriture dans les deux colonnes
+  const mi = buildMultiIndex(codes, nums, ['Code', 'N° lot']);
+  const d2 = s => decide([Parser.analyze(s)], mi);
+  t('2 col : code 6 chiffres', () => { const d = d2('111354'); assert.strictEqual(d.action, 'apply'); assert.deepStrictEqual(d.cand.r.rows, [54]); });
+  t('2 col : n° 5 chiffres', () => { const d = d2('lot 20054'); assert.strictEqual(d.action, 'apply'); assert.deepStrictEqual(d.cand.r.rows, [54]); });
+  t('2 col : plage sur les codes', () => { const d = d2('du 111300 au 111309'); assert.strictEqual(d.cand.r.rows.length, 10); });
+  t('2 col : plage sur les n° de lot', () => { const d = d2('du 20100 au 20119 sauf 20105'); assert.strictEqual(d.cand.r.rows.length, 19); });
+  t('2 col : mélange code et n°', () => { const d = d2('111300 puis 20001'); assert.deepStrictEqual(d.cand.r.rows, [0, 1]); });
+  t('2 col : sauf via l\'autre colonne', () => { const d = d2('du 20020 au 20029 sauf 111325'); assert.strictEqual(d.cand.r.rows.length, 9); assert.ok(!d.cand.r.rows.includes(25)); });
+  t('2 col : zéro devant ignoré face au n° exact', () => { const d = d2('20010'); assert.strictEqual(d.action, 'apply'); assert.deepStrictEqual(d.cand.r.rows, [10]); });
+  t('2 col : plage sans fausse ambiguïté', () => { const d = d2('du 20010 au 20019'); assert.strictEqual(d.action, 'apply'); assert.strictEqual(d.cand.r.rows.length, 10); });
+  t('2 col : même numéro dans les deux colonnes -> choix', () => { const d = d2('20005'); assert.strictEqual(d.action, 'confirm'); assert.deepStrictEqual(d.cands.map(c => c.via), ['Code', 'N° lot']); assert.deepStrictEqual(d.cands.map(c => c.r.rows), [[301], [5]]); });
+  t('2 col : inconnu', () => { const d = d2('lot 55555'); assert.deepStrictEqual(d.cand.r.missing, [55555]); });
+  t('2 col : scan', () => { assert.deepStrictEqual(lookupRows(mi, '111354').found.map(f => f.rows), [[54]]); assert.deepStrictEqual(lookupRows(mi, '20054').found.map(f => f.rows), [[54]]); assert.strictEqual(lookupRows(mi, '020010').found.length, 1); assert.deepStrictEqual(lookupRows(mi, '20010').found.map(f => f.rows), [[10]]); assert.strictEqual(lookupRows(mi, '20010.').found.length, 0); });
+  t('2 col : une seule colonne', () => { const one = buildMultiIndex(codes, null); assert.strictEqual(decide([Parser.analyze('20054')], one).cand.r.missing.length, 1); });
+}
 
 console.log(`${pass} réussis, ${fail} échoués`);
 process.exit(fail ? 1 : 0);

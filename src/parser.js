@@ -261,28 +261,65 @@ function buildIndex(lotStrings) {
   for (const rows of map.values()) if (rows.length > 1) rows.forEach(r => dupRows.add(r));
   function lower(x) { let lo = 0, hi = values.length; while (lo < hi) { const m = (lo + hi) >> 1; if (values[m] < x) lo = m + 1; else hi = m; } return lo; }
   function valuesIn(a, b) { const out = []; for (let k = lower(a); k < values.length && values[k] <= b; k++) out.push(values[k]); return out; }
-  return { map, byText, values, dupRows, valuesIn, has: v => map.has(v) };
+  const texts = lotStrings.map(x => String(x ?? '').trim());
+  return { map, byText, values, dupRows, valuesIn, texts, has: v => map.has(v) };
 }
 
-// Résout un plan sur l'index : lignes concernées et anomalies
-function resolvePlan(plan, idx) {
+// Index sur deux colonnes de numéros (ex. code à 6 chiffres + n° de lot à 5 chiffres) :
+// un lot peut être pointé par l'un ou l'autre de ses numéros.
+function buildMultiIndex(primary, secondary, names) {
+  const parts = [buildIndex(primary)];
+  if (secondary) parts.push(buildIndex(secondary));
+  const dupRows = new Set();
+  parts.forEach(p => p.dupRows.forEach(r => dupRows.add(r)));
+  const P = parts[0];
+  return { multi: true, parts, names: names || [], dupRows, map: P.map, byText: P.byText, values: P.values, valuesIn: P.valuesIn, has: P.has };
+}
+const partsOf = idx => idx.parts || [idx];
+
+// Lignes trouvées pour un texte tapé ou scanné, dans chaque colonne de numéros
+function lookupRows(idx, text) {
+  const t = String(text || '').trim();
+  let found = [];
+  // d'abord l'écriture exacte (zéros initiaux compris), sinon la valeur du nombre
+  partsOf(idx).forEach((p, i) => { const rows = p.byText.get(t); if (rows && rows.length) found.push({ part: i, rows }); });
+  if (!found.length && /^\d+$/.test(t)) partsOf(idx).forEach((p, i) => { const rows = p.map.get(Number(t)); if (rows && rows.length) found.push({ part: i, rows }); });
+  const same = found.length > 1 && found.every(f => f.rows.join() === found[0].rows.join());
+  return { found: same ? [found[0]] : found };
+}
+
+// Résout un plan sur l'index : lignes concernées et anomalies.
+// force = n° de colonne à utiliser seule (sinon chaque numéro est cherché dans toutes les colonnes).
+function resolvePlan(plan, idx, force) {
+  const parts = partsOf(idx);
+  const use = force == null ? parts.map((_, i) => i) : [force];
+  const hits = it => {
+    let out = [];
+    for (const i of use) {
+      const P = parts[i];
+      const rs = it.kind === 'single' ? (P.map.get(it.n) || []) : P.valuesIn(it.a, it.b).flatMap(v => P.map.get(v));
+      // écriture « normale » du nombre (sans zéro devant) : 20010 et non 020010
+      const exact = rs.filter(r => P.texts && /^\d+$/.test(P.texts[r]) && String(Number(P.texts[r])) === P.texts[r]);
+      if (rs.length) out.push({ part: i, rows: rs, exact });
+    }
+    // si une colonne contient le numéro écrit tel quel, on ignore les correspondances avec zéros devant dans l'autre
+    if (out.length > 1 && out.some(h => h.exact.length)) out = out.filter(h => h.exact.length).map(h => ({ part: h.part, rows: h.exact }));
+    return out;
+  };
   const exclude = new Set();
-  for (const e of plan.except) {
-    if (e.kind === 'single') exclude.add(e.n); else idx.valuesIn(e.a, e.b).forEach(v => exclude.add(v));
-  }
-  const rows = new Set(), missing = [], emptyRanges = [];
+  for (const e of plan.except) hits(e).forEach(h => h.rows.forEach(r => exclude.add(r)));
+  const rows = new Set(), missing = [], emptyRanges = [], ambiguous = [];
   let rangeLots = 0;
   for (const it of plan.items) {
-    if (it.kind === 'single') {
-      if (exclude.has(it.n)) continue;
-      if (idx.has(it.n)) idx.map.get(it.n).forEach(r => rows.add(r)); else missing.push(it.n);
-    } else {
-      const vs = idx.valuesIn(it.a, it.b).filter(v => !exclude.has(v));
-      if (!vs.length) emptyRanges.push(it);
-      vs.forEach(v => idx.map.get(v).forEach(r => { rows.add(r); rangeLots++; }));
-    }
+    const h = hits(it);
+    if (!h.length) { if (it.kind === 'single') missing.push(it.n); else emptyRanges.push(it); continue; }
+    if (h.length > 1 && !h.every(x => x.rows.slice().sort().join() === h[0].rows.slice().sort().join())) ambiguous.push(it);
+    let n = 0;
+    h.forEach(x => x.rows.forEach(r => { if (!exclude.has(r)) { rows.add(r); n++; } }));
+    if (it.kind === 'range') { rangeLots += n; if (!n) emptyRanges.push(it); }
   }
-  return { rows: Array.from(rows).sort((a, b) => a - b), missing, emptyRanges, rangeLots, complete: !missing.length && !emptyRanges.length };
+  return { rows: Array.from(rows).sort((a, b) => a - b), missing, emptyRanges, ambiguous, rangeLots, force: force ?? null,
+    complete: !missing.length && !emptyRanges.length };
 }
 
 // Choix de l'interprétation : auto, ou confirmation
@@ -306,6 +343,13 @@ function decide(results, idx, opts) {
     else if (prim.length === 1) chosen = prim[0];
     else reason = 'Plusieurs interprétations possibles';
   }
+  if (chosen && chosen.r.ambiguous.length) {
+    // le numéro existe dans les deux colonnes, pour des lots différents : demander laquelle
+    const names = idx.names || [];
+    const per = partsOf(idx).map((_, i) => ({ plan: chosen.plan, primary: true, via: names[i] || ('colonne ' + (i + 1)), r: resolvePlan(chosen.plan, idx, i) })).filter(c => c.r.rows.length);
+    const f = chosen.r.ambiguous[0];
+    return { action: 'confirm', reason: `${f.kind === 'single' ? 'Le numéro ' + f.n : 'La plage ' + f.a + ' → ' + f.b} existe dans les deux colonnes de numéros : laquelle ?`, cands: per };
+  }
   if (chosen) {
     if (chosen.plan.warnings.length) reason = chosen.plan.warnings.join(' · ');
     else if (chosen.r.rows.length > maxAuto) reason = `${chosen.r.rows.length} lots concernés, au-delà du seuil de ${maxAuto}`;
@@ -317,4 +361,4 @@ function decide(results, idx, opts) {
   return { action: 'confirm', reason, cands: list.slice(0, 4) };
 }
 
-if (typeof module !== 'undefined') module.exports = { Parser, buildIndex, resolvePlan, decide };
+if (typeof module !== 'undefined') module.exports = { Parser, buildIndex, buildMultiIndex, lookupRows, resolvePlan, decide };

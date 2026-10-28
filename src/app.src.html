@@ -513,6 +513,7 @@ function candDesc(c) {
   bits.push(`${r.rows.length} lot${r.rows.length > 1 ? 's' : ''} ${c.plan.mode === 'uncheck' ? 'à retirer' : 'à pointer'}`);
   if (r.missing.length) bits.push(`<span class="w">absent${r.missing.length > 1 ? 's' : ''} de la liste : ${r.missing.join(', ')}</span>`);
   if (r.emptyRanges.length) bits.push(`<span class="w">plage sans lot attendu</span>`);
+  if (c.via && r.rows.length && r.rows.length <= 3) bits.push('lot ' + r.rows.map(x => esc(lotLabel(x))).join(', '));
   return bits.join(' · ');
 }
 
@@ -522,7 +523,7 @@ function openConfirm(text, d) {
   modal(`
     <h3>Confirmer la commande</h3>
     <p>${esc(d.reason || 'Vérifiez avant de pointer.')}</p>
-    <div class="cands">${d.cands.map((c, i) => `<button class="cand" data-i="${i}"><span class="t">${i + 1}. ${esc(c.plan.label)}</span><span class="d">${candDesc(c)}</span></button>`).join('')}</div>
+    <div class="cands">${d.cands.map((c, i) => `<button class="cand" data-i="${i}"><span class="t">${i + 1}. ${esc(c.plan.label)}${c.via ? ' — par « ' + esc(c.via) + ' »' : ''}</span><span class="d">${candDesc(c)}</span></button>`).join('')}</div>
     <label class="hint" for="fixInput">Corriger la transcription puis réanalyser :</label>
     <form class="field" id="fixForm"><input id="fixInput" value="${esc(text)}" autocomplete="off"><button class="btn">Réanalyser</button></form>
     <p class="hint">À la voix : « oui » pour le choix 1, « choix 2 », ou « non » pour ignorer.</p>
@@ -610,7 +611,9 @@ function showVoiceNotice(kind) {
 }
 
 /* ---------- Rendu ---------- */
-function extraCols() { if (!INV) return []; return INV.columns.map((c, i) => i).filter(i => i !== INV.lotCol).slice(0, 3); }
+function extraCols() { if (!INV) return []; const alt = INV.altCol ?? -1; const rest = INV.columns.map((c, i) => i).filter(i => i !== INV.lotCol && i !== alt); return (alt >= 0 && alt !== INV.lotCol ? [alt] : []).concat(rest).slice(0, 3); }
+// Numéro affiché pour une ligne : n° principal, et le 2e numéro entre parenthèses s'il existe
+function lotLabel(r) { const alt = INV && INV.altCol != null && INV.altCol >= 0 ? String(DATA.rows[r][INV.altCol] ?? '').trim() : ''; return DATA.lots[r] + (alt && alt !== DATA.lots[r] ? ' (' + alt + ')' : ''); }
 function buildHead() {
   const ex = extraCols();
   const narrow = matchMedia('(max-width: 640px)').matches;
@@ -715,6 +718,24 @@ function askConfirm(title, text, okLabel, fn, danger) {
 }
 
 /* ---------- Import ---------- */
+// Deuxième colonne de numéros probable : presque que des nombres d'au moins 4 chiffres, presque tous différents
+function guessAltCol(cols, rows, lc) {
+  let best = -1, bestScore = 0;
+  const lens = rows.slice(0, 300).map(r => String(r[lc] ?? '').trim().length);
+  const lotLen = lens.sort((a, b) => a - b)[lens.length >> 1] || 0;
+  for (let c = 0; c < cols.length; c++) {
+    if (c === lc) continue;
+    const vals = rows.slice(0, 300).map(r => String(r[c] ?? '').trim()).filter(Boolean);
+    if (vals.length < Math.max(3, rows.slice(0, 300).length * 0.5)) continue;
+    const num = vals.filter(v => /^\d{4,}$/.test(v)).length / vals.length;
+    const uniq = new Set(vals).size / vals.length;
+    if (num < 0.8 || uniq < 0.9) continue;
+    const ls = vals.map(v => v.length).sort((a, b) => a - b), len = ls[ls.length >> 1];
+    const score = num + uniq + (len !== lotLen ? 0.5 : 0) + (/(lot|n°|num|code|réf|ref)/i.test(cols[c]) ? 0.5 : 0);
+    if (score > bestScore) { bestScore = score; best = c; }
+  }
+  return best;
+}
 function guessLotCol(header, rows) {
   const re = /(lot|n°|num|numéro|numero|ref|référence)/i;
   let best = header.findIndex(h => re.test(String(h || '')));
@@ -758,29 +779,34 @@ function showImport(baseName, wb) {
       const same = prev ? cols.map((c, i) => prev.includes(c) ? i : -1).filter(i => i >= 0) : [];
       state.keep = new Set(same.length ? same : cols.map((_, i) => i).filter(i => example(i) !== ''));
     }
-    state.keep.add(lc);
+    if (state.alt === undefined || state.alt === lc) state.alt = guessAltCol(cols, body, lc);
+    const ac = state.alt;
+    state.keep.add(lc); if (ac >= 0) state.keep.add(ac);
     const lots = body.map(r => String(r[lc] ?? '').trim()).filter(Boolean);
-    const idx = buildIndex(lots);
+    const idx = buildMultiIndex(lots, null);
     modal(`
       <h3>Importer la liste des lots</h3>
       <div class="grid2">
         <label>Nom de l'inventaire<input id="iName" value="${esc(state.name)}"></label>
         <label>Feuille<select id="iSheet">${wb.SheetNames.map(n => `<option ${n === sheet ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
         <label>Colonne des numéros de lots<select id="iCol">${cols.map((c, i) => `<option value="${i}" ${i === lc ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+        <label>Deuxième numéro pour pointer (facultatif)<select id="iAlt"><option value="-1" ${ac < 0 ? 'selected' : ''}>Aucun</option>${cols.map((c, i) => i === lc ? '' : `<option value="${i}" ${i === ac ? 'selected' : ''}>${esc(c)}${example(i) ? ' — ex. ' + esc(example(i).slice(0, 20)) : ''}</option>`).join('')}</select></label>
         <label>Première ligne<select id="iHead"><option value="1" ${hasHeader ? 'selected' : ''}>Ligne d'en-têtes</option><option value="0" ${!hasHeader ? 'selected' : ''}>Déjà des données</option></select></label>
       </div>
+      ${ac >= 0 ? `<p class="hint" style="margin:0">Les lots pourront être pointés par « ${esc(cols[lc])} » ou par « ${esc(cols[ac])} », à la voix comme au scanner.</p>` : ''}
       <p><b>${lots.length.toLocaleString('fr-FR')}</b> lots trouvés${idx.dupRows.size ? ` · <b style="color:var(--warn)">${idx.dupRows.size} lignes en doublon</b> (signalées dans le tableau)` : ' · aucun doublon'}. Les numéros sont conservés tels quels, zéros initiaux compris.</p>
       <div class="colpick">
         <div class="colhead"><b>Colonnes à garder</b> <span class="hint">${state.keep.size} sur ${cols.length}</span><span class="colall"><button type="button" class="linkbtn" id="iAll">Tout</button> · <button type="button" class="linkbtn" id="iNone">Seulement les lots</button></span></div>
-        <div class="colchips">${cols.map((c, i) => `<label class="colchip ${i === lc ? 'lot' : ''}"><input type="checkbox" data-c="${i}" ${state.keep.has(i) ? 'checked' : ''} ${i === lc ? 'disabled' : ''}><span class="cn">${esc(c)}${i === lc ? ' · n° de lot' : ''}</span><span class="cx">${esc(example(i).slice(0, 40)) || 'vide'}</span></label>`).join('')}</div>
+        <div class="colchips">${cols.map((c, i) => `<label class="colchip ${i === lc || i === ac ? 'lot' : ''}"><input type="checkbox" data-c="${i}" ${state.keep.has(i) ? 'checked' : ''} ${i === lc || i === ac ? 'disabled' : ''}><span class="cn">${esc(c)}</span><span class="cx">${i === lc ? 'n° de lot · ' : i === ac ? '2e numéro · ' : ''}${esc(example(i).slice(0, 40)) || 'vide'}</span></label>`).join('')}</div>
         <div class="hint">Les colonnes gardées s'affichent dans le tableau et sont reprises dans l'export Excel. Les autres ne sont pas enregistrées.</div>
       </div>
-      <div class="preview"><table><tr>${cols.map((c, i) => `<th class="${i === lc ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(c)}</th>`).join('')}</tr>${body.slice(0, 5).map(r => `<tr>${cols.map((_, i) => `<td class="${i === lc ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(r[i])}</td>`).join('')}</tr>`).join('')}</table></div>
+      <div class="preview"><table><tr>${cols.map((c, i) => `<th class="${i === lc || i === ac ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(c)}</th>`).join('')}</tr>${body.slice(0, 5).map(r => `<tr>${cols.map((_, i) => `<td class="${i === lc || i === ac ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(r[i])}</td>`).join('')}</tr>`).join('')}</table></div>
       <div class="mrow"><button class="btn" id="iCancel">Annuler</button><button class="btn primary" id="iOk" ${lots.length ? '' : 'disabled'}>Créer l'inventaire</button></div>`);
     $('#iName').oninput = e => state.name = e.target.value;
-    $('#iSheet').onchange = e => { sheet = e.target.value; aoa = sheetRows(wb, sheet); state.col = null; state.keep = null; draw(); };
-    $('#iCol').onchange = e => { state.col = +e.target.value; draw(); };
-    $('#iHead').onchange = e => { hasHeader = e.target.value === '1'; state.col = null; state.keep = null; draw(); };
+    $('#iSheet').onchange = e => { sheet = e.target.value; aoa = sheetRows(wb, sheet); state.col = null; state.alt = undefined; state.keep = null; draw(); };
+    $('#iCol').onchange = e => { state.col = +e.target.value; if (state.alt === state.col) state.alt = undefined; draw(); };
+    $('#iAlt').onchange = e => { state.alt = +e.target.value; draw(); };
+    $('#iHead').onchange = e => { hasHeader = e.target.value === '1'; state.col = null; state.alt = undefined; state.keep = null; draw(); };
     $('#modalBox').querySelectorAll('.colchip input').forEach(cb => cb.onchange = () => { const c = +cb.dataset.c; cb.checked ? state.keep.add(c) : state.keep.delete(c); draw(); });
     $('#iAll').onclick = () => { state.keep = new Set(cols.map((_, i) => i)); draw(); };
     $('#iNone').onclick = () => { state.keep = new Set([lc]); draw(); };
@@ -789,7 +815,7 @@ function showImport(baseName, wb) {
       const idxs = [...state.keep].sort((a, b) => a - b);
       settings.keepCols = idxs.map(i => state.cols[i]); saveSettings();
       closeModal();
-      createInventory(state.name.trim() || baseName, idxs.map(i => state.cols[i]), state.body.map(r => idxs.map(i => r[i] ?? '')), idxs.indexOf(state.col));
+      createInventory(state.name.trim() || baseName, idxs.map(i => state.cols[i]), state.body.map(r => idxs.map(i => r[i] ?? '')), idxs.indexOf(state.col), state.alt >= 0 ? idxs.indexOf(state.alt) : -1);
     };
   };
   const state = { name: baseName, col: null, keep: null };
@@ -908,7 +934,14 @@ function scanSubmit() {
   if (!/^\d+$/.test(v)) { handlePhrase([v], 'text'); return; }       // commande écrite
   if (!INV) { showScan(v, 'Aucun inventaire ouvert', 'bad'); setResult("Importez d'abord une liste de lots."); beep(); return; }
   if (voice.paused) voice.resume();
-  const rows = IDX.byText.get(v) || IDX.map.get(Number(v));
+  const found = lookupRows(IDX, v).found;
+  if (found.length > 1) {
+    // même numéro dans les deux colonnes, pour des lots différents : demander
+    const plan = { mode: 'check', items: [{ kind: 'single', n: Number(v) }], except: [], warnings: [], label: v + ' (scan)', key: 'scan:' + v };
+    openConfirm('Scan ' + v, { reason: `Le numéro ${v} existe dans les deux colonnes de numéros : lequel ?`, cands: found.map(f => ({ plan, via: IDX.names[f.part], r: { rows: f.rows, missing: [], emptyRanges: [], complete: true } })) });
+    return;
+  }
+  const rows = found.length ? found[0].rows : null;
   if (!rows) {
     const a = addAno({ t: Date.now(), kind: 'Code scanné absent de la liste', n: v, cmd: 'Scan ' + raw.trim() });
     persist({ ano: [a] }); renderAno();
@@ -918,7 +951,7 @@ function scanSubmit() {
   }
   const was = rows.every(r => ST.status[r]);
   applyPlan({ mode: 'check', items: [{ kind: 'single', n: Number(v) }], except: [], warnings: [], label: DATA.lots[rows[0]] + ' (scan)' }, { rows, missing: [], emptyRanges: [] }, 'Scan ' + raw.trim());
-  showScan(DATA.lots[rows[0]], was ? 'Déjà pointé' : 'Pointé ✓', was ? 'dup' : 'ok');
+  showScan(lotLabel(rows[0]), was ? 'Déjà pointé' : 'Pointé ✓', was ? 'dup' : 'ok');
   if (was) tone(520, .12);
   if (filter === 'all' && settings.autoScroll) { scrollToRow(rows[0], true); renderRows(); }
 }
@@ -942,12 +975,13 @@ try { if (matchMedia('(pointer: fine)').matches) scanIn.focus({ preventScroll: t
 $('#findForm').onsubmit = e => {
   e.preventDefault(); if (!INV) return;
   const q = $('#findInput').value.trim(); if (!q) return;
-  let rows = IDX.byText.get(q) || (/^\d+$/.test(q) ? IDX.map.get(Number(q)) : null);
+  const fd = lookupRows(IDX, q).found;
+  let rows = fd.length ? fd.flatMap(f => f.rows) : null;
   if (!rows) { const ql = q.toLowerCase(); const r = ORDER.find(i => String(DATA.lots[i]).toLowerCase().includes(ql)); rows = r !== undefined ? [r] : null; }
   if (!rows) { $('#findHint').textContent = `Le lot ${q} n'existe pas dans la liste.`; return; }
   if (filter !== 'all') { filter = 'all'; document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.f === 'all')); applyFilter(); }
   flashRows = new Set(rows); scrollToRow(rows[0], true); renderRows();
-  $('#findHint').textContent = `Lot ${DATA.lots[rows[0]]} : ${ST.status[rows[0]] ? 'présent, pointé à ' + fmtT(ST.time[rows[0]]) : 'non pointé'}. Touchez son statut pour le modifier.`;
+  $('#findHint').textContent = `Lot ${lotLabel(rows[0])} : ${ST.status[rows[0]] ? 'présent, pointé à ' + fmtT(ST.time[rows[0]]) : 'non pointé'}. Touchez son statut pour le modifier.`;
 };
 document.querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = c.dataset.f; document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === c)); applyFilter(); $('#scroller').scrollTop = 0; renderRows(); });
 $('#autoScroll').checked = settings.autoScroll;
