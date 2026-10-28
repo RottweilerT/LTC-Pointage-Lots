@@ -334,6 +334,9 @@ const FIREBASE_CONFIG = {
 /*PARSER*/
 </script>
 <script>
+/*XLSXW*/
+</script>
+<script>
 (function () {
 'use strict';
 const $ = s => document.querySelector(s);
@@ -826,7 +829,6 @@ function showImport(baseName, wb) {
 /* ---------- Export ---------- */
 async function exportXlsx() {
   if (!INV) { toast('Aucun inventaire à exporter.'); return; }
-  if (!window.XLSX) { toast("La bibliothèque Excel n'a pas pu se charger : une connexion est nécessaire pour l'export."); return; }
   const cols = INV.columns.slice();
   const stat = r => ST.status[r] ? 'Présent' : INV.closed ? 'Manquant' : 'Non pointé';
   const line = r => { const base = cols.map((_, i) => DATA.rows[r][i] ?? ''); base[INV.lotCol] = DATA.lots[r]; return [...base, stat(r), ST.time[r] ? fmtDT(ST.time[r]) : '', IDX.dupRows.has(r) ? 'Doublon dans le fichier' : '']; };
@@ -839,14 +841,18 @@ async function exportXlsx() {
     ...all.filter(r => IDX.dupRows.has(r)).map(r => [fmtDT(INV.created), 'Doublon dans le fichier importé', DATA.lots[r], 'Ligne ' + (r + 1)])];
   const s4 = [['Date', 'Heure', 'Opération', 'Commande', 'Détail', 'Lots modifiés', 'Annulée'],
     ...HIST.map(h => [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture' }[h.kind] || h.kind, h.cmd || '', h.label + (h.result ? ' — ' + h.result : ''), h.rows ? h.rows.length : 0, h.undone ? 'Oui' : ''])];
-  const wb = XLSX.utils.book_new();
-  const add = (aoa, name, widths) => { const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = widths.map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
-  const w1 = [...cols.map(c => Math.max(10, String(c).length + 4)), 12, 20, 22];
-  add(s1, 'Inventaire complet', w1); add(s2, 'Lots manquants', w1); add(s3, 'Anomalies', [20, 30, 14, 50]); add(s4, 'Historique', [12, 10, 12, 40, 60, 12, 9]);
-  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  // largeur des colonnes d'après le contenu (100 premières lignes)
+  const fit = (aoa, min, max) => aoa[0].map((_, i) => Math.min(max, Math.max(min, ...aoa.slice(0, 101).map(r => String(r[i] ?? '').length + 2))));
+  // couleurs : vert = pointé, rouge = non pointé (ou manquant à la clôture), orange = anomalie
+  const st1 = [1, ...all.map(r => ST.status[r] ? 2 : 3)];
+  const blob = XlsxWriter.build([
+    { name: 'Inventaire complet', rows: s1, styles: st1, widths: fit(s1, 8, 50) },
+    { name: 'Lots manquants', rows: s2, styles: s2.map((_, i) => i ? 3 : 1), widths: fit(s2, 8, 50) },
+    { name: 'Anomalies', rows: s3, styles: s3.map((_, i) => i ? 4 : 1), widths: fit(s3, 10, 60) },
+    { name: 'Historique', rows: s4, widths: fit(s4, 8, 70) }
+  ]);
   const d = new Date();
   const fname = `inventaire_${INV.name.replace(/[^\w\-]+/g, '_')}_${d.toISOString().slice(0, 10)}_${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}.xlsx`;
-  const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   if (window.claude && typeof window.claude.use === 'function') {
     const dl = await window.claude.use('downloads');
     if (dl) { try { await dl.save({ filename: fname, data: blob }); toast('Export enregistré : ' + fname); } catch (e) { if (e.code !== 'declined') toast('Export impossible ici (' + (e.code || 'erreur') + ').'); } return; }
