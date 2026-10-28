@@ -121,8 +121,13 @@ select.btn { padding-right: 8px; max-width: 260px }
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent) }
 .thead, .trow { display: grid; grid-template-columns: var(--cols); align-items: center; gap: 10px; padding: 0 12px }
-.thead { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; height: 34px; border-bottom: 1px solid var(--line); background: var(--surface-2) }
-.scroller { height: 62vh; min-height: 340px; overflow-y: auto; position: relative; overscroll-behavior: contain }
+.thead { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; height: 34px; border-bottom: 1px solid var(--line); background: var(--surface-2); position: sticky; top: 0; z-index: 3; width: max(100%, var(--tmin, 0px)) }
+.thead span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.thead .lothd { position: sticky; left: 0; z-index: 1; background: var(--surface-2); margin-left: -12px; padding-left: 12px; align-self: stretch; display: flex; align-items: center }
+.scroller { height: 62vh; min-height: 340px; overflow: auto; position: relative; overscroll-behavior: contain }
+.spacer { width: max(100%, var(--tmin, 0px)) }
+.trow .lot { position: sticky; left: 0; z-index: 1; background: inherit; margin-left: -12px; padding-left: 12px; align-self: stretch; display: flex; align-items: center }
+.trow .alt { font: 500 15px var(--f-num); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .spacer { position: relative }
 .trow { position: absolute; left: 0; right: 0; height: 44px; border-bottom: 1px solid var(--line); background: var(--surface) }
 .trow .lot { font: 600 17px var(--f-num); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
@@ -173,6 +178,14 @@ select.btn { padding-right: 8px; max-width: 260px }
 .preview td, .preview th { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: left }
 .preview th { background: var(--surface-2) }
 .preview .sel { background: var(--accent-soft); font-weight: 600 }
+.invlist { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto }
+.invrow { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; background: var(--surface-2); cursor: pointer; min-height: 52px }
+.invrow.on { border-color: var(--bad); background: var(--bad-soft) }
+.invrow input { width: 20px; height: 20px; accent-color: var(--bad); grid-row: span 2; margin: 0 }
+.invrow .in { overflow-wrap: anywhere } .invrow .im { font-size: 12px; color: var(--muted) }
+.tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); vertical-align: 1px }
+.tag.cl { background: var(--idle); color: var(--idle-ink) }
+.btn.danger:not(:disabled) { border-color: var(--bad) }
 .preview .off { opacity: .35; text-decoration: line-through }
 .colpick { display: flex; flex-direction: column; gap: 8px }
 .colhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px }
@@ -209,6 +222,7 @@ select.btn { padding-right: 8px; max-width: 260px }
   <header class="top">
     <div class="brand">Pointage vocal des lots <small id="invMeta"></small></div>
     <select class="btn" id="invSel" aria-label="Inventaire"></select>
+    <button class="btn" id="bManage" title="Gérer et supprimer les listes">Gérer les listes</button>
     <button class="btn" id="bImport">Importer Excel / CSV</button>
     <button class="btn" id="bExport">Exporter Excel</button>
     <button class="btn" id="bMore" aria-haspopup="true">Plus…</button>
@@ -283,8 +297,7 @@ select.btn { padding-right: 8px; max-width: 260px }
         </div>
         <label class="toggle"><input type="checkbox" id="autoScroll" checked> Défilement auto</label>
       </div>
-      <div class="thead" id="thead"></div>
-      <div class="scroller" id="scroller"><div class="spacer" id="spacer"></div></div>
+      <div class="scroller" id="scroller"><div class="thead" id="thead"></div><div class="spacer" id="spacer"></div></div>
     </section>
 
     <aside class="side">
@@ -617,12 +630,26 @@ function showVoiceNotice(kind) {
 function extraCols() { if (!INV) return []; const alt = INV.altCol ?? -1; const rest = INV.columns.map((c, i) => i).filter(i => i !== INV.lotCol && i !== alt); return (alt >= 0 && alt !== INV.lotCol ? [alt] : []).concat(rest).slice(0, 3); }
 // Numéro affiché pour une ligne : n° principal, et le 2e numéro entre parenthèses s'il existe
 function lotLabel(r) { const alt = INV && INV.altCol != null && INV.altCol >= 0 ? String(DATA.rows[r][INV.altCol] ?? '').trim() : ''; return DATA.lots[r] + (alt && alt !== DATA.lots[r] ? ' (' + alt + ')' : ''); }
-function buildHead() {
-  const ex = extraCols();
+// Colonnes du tableau : n° de lot, 2e numéro, statut, heure, puis toutes les autres colonnes gardées à l'import
+function tableCols() {
+  if (!INV) return [];
   const narrow = matchMedia('(max-width: 640px)').matches;
-  const cols = narrow ? 'minmax(0,1.3fr) auto 56px' : `minmax(90px,1fr) 130px 70px ${ex.map(() => 'minmax(0,1.4fr)').join(' ')}`;
-  document.documentElement.style.setProperty('--cols', cols);
-  $('#thead').innerHTML = INV ? `<span>N° du lot</span><span>Statut</span><span>Heure</span>${narrow ? '' : ex.map(i => `<span>${esc(INV.columns[i] || 'Colonne ' + (i + 1))}</span>`).join('')}` : '';
+  const alt = INV.altCol != null && INV.altCol >= 0 && INV.altCol !== INV.lotCol ? INV.altCol : -1;
+  const name = i => INV.columns[i] || 'Colonne ' + (i + 1);
+  const out = [{ k: 'lot', label: name(INV.lotCol), min: 92, fr: 1 }];
+  if (alt >= 0) out.push({ k: 'alt', i: alt, label: name(alt), min: 92, fr: 1 });
+  out.push({ k: 'st', label: 'Statut', fix: narrow ? 108 : 124 }, { k: 'tm', label: 'Heure', fix: 58 });
+  INV.columns.forEach((_, i) => { if (i !== INV.lotCol && i !== alt) out.push({ k: 'ex', i, label: name(i), min: 120, fr: 1.4 }); });
+  return out;
+}
+function buildHead() {
+  const tc = tableCols();
+  const tpl = tc.map(c => c.fix ? c.fix + 'px' : `minmax(${c.min}px,${c.fr}fr)`).join(' ');
+  const tmin = tc.reduce((n, c) => n + (c.fix || c.min), 0) + 10 * Math.max(0, tc.length - 1) + 24;
+  document.documentElement.style.setProperty('--cols', tpl);
+  document.documentElement.style.setProperty('--tmin', tmin + 'px');
+  $('#thead').innerHTML = INV ? tc.map(c => `<span class="${c.k === 'lot' ? 'lothd' : ''}" title="${esc(c.label)}">${esc(c.label)}</span>`).join('') : '';
+  $('#thead').hidden = !INV;
 }
 function applyFilter() {
   if (!INV) { VIEW = []; return; }
@@ -638,13 +665,18 @@ function renderRows() {
   if (!VIEW.length) { sp.style.height = 'auto'; sp.innerHTML = `<div class="empty">Aucun lot dans ce filtre.</div>`; return; }
   sp.style.height = VIEW.length * ROW_H + 'px';
   const first = Math.max(0, Math.floor(sc.scrollTop / ROW_H) - 8), last = Math.min(VIEW.length, Math.ceil((sc.scrollTop + sc.clientHeight) / ROW_H) + 8);
-  const ex = matchMedia('(max-width: 640px)').matches ? [] : extraCols();
+  const tc = tableCols();
   let html = '';
   for (let p = first; p < last; p++) {
     const r = VIEW[p], s = ST.status[r], miss = INV.closed && !s;
     const cls = `trow ${s ? 's1' : ''} ${miss ? 'miss' : ''} ${r === nextRow ? 'next' : ''} ${flashRows.has(r) ? 'flash' : ''}`;
     const lbl = s ? 'Présent' : miss ? 'Manquant' : 'Non pointé';
-    html += `<div class="${cls}" style="top:${p * ROW_H}px"><span class="lot">${esc(DATA.lots[r])}${IDX.dupRows.has(r) ? '<span class="dup">DOUBLON</span>' : ''}</span><button class="st ${s ? 's1' : ''} ${miss ? 'miss' : ''}" data-r="${r}" aria-label="${lbl} — toucher pour ${s ? 'dépointer' : 'pointer'} le lot ${esc(DATA.lots[r])}">${lbl}</button><span class="tm">${fmtT(ST.time[r])}</span>${ex.map(i => `<span class="ex">${esc(DATA.rows[r][i])}</span>`).join('')}</div>`;
+    const cell = c => c.k === 'lot' ? `<span class="lot">${esc(DATA.lots[r])}${IDX.dupRows.has(r) ? '<span class="dup">DOUBLON</span>' : ''}</span>`
+      : c.k === 'alt' ? `<span class="alt">${esc(DATA.rows[r][c.i])}</span>`
+      : c.k === 'st' ? `<button class="st ${s ? 's1' : ''} ${miss ? 'miss' : ''}" data-r="${r}" aria-label="${lbl} — toucher pour ${s ? 'dépointer' : 'pointer'} le lot ${esc(DATA.lots[r])}">${lbl}</button>`
+      : c.k === 'tm' ? `<span class="tm">${fmtT(ST.time[r])}</span>`
+      : `<span class="ex" title="${esc(DATA.rows[r][c.i])}">${esc(DATA.rows[r][c.i])}</span>`;
+    html += `<div class="${cls}" style="top:${p * ROW_H}px">${tc.map(cell).join('')}</div>`;
   }
   sp.innerHTML = html;
 }
@@ -912,7 +944,61 @@ function moreMenu() {
   };
 }
 
+/* ---------- Gérer les listes (inventaires) : suppression une par une, en lot ou toutes ---------- */
+function manageInventories() {
+  const list = invList.slice().sort((a, b) => b.created - a.created);
+  if (!list.length) { toast('Aucune liste enregistrée.'); return; }
+  const sel = new Set();
+  const draw = () => {
+    modal(`
+      <h3>Gérer les listes</h3>
+      <p>${list.length} liste${list.length > 1 ? 's' : ''} enregistrée${list.length > 1 ? 's' : ''}${MODE === 'cloud' ? ' dans la base partagée' : ' sur cet appareil'}. Cochez celles à supprimer.</p>
+      <div class="mrow" style="justify-content:flex-start">
+        <button class="btn" id="mgClosed">Cocher les clôturées</button>
+        <button class="btn" id="mgAll">${sel.size === list.length ? 'Tout décocher' : 'Tout cocher'}</button>
+      </div>
+      <div class="invlist">${list.map(i => `
+        <label class="invrow ${sel.has(i.id) ? 'on' : ''}">
+          <input type="checkbox" data-id="${esc(i.id)}" ${sel.has(i.id) ? 'checked' : ''}>
+          <span class="in"><b>${esc(i.name)}</b>${INV && INV.id === i.id ? ' <span class="tag">ouverte</span>' : ''}${i.closed ? ' <span class="tag cl">clôturée</span>' : ''}</span>
+          <span class="im">${(i.count || 0).toLocaleString('fr-FR')} lots · importée le ${new Date(i.created).toLocaleDateString('fr-FR')}</span>
+        </label>`).join('')}</div>
+      <p class="hint">La suppression efface la liste, son pointage et son historique${MODE === 'cloud' ? ' pour tous les appareils' : ''}. Elle ne peut pas être annulée : exportez avant si besoin.</p>
+      <div class="mrow"><button class="btn" id="mgClose">Fermer</button><button class="btn danger" id="mgDel" ${sel.size ? '' : 'disabled'}>Supprimer ${sel.size ? sel.size + ' liste' + (sel.size > 1 ? 's' : '') : 'la sélection'}</button></div>`);
+    $('#modalBox').querySelectorAll('.invrow input').forEach(cb => cb.onchange = () => { cb.checked ? sel.add(cb.dataset.id) : sel.delete(cb.dataset.id); draw(); });
+    $('#mgClosed').onclick = () => { list.forEach(i => { if (i.closed) sel.add(i.id); }); draw(); if (!list.some(i => i.closed)) toast('Aucune liste clôturée.'); };
+    $('#mgAll').onclick = () => { if (sel.size === list.length) sel.clear(); else list.forEach(i => sel.add(i.id)); draw(); };
+    $('#mgClose').onclick = closeModal;
+    $('#mgDel').onclick = () => {
+      const ids = [...sel], names = list.filter(i => sel.has(i.id)).map(i => '« ' + esc(i.name) + ' »');
+      modal(`<h3>Supprimer ${ids.length} liste${ids.length > 1 ? 's' : ''} ?</h3>
+        <p>${names.slice(0, 6).join(', ')}${names.length > 6 ? ' et ' + (names.length - 6) + ' autre(s)' : ''} seront effacées avec leur pointage et leur historique${MODE === 'cloud' ? ', pour tous les appareils' : ''}.</p>
+        <div class="mrow"><button class="btn" id="mgBack">Retour</button><button class="btn danger" id="mgYes">Supprimer définitivement</button></div>`);
+      $('#mgBack').onclick = draw;
+      $('#mgYes').onclick = async () => {
+        $('#mgYes').disabled = true; $('#mgYes').textContent = 'Suppression…';
+        window.__deleting = true;
+        let done = 0;
+        for (const id of ids) {
+          try { await removeInventory(id); done++; } catch (e) { Cloud.fail(e); toast('Suppression impossible : ' + (e && e.message || e)); break; }
+          if (MODE === 'local') invList = invList.filter(i => i.id !== id);
+        }
+        window.__deleting = false;
+        closeModal();
+        if (INV && ids.includes(INV.id)) { Cloud.stop(); INV = null; DATA = null; ST = null; HIST = []; VIEW = []; }
+        const rest = await refreshInvList();
+        if (!INV && rest.length) { $('#invSel').value = rest[0].id; await loadInventory(rest[0].id); }
+        else if (!INV) { buildHead(); renderAll(); }
+        else refreshInvSelect(INV.id);
+        toast(`${done} liste${done > 1 ? 's' : ''} supprimée${done > 1 ? 's' : ''}`);
+      };
+    };
+  };
+  draw();
+}
+
 /* ---------- Événements ---------- */
+$('#bManage').onclick = async () => { await refreshInvList(INV && INV.id); manageInventories(); };
 $('#bMic').onclick = () => voice.want ? voice.stop() : voice.start();
 $('#bPause').onclick = () => voice.paused ? voice.resume() : voice.pause();
 $('#bUndo').onclick = undo;
@@ -1016,7 +1102,7 @@ addEventListener('online', net); addEventListener('offline', net); net();
     await new Promise(res => {
       Cloud.watchList(list => {
         invList = list; refreshInvSelect(INV && INV.id);
-        if (INV && !list.some(i => i.id === INV.id) && !first) { Cloud.stop(); INV = null; DATA = null; ST = null; HIST = []; VIEW = []; buildHead(); renderAll(); toast('Cet inventaire a été supprimé depuis un autre appareil.'); }
+        if (INV && !list.some(i => i.id === INV.id) && !first && !window.__deleting) { Cloud.stop(); INV = null; DATA = null; ST = null; HIST = []; VIEW = []; buildHead(); renderAll(); toast('Cet inventaire a été supprimé depuis un autre appareil.'); }
         if (first) { first = false; res(); }
       });
       setTimeout(() => { if (first) { first = false; res(); } }, 6000);
