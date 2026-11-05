@@ -1,0 +1,73 @@
+name: Extraction temporaire
+
+on:
+  push:
+    branches: [extraction-temp]
+
+permissions:
+  contents: write
+
+jobs:
+  extraire:
+    if: ${{ !contains(github.event.head_commit.message, 'resultat') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lire la base
+        run: |
+          python3 - <<'PY'
+          import json, re, urllib.request, urllib.error
+          page = open("index.html", encoding="utf-8").read()
+          KEY = re.search(r'apiKey:\s*"([^"]+)"', page).group(1)
+          PROJ = re.search(r'projectId:\s*"([^"]+)"', page).group(1)
+          HDR = {"Referer": "https://rottweilert.github.io/LTC-Pointage-Lots/"}
+          base = f"https://firestore.googleapis.com/v1/projects/{PROJ}/databases/(default)/documents"
+          def conv(v):
+              if "stringValue" in v: return v["stringValue"]
+              if "integerValue" in v: return int(v["integerValue"])
+              if "doubleValue" in v: return v["doubleValue"]
+              if "booleanValue" in v: return v["booleanValue"]
+              if "nullValue" in v: return None
+              if "arrayValue" in v: return [conv(x) for x in v["arrayValue"].get("values", [])]
+              if "mapValue" in v: return {k: conv(x) for k, x in v["mapValue"].get("fields", {}).items()}
+              return str(v)
+          def listcol(col):
+              out, tok = [], ""
+              while True:
+                  url = f"{base}/{col}?pageSize=300&key={KEY}" + (f"&pageToken={tok}" if tok else "")
+                  try: d = json.load(urllib.request.urlopen(urllib.request.Request(url, headers=HDR)))
+                  except urllib.error.HTTPError as e: print("ERREUR", col, e.code, e.read()[:300]); raise
+                  out += [{k: conv(x) for k, x in doc.get("fields", {}).items()} for doc in d.get("documents", [])]
+                  tok = d.get("nextPageToken")
+                  if not tok: return out
+          invs = listcol("pt_inventaires")
+          print("inventaires :", len(invs))
+          res = {"inventaires": invs, "lignes": listcol("pt_lignes"), "etat": listcol("pt_etat")}
+          json.dump(res, open("/tmp/base.json", "w"), ensure_ascii=False)
+          print("lignes", len(res["lignes"]), "etat", len(res["etat"]))
+          PY
+      - name: Chiffrer et renvoyer
+        run: |
+          cat > /tmp/pub.pem <<'PEM'
+          -----BEGIN PUBLIC KEY-----
+          MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAt5XyuUds60nD6R/ZDqju
+          TooTCUlKnuqaMTMs8nKr/YsArsFlaqkn+3ARLW0jWMuOGlHaw8Eun9kGUJ5Fq00p
+          ULB1dvStB/YAcRHFHPCe7N5S5StlFW8o+HEEr6sSTgQF7u86qpwCCXyztYx2EJoT
+          D07tfgi84UNNOpGUMyzRlhl6WPgeb6kqm1Ea9aW4RL+no0veHZzKD++YhHYg+BM3
+          bQin1noSMx6QXSm4IsXzGdZf6M/Q60fTSxs6e9qPwMDIl6ZVdPYptp0mjmxmfQqK
+          ilXMWKO99V3D1wP0n3q44uRd00da/KwcRasfUlVyaXsYkZ8wY4uCD6HOu0fk5ClJ
+          Acept7r5RDi8IzJtXX66WX1kEIS/QehpAeJ0Q6bk/MLfxFQiQDjHLVDNmqTuoU3V
+          +5QHlQUyHWuPfayqXGkWBPRmqzo9u2I3kGGH3HTE8dPJ302CyShcUyonwAn1Nil2
+          EEX2KZY72yuFD3539GUfx6BIziDSNcHdzXhzbe4ujF5/AgMBAAE=
+          -----END PUBLIC KEY-----
+          PEM
+          openssl rand -hex 32 > /tmp/k
+          mkdir -p extraction
+          openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -in /tmp/base.json -out extraction/base.enc -pass file:/tmp/k
+          openssl pkeyutl -encrypt -pubin -inkey /tmp/pub.pem -pkeyopt rsa_padding_mode:oaep -in /tmp/k -out extraction/cle.enc
+          rm -f /tmp/base.json /tmp/k
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add extraction
+          git commit -m "resultat chiffre"
+          git push
