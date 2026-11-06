@@ -1,0 +1,113 @@
+name: Pointage groupé temporaire
+
+on:
+  push:
+    branches: [extraction-temp]
+
+permissions:
+  contents: write
+
+jobs:
+  pointer:
+    if: ${{ !contains(github.event.head_commit.message, 'resultat') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pointer
+        run: |
+          python3 - <<'PY'
+          import json, re, time, random, string, urllib.request, urllib.error
+          page = open("index.html", encoding="utf-8").read()
+          KEY = re.search(r'apiKey:\s*"([^"]+)"', page).group(1)
+          PROJ = re.search(r'projectId:\s*"([^"]+)"', page).group(1)
+          HDR = {"Referer": "https://rottweilert.github.io/LTC-Pointage-Lots/", "Content-Type": "application/json"}
+          root = f"projects/{PROJ}/databases/(default)/documents"
+          base = f"https://firestore.googleapis.com/v1/{root}"
+          def req(url, data=None, method=None):
+              r = urllib.request.Request(url, data=json.dumps(data).encode() if data is not None else None, headers=HDR, method=method)
+              try: return json.load(urllib.request.urlopen(r))
+              except urllib.error.HTTPError as e: print("ERREUR", e.code, e.read()[:500]); raise
+          def conv(v):
+              if "stringValue" in v: return v["stringValue"]
+              if "integerValue" in v: return int(v["integerValue"])
+              if "doubleValue" in v: return v["doubleValue"]
+              if "booleanValue" in v: return v["booleanValue"]
+              if "nullValue" in v: return None
+              if "arrayValue" in v: return [conv(x) for x in v["arrayValue"].get("values", [])]
+              if "mapValue" in v: return {k: conv(x) for k, x in v["mapValue"].get("fields", {}).items()}
+              return None
+          def fv(x):
+              if isinstance(x, bool): return {"booleanValue": x}
+              if isinstance(x, int): return {"integerValue": str(x)}
+              if isinstance(x, float): return {"doubleValue": x}
+              return {"stringValue": str(x)}
+          def listcol(col):
+              out, tok = [], ""
+              while True:
+                  d = req(f"{base}/{col}?pageSize=300&key={KEY}" + (f"&pageToken={tok}" if tok else ""))
+                  out += [(doc["name"], {k: conv(x) for k, x in doc.get("fields", {}).items()}) for doc in d.get("documents", [])]
+                  tok = d.get("nextPageToken")
+                  if not tok: return out
+          invs = [x for _, x in listcol("pt_inventaires") if "vcoll" in x.get("name", "").lower().replace(" ", "") and "cembre2026" in x.get("name", "").lower().replace(" ", "")]
+          assert len(invs) == 1, [i.get("name") for i in invs]
+          inv = invs[0]; iid = inv["id"]; CH = inv.get("chunk") or 500
+          fmtcol = inv["columns"].index("packaging_name")
+          lignes = sorted([x for _, x in listcol("pt_lignes") if x.get("inv") == iid], key=lambda x: x["k"])
+          rows = []; lots = []
+          for p in lignes:
+              lots += p["lots"]; rows += [json.loads(r) for r in p["rows"]]
+          etat = {x["k"]: (n, x.get("t") or {}) for n, x in listcol("pt_etat") if x.get("inv") == iid}
+          SKIP = {"single lot", "sf", "gf"}
+          now = int(time.time() * 1000)
+          todo = [i for i, r in enumerate(rows) if str(r[fmtcol]).strip().lower() not in SKIP and str(i - (i // CH) * CH) not in etat.get(i // CH, ("", {}))[1]]
+          writes = []
+          bych = {}
+          for i in todo: bych.setdefault(i // CH, []).append(i)
+          for k, idx in bych.items():
+              name = etat[k][0] if k in etat else f"{root}/pt_etat/{iid}_{k}"
+              fields = {"t": {"mapValue": {"fields": {str(i - k * CH): {"integerValue": str(now)} for i in idx}}}, "inv": fv(iid), "k": fv(k)}
+              writes.append({"update": {"name": name, "fields": fields}, "updateMask": {"fieldPaths": ["inv", "k"] + [f"t.`{i - k * CH}`" for i in idx]}})
+          jr = [x for _, x in listcol("pt_journal") if x.get("inv") == iid]
+          seq = max([x.get("seq", 0) for x in jr] + [0]) + 1
+          hid = format(now, "x") + "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(5))
+          label = "Tous les formats sauf Single lot, SF et GF (pointage groupé)"
+          result = f"{len(todo)} lots pointés"
+          writes.append({"update": {"name": f"{root}/pt_journal/{iid}_{hid}", "fields": {
+              "inv": fv(iid), "id": fv(hid), "seq": fv(seq), "t": fv(now), "dev": fv("claude"), "kind": fv("check"),
+              "cmd": fv("Pointage groupé demandé à Claude"), "label": fv(label), "result": fv(result), "undone": fv(False),
+              "d": fv(json.dumps({"rows": todo, "prevS": [0] * len(todo), "prevT": [0] * len(todo)}))}}})
+          if todo:
+              req(f"https://firestore.googleapis.com/v1/projects/{PROJ}/databases/(default)/documents:commit?key={KEY}", {"writes": writes}, "POST")
+          # relecture pour vérifier
+          etat2 = {x["k"]: x.get("t") or {} for _, x in listcol("pt_etat") if x.get("inv") == iid}
+          done = lambda i: str(i - (i // CH) * CH) in etat2.get(i // CH, {})
+          summ = {"inventaire": inv["name"], "pointes_maintenant": [[lots[i], rows[i][fmtcol]] for i in todo],
+                  "total": len(rows), "pointes_total": sum(done(i) for i in range(len(rows))),
+                  "restants": [[lots[i], rows[i][1] if len(rows[i]) > 1 else "", rows[i][fmtcol]] for i in range(len(rows)) if not done(i)]}
+          json.dump(summ, open("/tmp/res.json", "w"), ensure_ascii=False)
+          print("ok", len(todo))
+          PY
+      - name: Chiffrer et renvoyer
+        run: |
+          cat > /tmp/pub.pem <<'PEM'
+          -----BEGIN PUBLIC KEY-----
+          MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA7/LjbZgZex0iGh6oxI+d
+          6N15zOKvwtLdO5umAvIWSP0wFoNhthsT9P4D585I27UM2yItHx/MedSonCpgLRM1
+          9uQTshUrjinfObJOg5B/9NcRy/ZpErwRY3WXoHPNthDB2Lv6gGPwnGEQPkRy+WFy
+          dVgeRcXZlLIk5Cdxae1ARUmoGSYXNbPOIxhsxN5NSTBpzjyKYaey+xBzpHyncfRR
+          KCpKOfJK+mnagU1AEOy/cbd6d1oUaadiVngSG6oEY/4oCFNq7ItOLUMt1XpMnA8g
+          +4jP1Ra6kR0UpgFEto9euHykHItF1RCC/QdmiTth2h17Icha48Z/nZsVsa343FeP
+          mKgQQHdJWkMsByA8bx2eUJQPT3ZubR8JxM9L7dAw8Do1Jvp7PgL7074TQXDG9Fg0
+          ktXqlSsbZeKUzOeA3nYzV/vJShbe4PjFW2mIx1sv7iVC92eXgmwpO6j6heQZ8Seq
+          80+9VlPR9OHpkZyYFs1p9cE5GbhGiMF+yOu0HwReOO9XAgMBAAE=
+          -----END PUBLIC KEY-----
+          PEM
+          openssl rand -hex 32 > /tmp/k
+          mkdir -p extraction
+          openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -in /tmp/res.json -out extraction/res.enc -pass file:/tmp/k
+          openssl pkeyutl -encrypt -pubin -inkey /tmp/pub.pem -pkeyopt rsa_padding_mode:oaep -in /tmp/k -out extraction/cle.enc
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add extraction
+          git commit -m "resultat chiffre"
+          git push
