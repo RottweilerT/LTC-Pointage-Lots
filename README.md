@@ -1,4 +1,4 @@
-# LTC – Pointage des lots
+# LTC Pointage Lots
 
 Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on pointe les lots présents au scanner de codes-barres, au clavier ou en touchant la ligne dans le tableau. L'appli exporte le résultat en Excel.
 

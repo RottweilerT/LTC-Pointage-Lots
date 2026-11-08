@@ -1,6 +1,6 @@
 {
-  "name": "LTC – Pointage des lots",
-  "short_name": "Pointage lots",
+  "name": "LTC Pointage Lots",
+  "short_name": "LTC Pointage Lots",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
