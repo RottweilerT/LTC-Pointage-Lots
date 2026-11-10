@@ -160,6 +160,8 @@ select.btn { padding-right: 8px; max-width: 260px }
 .cand .t { font: 600 18px var(--f-num) } .cand .d { font-size: 13px; color: var(--muted) }
 .cand .d .w { color: var(--warn); font-weight: 600 }
 .mrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end }
+/* Boutons de validation d'une fenêtre toujours visibles, même quand son contenu défile */
+.modal > .mrow:last-child { position: sticky; bottom: -18px; margin: 0 -18px -18px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line) }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
 .grid2 label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted) }
 .grid2 select, .grid2 input { border: 1px solid var(--line); border-radius: var(--r); padding: 8px; background: var(--surface-2); min-height: 42px; color: var(--ink) }
@@ -211,7 +213,7 @@ select.btn { padding-right: 8px; max-width: 260px }
     <button class="btn" id="bManage" title="Gérer et supprimer les listes">Gérer les listes</button>
     <button class="btn" id="bImport">Importer Excel / CSV</button>
     <button class="btn" id="bExport">Exporter Excel</button>
-    <button class="btn" id="bMore" aria-haspopup="true">Plus…</button>
+    <button class="btn" id="bMore" aria-haspopup="true" title="Clôturer, réinitialiser, supprimer l'inventaire, réglages">Options…</button>
     <input type="file" id="file" accept=".xlsx,.xls,.csv,.ods" hidden>
   </header>
 
@@ -1306,8 +1308,22 @@ function setResult(html) { $('#result').innerHTML = html; }
 /* ---------- Divers ---------- */
 let toastT;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); }
-function modal(html) { $('#modalBox').innerHTML = html; $('#modal').hidden = false; }
-function closeModal() { $('#modal').hidden = true; $('#modalBox').innerHTML = ''; }
+// Fenêtres : le bouton « Précédent » du téléphone ou du navigateur ferme la fenêtre ouverte (historique de navigation seulement)
+let modalHist = false, backPending = false, wantPush = false;
+function modalPush() { try { history.pushState({ ptModal: 1 }, ''); modalHist = true; } catch (e) {} }
+function modal(html) {
+  $('#modalBox').innerHTML = html; $('#modal').hidden = false;
+  if (!modalHist) { if (backPending) wantPush = true; else modalPush(); }
+}
+function closeModal(fromPop) {
+  $('#modal').hidden = true; $('#modalBox').innerHTML = '';
+  if (modalHist && fromPop !== true) { modalHist = false; backPending = true; try { history.back(); } catch (e) { backPending = false; } }
+  else modalHist = false;
+}
+addEventListener('popstate', () => {
+  if (backPending) { backPending = false; if (wantPush) { wantPush = false; if (!$('#modal').hidden) modalPush(); } return; }
+  if (!$('#modal').hidden) { modalHist = false; if (confirmCtx) { confirmCtx = null; } closeModal(true); }
+});
 let actx;
 function tone(f, d) { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; g.gain.value = .06; o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {} }
 const tick = () => tone(880, .06), beep = () => { tone(330, .15); setTimeout(() => tone(260, .2), 160); };
