@@ -100,7 +100,8 @@ select.btn { padding-right: 8px; max-width: 260px }
 .notice .btn { margin-top: 8px; min-height: 36px }
 
 /* tableau de bord */
-.dash { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 2fr; gap: 10px }
+.dash { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px }
+.dash .prog { grid-column: span 2 }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; min-width: 0 }
 .stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600 }
 .stat .v { font: 600 26px/1.15 var(--f-num); font-variant-numeric: tabular-nums }
@@ -163,8 +164,71 @@ select.btn { padding-right: 8px; max-width: 260px }
 .log { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px }
 .log div { padding: 6px 8px; border-radius: 6px; background: var(--surface-2); overflow-wrap: anywhere }
 .log .a { background: var(--warn-soft) }
+.log .a.done { background: var(--surface-2) }
 .log .u { opacity: .55; text-decoration: line-through }
 .log time { font-family: var(--f-num); color: var(--muted); margin-right: 6px }
+
+/* séance par format, résultat de scan, tableau des formats */
+.sessbar { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--accent) }
+.sesstop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap }
+.sessname { font-size: 14px } .sessname b { font-size: 16px; letter-spacing: .02em }
+.sessnums { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--muted); align-items: baseline }
+.sessnums b { color: var(--ink); font-size: 18px } .sessnums .w b { color: var(--warn) }
+.sessnums .sesspct { margin-left: auto; font-size: 18px; color: var(--ink) }
+.scanres { border-radius: 10px; padding: 10px 12px; border: 2px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 3px; font-size: 14px }
+.scanres .srt { font-size: 15px; letter-spacing: .02em }
+.scanres.ok { border-color: var(--ok); background: var(--ok-soft) } .scanres.ok .srt { color: var(--ok) }
+.scanres.warn { border-color: var(--warn); background: var(--warn-soft) } .scanres.warn .srt { color: var(--warn) }
+.scanres.bad { border-color: var(--bad); background: var(--bad-soft) } .scanres.bad .srt { color: var(--bad) }
+.scanres.dup { border-color: var(--accent); background: var(--accent-soft) } .scanres.dup .srt { color: var(--accent) }
+.lastscan.warnfmt { background: var(--warn-soft) } .lastscan.warnfmt .lss { color: var(--warn) }
+.camb { min-height: 54px; padding: 0 12px }
+.fmtdash { padding: 0 } .fdhead { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; padding: 12px 12px 6px }
+.fdhead h2 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
+.fmttable { overflow-x: auto; padding: 0 0 6px }
+.fmttable table, .anotable table, .recent table { border-collapse: collapse; width: 100%; font-size: 14px }
+.fmttable th, .fmttable td { padding: 7px 12px; text-align: left; border-top: 1px solid var(--line); white-space: nowrap }
+.fmttable thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; border-top: 0 }
+.fmttable td.num { font-family: var(--f-num); text-align: right } .fmttable td.w { color: var(--warn); font-weight: 600 }
+.fmttable tbody tr { cursor: pointer } .fmttable tbody tr:hover { background: var(--surface-2) }
+.fmttable tbody tr.on { background: var(--accent-soft); box-shadow: inset 4px 0 0 var(--accent) }
+.fmttable tbody tr.full th { color: var(--ok) }
+.fmttable .btn { min-height: 34px; padding: 4px 12px; font-size: 13px }
+.mini { display: inline-block; width: 80px; height: 8px; border-radius: 4px; background: var(--idle); overflow: hidden; vertical-align: middle; margin-right: 8px }
+.mini i { display: block; height: 100%; background: var(--ok) }
+.recent table { font-size: 13px } .recent th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; padding: 3px 4px } .recent td { padding: 4px; border-top: 1px solid var(--line) }
+.recent tr.ok td:last-child { color: var(--ok); font-weight: 600 } .recent tr.w td:last-child { color: var(--warn); font-weight: 600 } .recent tr.e td:last-child { color: var(--bad); font-weight: 600 } .recent tr.b td:last-child { color: var(--accent); font-weight: 600 }
+.recent tr.u { opacity: .5; text-decoration: line-through }
+.anoall { width: 100%; margin-top: 8px; justify-content: center }
+.statbtn { text-align: left; font: inherit; color: inherit; cursor: pointer } .statbtn:hover { border-color: var(--warn) }
+.anotable { overflow: auto; max-height: 58vh; border: 1px solid var(--line); border-radius: 8px }
+.anotable th, .anotable td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top }
+.anotable thead th { position: sticky; top: 0; background: var(--surface-2); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); white-space: nowrap }
+.anotable tr.open td:first-child { box-shadow: inset 3px 0 0 var(--warn) }
+.anotable .acts { display: flex; flex-wrap: wrap; gap: 4px; min-width: 150px } .anotable .acts .btn { min-height: 32px; padding: 3px 9px; font-size: 12px }
+.stp { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--idle); color: var(--idle-ink); white-space: nowrap }
+.stp.ouverte, .stp.attente { background: var(--warn-soft); color: var(--warn) } .stp.corrigee, .stp.resolue { background: var(--ok-soft); color: var(--ok) } .stp.conservee { background: var(--accent-soft); color: var(--accent) }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px }
+.grid3 label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted) }
+.grid3 select { border: 1px solid var(--line); border-radius: var(--r); padding: 8px; background: var(--surface-2); min-height: 42px; color: var(--ink) }
+.mm .mmtitle { color: var(--warn); font-size: 20px } .mm { display: flex; flex-direction: column; gap: 10px }
+.mmgrid, .idgrid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; align-items: baseline; font-size: 14px }
+.mmgrid > span, .idgrid > span { color: var(--muted) } .fmtbig { font-size: 17px } .fmtbig small { font-weight: 400; color: var(--muted); font-size: 12px }
+.mmacts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.mma { display: flex; gap: 10px; align-items: flex-start; text-align: left; border: 2px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 10px 12px; min-height: 64px }
+.mma.ok { border-color: var(--ok); background: var(--ok-soft) } .mma:hover, .mma:focus-visible { border-color: var(--accent) }
+.mma span { display: flex; flex-direction: column; gap: 2px } .mma small { color: var(--muted); font-size: 12px }
+kbd { font: 600 13px var(--f-num); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; background: var(--surface) }
+.fixfmt { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 10px }
+.fixfmt input#lfNew { border: 1px solid var(--line); border-radius: var(--r); padding: 8px; background: var(--surface-2); min-height: 42px; color: var(--ink) }
+.fmtcell { border: 0; background: none; padding: 2px 6px; margin-left: -6px; border-radius: 6px; font: inherit; color: var(--ink); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; cursor: pointer; text-decoration: underline dotted var(--muted) }
+.fmtcell:hover { background: var(--accent-soft) } .fmtcell s { color: var(--muted); font-size: 12px; margin-left: 4px }
+.st.pend { background: var(--warn); color: var(--surface) }
+.trow.pend { background: var(--warn-soft) }
+.cam video { width: 100%; max-height: 60vh; background: #000; border-radius: 8px }
+.rep { font-size: 13px } .rep summary { cursor: pointer; font-weight: 600 } .rep ul { margin: 6px 0 0; padding-left: 18px; max-height: 160px; overflow: auto }
+.diffbox { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px } .diffbox div { border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center } .diffbox b { display: block; font: 600 22px var(--f-num) }
+@media (max-width: 640px) { .mmacts, .grid3 { grid-template-columns: 1fr } .diffbox { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 
 /* fenêtres */
 .modal-back { position: fixed; inset: 0; background: rgba(10, 16, 24, .5); display: grid; place-items: center; z-index: 50; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
@@ -202,7 +266,8 @@ select.btn { padding-right: 8px; max-width: 260px }
 .invrow { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; background: var(--surface-2); cursor: pointer; min-height: 52px }
 .invrow.on { border-color: var(--bad); background: var(--bad-soft) }
 .invrow input { width: 20px; height: 20px; accent-color: var(--bad); grid-row: span 2; margin: 0 }
-.invrow .in { overflow-wrap: anywhere } .invrow .im { font-size: 12px; color: var(--muted) }
+.invrow .in { overflow-wrap: anywhere }
+.invacts { grid-column: 2; display: flex; gap: 6px; margin-top: 6px } .invacts .btn { min-height: 32px; padding: 3px 10px; font-size: 13px } .invrow .im { font-size: 12px; color: var(--muted) }
 .tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); vertical-align: 1px }
 .tag.cl { background: var(--idle); color: var(--idle-ink) }
 .btn.danger:not(:disabled) { border-color: var(--bad) }
@@ -223,10 +288,10 @@ select.btn { padding-right: 8px; max-width: 260px }
 
 :fullscreen .wrap, .fs .wrap { max-width: none }
 
-@media (max-width: 1100px) { .dash { grid-template-columns: repeat(3, minmax(0, 1fr)) } .prog { grid-column: 1 / -1 } .main { grid-template-columns: 1fr } }
+@media (max-width: 1100px) { .main { grid-template-columns: 1fr } }
 @media (max-width: 640px) {
   .scan { grid-template-columns: 1fr } .lastscan { flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; min-width: 0 } .lastscan .lsv { font-size: 19px }
-  .dash { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px } .stat { padding: 8px 10px } .stat .k { font-size: 10px } .stat .v { font-size: 20px }
+  .dash { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px } .dash .prog { grid-column: 1 / -1 } .stat { padding: 8px 10px } .stat .k { font-size: 10px } .stat .v { font-size: 20px }
   .grid2 { grid-template-columns: 1fr }
   .brand small { display: none }
   .scroller { height: 55vh }
@@ -238,7 +303,7 @@ select.btn { padding-right: 8px; max-width: 260px }
   <header class="top">
     <div class="brand"><img src="data:image/png;base64,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" alt="" width="46" height="46"><span class="bt"><span>LTC Pointage Lots</span><small id="invMeta"></small></span></div>
     <select class="btn" id="invSel" aria-label="Inventaire"></select>
-    <button class="btn" id="bManage" title="Gérer et supprimer les listes">Gérer les listes</button>
+    <button class="btn" id="bManage" title="Renommer, dater, archiver ou supprimer les ventes">Gérer les ventes</button>
     <button class="btn" id="bImport">Importer Excel / CSV</button>
     <button class="btn" id="bExport">Exporter Excel</button>
     <button class="btn" id="bMore" aria-haspopup="true" title="Clôturer, réinitialiser, supprimer l'inventaire, réglages">Options…</button>
@@ -249,13 +314,16 @@ select.btn { padding-right: 8px; max-width: 260px }
 
   <section class="scan" aria-label="Saisie manuelle et scanner">
     <form class="scanform" id="scanForm">
-      <div class="scanhead"><label for="scanInput" class="scanlbl">Saisie manuelle / scanner</label>
+      <div class="sessbar" id="sessBar" hidden></div>
+      <div class="scanhead"><label for="scanInput" class="scanlbl" id="scanTitle">Saisie manuelle / scanner</label>
         <button type="button" class="linkbtn bipbtn" id="bBip"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>Volume bip scanner</button></div>
       <div class="field">
         <input id="scanInput" placeholder="Code-barres ou n° de lot" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
         <button class="btn primary">Pointer</button>
+        <button type="button" class="btn camb" id="bCam" hidden title="Scanner avec la caméra" aria-label="Scanner avec la caméra"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M7 12h10"/></svg></button>
       </div>
-      <div class="hint">Un numéro scanné ou tapé est pointé tout de suite. Plage possible : « 20000 à 20050 sauf 20025 ». Dans le tableau, touchez une ligne pour la cocher ou la décocher.</div>
+      <div class="hint">Un numéro scanné ou tapé est pointé tout de suite. Choisissez un format ci-dessous pour une séance de pointage par format. Plage possible : « 20000 à 20050 sauf 20025 ».</div>
+      <div class="scanres" id="scanRes" hidden aria-live="polite"></div>
     </form>
     <div class="lastscan" id="lastScan" aria-live="polite"><span class="lsk">Dernier pointage</span><span class="lsv num" id="lsNum">—</span><span class="lss" id="lsState">Prêt</span></div>
     <div class="scanfoot">
@@ -268,9 +336,16 @@ select.btn { padding-right: 8px; max-width: 260px }
     <div class="stat"><div class="k">Lots attendus</div><div class="v" id="kTotal">0</div></div>
     <div class="stat ok"><div class="k">Pointés</div><div class="v" id="kDone">0</div></div>
     <div class="stat"><div class="k" id="kLeftLbl">Restant à vérifier</div><div class="v" id="kLeft">0</div></div>
-    <div class="stat warn"><div class="k">Anomalies</div><div class="v" id="kAno">0</div></div>
+    <div class="stat" id="kUnitsBox" hidden><div class="k">Unités pointées</div><div class="v" id="kUnits">0</div></div>
+    <button class="stat warn statbtn" id="kAnoBox" type="button"><div class="k">Anomalies ouvertes</div><div class="v" id="kAno">0</div></button>
+    <div class="stat"><div class="k">Corrections</div><div class="v" id="kCorr">0</div></div>
     <div class="stat"><div class="k">Doublons fichier</div><div class="v" id="kDup">0</div></div>
     <div class="stat prog"><div class="row"><span>Avancement</span><b class="num" id="kPct">0 %</b></div><div class="bar"><i id="kBar"></i></div><div class="row"><span id="kSave">Sauvegarde locale</span><span id="kNet"></span></div></div>
+  </section>
+
+  <section class="panel fmtdash" id="fmtDash" hidden aria-label="Pointage par format">
+    <div class="fdhead"><h2 id="fmtDashTitle">Pointage par format</h2><span class="hint">Touchez un format pour démarrer ou reprendre sa séance de pointage.</span></div>
+    <div class="fmttable" id="fmtTable"></div>
   </section>
 
   <div class="main">
@@ -297,8 +372,13 @@ select.btn { padding-right: 8px; max-width: 260px }
         <div class="nextlist" id="nextList"><span>—</span></div>
       </section>
       <section class="panel">
-        <h2>Anomalies <span class="num" id="anoCount"></span></h2>
+        <h2>Scans récents</h2>
+        <div class="recent" id="recentLog"><div class="hint">Aucun scan pour le moment.</div></div>
+      </section>
+      <section class="panel">
+        <h2>Anomalies de pointage <span class="num" id="anoCount"></span></h2>
         <div class="log" id="anoLog"><div>Aucune anomalie.</div></div>
+        <button class="btn anoall" id="bAnoAll" type="button">Voir et traiter les anomalies</button>
       </section>
       <section class="panel">
         <h2>Historique</h2>
@@ -798,6 +878,149 @@ const XlsxWriter = (function () {
 })();
 if (typeof module !== 'undefined') module.exports = { XlsxWriter };
 
+/* ===== Formats, séances de pointage par format, anomalies, réimport (fonctions pures, testées) =====
+   Trois notions distinctes :
+   - l'identité du lot : ses numéros (colonne principale + 2e numéro) ;
+   - le format d'origine : la valeur du fichier importé, jamais modifiée ;
+   - le format opérationnel : le format d'origine, ou le format corrigé pendant le pointage.          */
+const Formats = (function () {
+  // « Album », « ALBUM », « albums », « Single-lots » : même format
+  function normFmt(s) {
+    const t = String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+      .replace(/[_\-./]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!t) return '';
+    return t.split(' ').map(w => (w.length > 3 && /s$/.test(w) && !/ss$/.test(w)) ? w.slice(0, -1) : w).join(' ');
+  }
+
+  // Quantité : simple information (un scan suffit), totalisée en unités. Invalide -> 1 et signalée à l'import.
+  function qtyOf(v) { const n = Number(String(v ?? '').replace(',', '.').trim()); return Number.isFinite(n) && n > 0 ? n : 1; }
+  function qtyValid(v) { const s = String(v ?? '').trim(); const n = Number(s.replace(',', '.')); return s !== '' && Number.isFinite(n) && n > 0; }
+
+  /* Modèle d'une vente : m = {
+       n, orig(r) -> format d'origine (texte), corr {r: libellé corrigé}, status(r) -> 0/1, qty(r), pending Set(r) } */
+  function opLabel(m, r) { return m.corr[r] != null ? m.corr[r] : m.orig(r); }
+  function opKey(m, r) { return normFmt(opLabel(m, r)) || '(vide)'; }
+
+  // Libellé affiché d'un format : l'écriture la plus fréquente dans le fichier
+  function labels(m) {
+    const seen = new Map();
+    const add = (k, raw) => { if (!seen.has(k)) seen.set(k, new Map()); const c = seen.get(k); c.set(raw, (c.get(raw) || 0) + 1); };
+    for (let r = 0; r < m.n; r++) { const raw = String(m.orig(r) ?? '').trim() || '(vide)'; add(normFmt(raw) || '(vide)', raw); }
+    for (const r in m.corr) { const raw = String(m.corr[r]).trim(); add(normFmt(raw) || '(vide)', raw); }
+    const out = new Map();
+    for (const [k, c] of seen) out.set(k, [...c.entries()].sort((a, b) => b[1] - a[1])[0][0]);
+    return out;
+  }
+
+  // Tableau de bord par format (calculé à partir des données, jamais stocké)
+  function stats(m, anomalies) {
+    const lab = labels(m), by = new Map();
+    const get = k => { if (!by.has(k)) by.set(k, { key: k, label: lab.get(k) || k, lots: 0, units: 0, done: 0, unitsDone: 0, pending: 0, corrIn: 0, corrOut: 0, anomalies: 0 }); return by.get(k); };
+    for (let r = 0; r < m.n; r++) {
+      const s = get(opKey(m, r)), q = m.qty(r);
+      s.lots++; s.units += q;
+      if (m.status(r)) { s.done++; s.unitsDone += q; }
+      if (m.pending.has(r)) s.pending++;
+      if (m.corr[r] != null) { s.corrIn++; const o = get(normFmt(m.orig(r)) || '(vide)'); o.corrOut++; }
+    }
+    for (const a of anomalies || []) {
+      if (!isOpen(a)) continue;
+      const k = a.fk || (a.row != null && a.row < m.n ? opKey(m, a.row) : null);
+      if (k && by.has(k)) by.get(k).anomalies++;
+    }
+    const list = [...by.values()].filter(s => s.lots || s.corrOut);
+    list.forEach(s => { s.left = s.lots - s.done; s.pct = s.lots ? Math.round(s.done / s.lots * 1000) / 10 : 0; });
+    return list.sort((a, b) => b.lots - a.lots || a.label.localeCompare(b.label, 'fr', { numeric: true }));
+  }
+  function totals(m, anomalies) {
+    let lots = m.n, units = 0, done = 0, unitsDone = 0, corrections = 0;
+    for (let r = 0; r < m.n; r++) { const q = m.qty(r); units += q; if (m.status(r)) { done++; unitsDone += q; } if (m.corr[r] != null) corrections++; }
+    const open = (anomalies || []).filter(isOpen).length;
+    return { lots, units, done, unitsDone, left: lots - done, corrections, open, pct: lots ? Math.round(done / lots * 1000) / 10 : 0 };
+  }
+
+  /* Anomalies : st = ouverte | attente | corrigee | conservee | resolue | annulee (absent = ancienne note, « info ») */
+  const OPEN = new Set(['ouverte', 'attente']);
+  const isOpen = a => !!a && OPEN.has(a.st);
+  const ST_LABEL = { ouverte: 'Ouverte', attente: 'En attente', corrigee: 'Corrigée', conservee: 'Format d\'origine conservé', resolue: 'Résolue', annulee: 'Annulée' };
+  const TYPE_LABEL = { format: 'Format différent du listing', inconnu: 'Lot inconnu', conflit: 'Identifiants contradictoires', doublon: 'Lot déjà pointé', 'absent-listing': 'Absent du nouveau listing', ambigu: 'Numéro ambigu' };
+
+  /* Classement d'un scan. ids = numéros lus ; lookup(text) -> { found: [{part, rows}] } (index de la vente active).
+     Retour : kind = unknown | conflict | ambiguous | already | mismatch | ok, avec les lignes et les formats. */
+  function classify(text, ctx) {
+    const t = String(text || '').trim();
+    const nums = t.match(/\d+/g) || [];
+    let row = null, verified = 1, via = null;
+    if (nums.length === 2 && /^\d+\D+\d+$/.test(t)) {
+      // deux identifiants lus : ils doivent désigner le même lot
+      const a = ctx.lookup(nums[0]).found, b = ctx.lookup(nums[1]).found;
+      if (!a.length && !b.length) return { kind: 'unknown', ids: nums };
+      if (!a.length || !b.length) return { kind: 'conflict', ids: nums, reason: `le numéro ${!a.length ? nums[0] : nums[1]} est introuvable alors que l'autre existe`, rows: (a.length ? a : b)[0].rows };
+      const ra = new Set(a.flatMap(f => f.rows)), rb = b.flatMap(f => f.rows), common = rb.filter(r => ra.has(r));
+      if (!common.length) return { kind: 'conflict', ids: nums, reason: 'les deux numéros appartiennent à deux lots différents', rows: [a[0].rows[0], b[0].rows[0]] };
+      if (common.length > 1) return { kind: 'ambiguous', ids: nums, rows: common };
+      row = common[0]; verified = 2;
+    } else {
+      const f = ctx.lookup(t).found;
+      if (!f.length) return { kind: 'unknown', ids: [t] };
+      if (f.length > 1) return { kind: 'ambiguous', ids: [t], found: f };
+      if (f[0].rows.length > 1) return { kind: 'ambiguous', ids: [t], rows: f[0].rows, dup: true };
+      row = f[0].rows[0]; via = f[0].part;
+    }
+    const m = ctx.model;
+    const out = { row, verified, via, fmtListing: m.orig(row), fmtOp: opLabel(m, row), keyOp: opKey(m, row), corrected: m.corr[row] != null };
+    if (m.status(row)) return Object.assign(out, { kind: 'already' });
+    if (ctx.session && out.keyOp !== ctx.session) return Object.assign(out, { kind: 'mismatch' });
+    return Object.assign(out, { kind: 'ok' });
+  }
+
+  /* Réimport d'un listing dans une vente existante : rapprochement par numéro, sans jamais toucher
+     aux pointages ni aux corrections (les lignes existantes gardent leur position). */
+  function diffListing(old, neu) {
+    // old/neu : { lots: [id], alt: [id|''], rows: [[...]] } avec les mêmes colonnes
+    const pos = new Map();
+    old.lots.forEach((l, i) => { const k = String(l).trim(); if (k && !pos.has(k)) pos.set(k, i); });
+    old.alt.forEach((l, i) => { const k = 'a:' + String(l || '').trim(); if (l && !pos.has(k)) pos.set(k, i); });
+    const seen = new Set(), added = [], changed = [], same = [];
+    neu.lots.forEach((l, j) => {
+      const k = String(l).trim(), ka = 'a:' + String(neu.alt[j] || '').trim();
+      const i = pos.has(k) ? pos.get(k) : (neu.alt[j] && pos.has(ka) ? pos.get(ka) : -1);
+      if (i < 0 || seen.has(i)) { added.push(j); return; }
+      seen.add(i);
+      const a = old.rows[i].map(v => String(v ?? '').trim()), b = neu.rows[j].map(v => String(v ?? '').trim());
+      const cols = []; for (let c = 0; c < Math.max(a.length, b.length); c++) if ((a[c] || '') !== (b[c] || '')) cols.push(c);
+      (cols.length ? changed : same).push({ i, j, cols });
+    });
+    const removed = old.lots.map((_, i) => i).filter(i => !seen.has(i));
+    return { added, changed, same, removed };
+  }
+
+  // Contrôles à l'import : rapport ligne par ligne, sans bloquer l'import
+  function importReport(rows, c) {
+    // c : { lot, alt, fmt, qty } indices de colonnes (-1 = absente)
+    const issues = [];
+    const val = (r, i) => i >= 0 ? String(r[i] ?? '').trim() : '';
+    const seen = new Map(), seenAlt = new Map();
+    rows.forEach((r, n) => {
+      const line = n + 1, l = val(r, c.lot), a = val(r, c.alt);
+      if (!l && !a) { if (r.some(v => String(v ?? '').trim())) issues.push({ line, type: 'Identifiant manquant', detail: 'ligne ignorée' }); return; }
+      if (!l) issues.push({ line, type: 'Numéro principal manquant', detail: 'le 2e numéro ' + a + ' est utilisé' });
+      if (l && !/^\d+$/.test(l)) issues.push({ line, type: 'Numéro non numérique', detail: l });
+      if (c.alt >= 0 && !a) issues.push({ line, type: '2e numéro manquant', detail: l });
+      if (a && !/^\d+$/.test(a)) issues.push({ line, type: '2e numéro non numérique', detail: a });
+      if (l) { if (seen.has(l)) issues.push({ line, type: 'Doublon', detail: `${l} déjà ligne ${seen.get(l)}` }); else seen.set(l, line); }
+      if (a) { if (seenAlt.has(a)) issues.push({ line, type: 'Doublon (2e numéro)', detail: `${a} déjà ligne ${seenAlt.get(a)}` }); else seenAlt.set(a, line); }
+      if (c.fmt >= 0 && !val(r, c.fmt)) issues.push({ line, type: 'Format manquant', detail: l || a });
+      if (c.qty >= 0 && !qtyValid(val(r, c.qty))) issues.push({ line, type: 'Quantité manquante ou invalide', detail: (l || a) + ' : « ' + val(r, c.qty) + ' » (compté 1)' });
+    });
+    const byType = {}; issues.forEach(x => byType[x.type] = (byType[x.type] || 0) + 1);
+    return { issues, byType };
+  }
+
+  return { normFmt, qtyOf, qtyValid, opLabel, opKey, labels, stats, totals, isOpen, ST_LABEL, TYPE_LABEL, classify, diffListing, importReport };
+})();
+if (typeof module !== 'undefined') module.exports = { Formats };
+
 </script>
 <script>
 (function () {
@@ -858,7 +1081,8 @@ const settings = loadSettings();
 function loadSettings() { try { return Object.assign({ maxAuto: 400, manual: false, autoScroll: true, last: null }, JSON.parse(localStorage.getItem('pointage-settings') || '{}')); } catch (e) { return { maxAuto: 400, manual: false, autoScroll: true, last: null }; } }
 function saveSettings() { try { localStorage.setItem('pointage-settings', JSON.stringify(settings)); } catch (e) {} }
 
-function newState(id, n) { return { id, status: new Uint8Array(n), time: new Array(n).fill(0), anomalies: [], seq: 0, lastRow: -1 }; }
+function newState(id, n) { return { id, status: new Uint8Array(n), time: new Array(n).fill(0), fmt: {}, anomalies: [], seq: 0, lastRow: -1 }; }
+const fmtDate = d => { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(d || ''); };
 
 const memFallback = { inventories: new Map(), data: new Map(), state: new Map(), history: new Map() };
 
@@ -866,8 +1090,10 @@ const memFallback = { inventories: new Map(), data: new Map(), state: new Map(),
    pt_inventaires/{inv}        nom, colonnes, colonne des lots, clôture
    pt_lignes/{inv}_{k}         tranche de 500 lignes du fichier importé (numéros + autres colonnes)
    pt_etat/{inv}_{k}           pointage de la tranche : t.{i} = heure du pointage (absent = non pointé)
+                               f.{i} = format corrigé du lot (absent = format d'origine du fichier)
    pt_journal/{inv}_{id}       historique des opérations (avec de quoi les annuler)
-   pt_anomalies/{inv}_{id}     numéros absents, commandes ambiguës ou non comprises            */
+   pt_anomalies/{inv}_{id}     anomalies : type, lot (row), formats d'origine / constaté, statut (st), résolution
+   Tous les ajouts sont facultatifs : les ventes créées avant restent lisibles telles quelles.     */
 const CHUNK = 500;
 const AUTH_EMAIL = 'pointage@ltc-pointage-lots.app';   // compte unique ; son mot de passe = le code d'accès
 const DEVICE = (() => { try { let d = localStorage.getItem('pointage-appareil'); if (!d) { d = 'a' + Math.random().toString(36).slice(2, 10); localStorage.setItem('pointage-appareil', d); } return d; } catch (e) { return 'a' + Math.random().toString(36).slice(2, 10); } })();
@@ -928,10 +1154,10 @@ const Cloud = {
   },
   histDoc(h) {
     return { inv: h.inv, id: h.id, seq: h.seq, t: h.t, dev: h.dev || '', kind: h.kind, cmd: h.cmd || '', label: h.label || '', result: h.result || '', undone: !!h.undone,
-      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [] }) };
+      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [], fp: h.fp || null, sc: h.sc || null, ano: h.ano || null }) };
   },
-  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [] }; },
-  invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, altCol: inv.altCol ?? null, count: inv.count, chunk: CHUNK }; },
+  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [], fp: d.fp || null, sc: d.sc || null, ano: d.ano || null }; },
+  invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, altCol: inv.altCol ?? null, fmtCol: inv.fmtCol ?? null, qtyCol: inv.qtyCol ?? null, date: inv.date || '', archived: !!inv.archived, count: inv.count, chunk: CHUNK }; },
   watchList(cb) {
     if (this.invUnsub) this.invUnsub();
     this.invUnsub = this.col('pt_inventaires').onSnapshot(s => cb(s.docs.map(d => d.data())), e => this.fail(e));
@@ -959,7 +1185,12 @@ const Cloud = {
     }
     (c.hist || []).forEach(h => ops.push(['set', this.col('pt_journal').doc(`${INV.id}_${h.id}`), this.histDoc(h)]));
     (c.ano || []).forEach(a => ops.push(['set', this.col('pt_anomalies').doc(`${INV.id}_${a.id}`), Object.assign({ inv: INV.id }, a)]));
-    if (c.meta) ops.push(['set', this.col('pt_inventaires').doc(INV.id), { closed: !!INV.closed }, { merge: true }]);
+    if (c.fmt && c.fmt.length) {
+      const byChunk = new Map();
+      for (const r of c.fmt) { const k = Math.floor(r / CHUNK); if (!byChunk.has(k)) byChunk.set(k, {}); byChunk.get(k)[r - k * CHUNK] = ST.fmt[r] != null ? ST.fmt[r] : this.FV().delete(); }
+      for (const [k, f] of byChunk) ops.push(['set', this.col('pt_etat').doc(`${INV.id}_${k}`), { inv: INV.id, k, f }, { merge: true }]);
+    }
+    if (c.meta) ops.push(['set', this.col('pt_inventaires').doc(INV.id), Object.assign({ closed: !!INV.closed }, c.meta === true ? {} : c.meta), { merge: true }]);
     if (!ops.length) return;
     const p = this.commit(ops);
     // hors ligne, l'envoi attend le retour du réseau : l'action est déjà gardée sur l'appareil
@@ -984,8 +1215,8 @@ const Cloud = {
     }));
     listen('pt_etat', docs => {
       for (const d of docs) {
-        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {};
-        for (let i = a; i < b; i++) { const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0; }
+        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {}, f = d.f || {};
+        for (let i = a; i < b; i++) { const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0; const g = f[i - a]; if (g != null && g !== '') st.fmt[i] = g; else delete st.fmt[i]; }
       }
     });
     const hist = [];   // même tableau que HIST une fois l'inventaire ouvert
@@ -995,9 +1226,25 @@ const Cloud = {
       st.seq = Math.max(st.seq || 0, ...h.map(x => x.seq || 0));
     });
     listen('pt_anomalies', docs => { st.anomalies.length = 0; st.anomalies.push(...docs.sort((x, y) => x.t - y.t)); });
-    this.unsubs.push(this.col('pt_inventaires').doc(id).onSnapshot(s => { if (s.exists && INV && INV.id === id) { const c = !!s.data().closed; if (c !== INV.closed) { INV.closed = c; onRemote('pt_inventaires'); } } }, () => {}));
+    this.unsubs.push(this.col('pt_inventaires').doc(id).onSnapshot(s => {
+      if (!s.exists || !INV || INV.id !== id) return;
+      const d = s.data(); let ch = false;
+      for (const k of ['closed', 'date', 'archived', 'name', 'fmtCol', 'qtyCol', 'count', 'columns']) if (JSON.stringify(d[k]) !== JSON.stringify(INV[k]) && d[k] !== undefined) { INV[k] = d[k]; ch = true; }
+      if (ch) onRemote('pt_inventaires');
+    }, () => {}));
     await Promise.all(ready);
     return { inv, data, st, hist };
+  },
+  // Réimport : réécrit les tranches de lignes touchées, crée les tranches nouvelles (pointages et corrections intacts)
+  async writeLines(inv, data, chunks, meta) {
+    const ops = [];
+    for (const k of chunks) {
+      const a = k * CHUNK, b = Math.min(data.lots.length, a + CHUNK);
+      ops.push(['set', this.col('pt_lignes').doc(`${inv.id}_${k}`), { inv: inv.id, k, lots: data.lots.slice(a, b), rows: data.rows.slice(a, b).map(r => JSON.stringify(r)) }]);
+      ops.push(['set', this.col('pt_etat').doc(`${inv.id}_${k}`), { inv: inv.id, k, t: {} }, { merge: true }]);
+    }
+    ops.push(['set', this.col('pt_inventaires').doc(inv.id), meta, { merge: true }]);
+    await this.commit(ops);
   },
   stop() { this.unsubs.forEach(u => { try { u(); } catch (e) {} }); this.unsubs = []; },
   async remove(id) {
@@ -1037,6 +1284,7 @@ async function localLoad(id) {
   if (!inv || !data) return null;
   st = st || newState(id, data.lots.length);
   if (!(st.status instanceof Uint8Array)) st.status = Uint8Array.from(st.status);
+  st.fmt = st.fmt || {};
   return { inv, data, st, hist: hist.sort((a, b) => a.seq - b.seq) };
 }
 
@@ -1071,12 +1319,12 @@ function makeIndex(inv, data) {
   return buildMultiIndex(data.lots, alt == null ? null : data.rows.map(r => String(r[alt] ?? '').trim()), [inv.columns[inv.lotCol], alt == null ? '' : inv.columns[alt]]);
 }
 
-function makeInventory(name, columns, rows, lotCol, altCol) {
+function makeInventory(name, columns, rows, lotCol, altCol, fmtCol, qtyCol, date) {
   const id = 'inv' + uid();
   const keep = [], keptRows = [];
   const hasAlt = altCol != null && altCol >= 0;
   rows.forEach(r => { const l = String(r[lotCol] ?? '').trim() || (hasAlt ? String(r[altCol] ?? '').trim() : ''); if (l !== '') { keep.push(l); keptRows.push(r.map(v => String(v ?? ''))); } });
-  const inv = { id, name, created: Date.now(), closed: false, columns: columns.map(String), lotCol, altCol: altCol != null && altCol >= 0 ? altCol : null, count: keep.length };
+  const inv = { id, name, created: Date.now(), closed: false, columns: columns.map(String), lotCol, altCol: altCol != null && altCol >= 0 ? altCol : null, fmtCol: fmtCol != null && fmtCol >= 0 ? fmtCol : null, qtyCol: qtyCol != null && qtyCol >= 0 ? qtyCol : null, date: date || '', archived: false, count: keep.length };
   const data = { id, lots: keep, rows: keptRows };
   const st = newState(id, keep.length);
   const idx = makeIndex(inv, data);
@@ -1085,8 +1333,8 @@ function makeInventory(name, columns, rows, lotCol, altCol) {
   return { inv, data, st, hist: [h] };
 }
 
-async function createInventory(name, columns, rows, lotCol, altCol) {
-  const x = makeInventory(name, columns, rows, lotCol, altCol);
+async function createInventory(name, columns, rows, lotCol, altCol, fmtCol, qtyCol, date) {
+  const x = makeInventory(name, columns, rows, lotCol, altCol, fmtCol, qtyCol, date);
   const n = x.data.lots.length;
   try {
     if (MODE === 'cloud') { toast(`Envoi de ${n} lots vers la base…`); await Cloud.create(x.inv, x.data, x.st, x.hist); invList = invList.filter(i => i.id !== x.inv.id).concat([x.inv]); }
@@ -1095,15 +1343,16 @@ async function createInventory(name, columns, rows, lotCol, altCol) {
   } catch (e) { Cloud.fail(e); toast('Création impossible : ' + (e && e.message || e)); return; }
   await refreshInvList(x.inv.id);
   await loadInventory(x.inv.id);
-  toast(`Inventaire « ${name} » créé : ${n} lots`);
+  toast(`Vente « ${name} » créée : ${n} lots`);
 }
 
 function refreshInvSelect(sel) {
-  const list = invList.slice().sort((a, b) => b.created - a.created);
+  const all = invList.slice().sort((a, b) => b.created - a.created);
   const s = $('#invSel'), cur = sel || s.value;
-  s.innerHTML = list.length ? list.map(i => `<option value="${esc(i.id)}">${esc(i.name)}${i.closed ? ' (clôturé)' : ''}</option>`).join('') : '<option value="">Aucun inventaire</option>';
+  const list = all.filter(i => !i.archived || i.id === cur);
+  s.innerHTML = list.length ? list.map(i => `<option value="${esc(i.id)}">${esc(i.name)}${i.date ? ' · ' + esc(fmtDate(i.date)) : ''}${i.closed ? ' (clôturée)' : ''}${i.archived ? ' (archivée)' : ''}</option>`).join('') : '<option value="">Aucune vente</option>';
   if (cur && list.some(i => i.id === cur)) s.value = cur;
-  return list;
+  return all.filter(i => !i.archived).length ? all.filter(i => !i.archived) : all;
 }
 async function refreshInvList(sel) {
   if (MODE === 'local') invList = Store.ok ? (await Store.all('inventories') || []) : Array.from(memFallback.inventories.values());
@@ -1151,6 +1400,401 @@ function addHist(h) {
 }
 function addAno(a) { a.id = uid(); a.dev = DEVICE; ST.anomalies.push(a); return a; }
 
+/* ===================== Pointage par format : séances, anomalies, corrections ===================== */
+let qtyCol = -1;
+function guessQtyCol() {
+  if (!INV) return -1;
+  if (INV.qtyCol != null && INV.qtyCol >= 0) return INV.qtyCol;
+  const alt = INV.altCol ?? -1;
+  const i = INV.columns.findIndex((c, j) => j !== INV.lotCol && j !== alt && /(qty|quant|qté|qte|nombre|\bnb\b)/i.test(c || ''));
+  return i;
+}
+const origFmt = r => fmtCol >= 0 ? (String(DATA.rows[r][fmtCol] ?? '').trim() || '(vide)') : '';
+const qtyRow = r => qtyCol >= 0 ? Formats.qtyOf(DATA.rows[r][qtyCol]) : 1;
+let pendingRows = new Set();
+function refreshPending() {
+  pendingRows = new Set();
+  if (!ST) return;
+  for (const a of ST.anomalies) if (a.st === 'attente' && a.row != null && !ST.status[a.row]) pendingRows.add(a.row);
+}
+function model() {
+  return { n: INV ? DATA.lots.length : 0, orig: origFmt, qty: qtyRow, status: r => ST.status[r], corr: ST ? ST.fmt : {}, pending: pendingRows };
+}
+const opLbl = r => Formats.opLabel(model(), r);
+const opKeyRow = r => fmtCol >= 0 ? Formats.opKey(model(), r) : '';
+let fmtStatsCache = [];
+function fmtLabelOf(key) { const s = fmtStatsCache.find(x => x.key === key); return s ? s.label : key; }
+function altOf(r) { return INV.altCol != null && INV.altCol >= 0 ? String(DATA.rows[r][INV.altCol] ?? '').trim() : ''; }
+function idsHtml(r, read) {
+  const n1 = INV.columns[INV.lotCol] || 'N° lot', n2 = INV.altCol != null && INV.altCol >= 0 ? INV.columns[INV.altCol] : '';
+  return `<div class="idgrid"><span>${esc(n1)}</span><b class="num">${esc(DATA.lots[r])}</b>${n2 ? `<span>${esc(n2)}</span><b class="num">${esc(altOf(r))}</b>` : ''}</div>`
+    + (read ? `<p class="hint idread">${read}</p>` : '');
+}
+function readNote(c) {
+  if (!c) return '';
+  if (c.verified === 2) return 'Les deux numéros lus correspondent au même lot.';
+  const names = IDX.names || [];
+  const n = c.via != null && names[c.via] ? names[c.via] : 'le numéro';
+  return `Lu par « ${esc(n)} » ; l'autre numéro est celui du listing (non lu).`;
+}
+
+/* ---------- Sons (désactivables dans Options) ---------- */
+const snd = {
+  ok: () => tone(880, .06),
+  mismatch: () => { tone(660, .1); setTimeout(() => tone(990, .14), 120); },
+  already: () => tone(520, .12),
+  unknown: () => { tone(330, .15); setTimeout(() => tone(260, .2), 160); }
+};
+
+/* ---------- Séance de pointage par format ---------- */
+function sessionKey() { return fmtCol >= 0 ? fmtVal : ''; }
+function renderSession() {
+  const b = $('#sessBar');
+  if (!INV || !sessionKey()) { b.hidden = true; $('#scanTitle').textContent = 'Saisie manuelle / scanner'; return; }
+  const s = fmtStatsCache.find(x => x.key === sessionKey()) || { label: sessionKey(), lots: 0, done: 0, units: 0, unitsDone: 0, anomalies: 0, pct: 0 };
+  $('#scanTitle').textContent = 'Séance de pointage';
+  b.hidden = false;
+  b.innerHTML = `<div class="sesstop"><span class="sessname">${esc(INV.name)} — <b>POINTAGE ${esc(String(s.label).toUpperCase())}</b></span>
+      <button type="button" class="linkbtn" id="sessQuit">Quitter la séance</button></div>
+    <div class="sessnums"><span><b class="num">${s.done}</b> / ${s.lots} lots</span><span><b class="num">${s.lots - s.done}</b> restants</span>${qtyCol >= 0 ? `<span><b class="num">${fmtNum(s.unitsDone)}</b> / ${fmtNum(s.units)} unités</span>` : ''}<span class="${s.anomalies ? 'w' : ''}"><b class="num">${s.anomalies}</b> anomalie${s.anomalies > 1 ? 's' : ''}</span><b class="num sesspct">${s.pct.toLocaleString('fr-FR')} %</b></div>
+    <div class="bar"><i style="width:${s.pct}%"></i></div>`;
+  $('#sessQuit').onclick = () => setFmt('', true);
+}
+const fmtNum = n => Number.isInteger(n) ? n.toLocaleString('fr-FR') : n.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+
+/* ---------- Tableau de bord par format ---------- */
+function renderFmtDash() {
+  const box = $('#fmtDash');
+  if (!INV || fmtCol < 0) { box.hidden = true; return; }
+  box.hidden = false;
+  $('#fmtDashTitle').textContent = `Pointage par format · ${INV.columns[fmtCol]}`;
+  const rows = fmtStatsCache;
+  $('#fmtTable').innerHTML = `<table><thead><tr><th>Format</th><th>Lots</th>${qtyCol >= 0 ? '<th>Unités</th>' : ''}<th>Pointés</th>${qtyCol >= 0 ? '<th>Unités pointées</th>' : ''}<th>Restants</th><th>Anomalies</th><th>Progression</th><th></th></tr></thead><tbody>${rows.map(s => `
+    <tr class="${s.key === sessionKey() ? 'on' : ''} ${s.lots && s.done === s.lots ? 'full' : ''}" data-k="${esc(s.key)}">
+      <th scope="row">${esc(s.label)}${s.corrIn ? ` <span class="tag" title="Lots reclassés dans ce format">+${s.corrIn} corrigé${s.corrIn > 1 ? 's' : ''}</span>` : ''}${s.corrOut ? ` <span class="tag cl" title="Lots sortis de ce format après correction">−${s.corrOut}</span>` : ''}</th>
+      <td class="num">${s.lots}</td>${qtyCol >= 0 ? `<td class="num">${fmtNum(s.units)}</td>` : ''}<td class="num">${s.done}</td>${qtyCol >= 0 ? `<td class="num">${fmtNum(s.unitsDone)}</td>` : ''}
+      <td class="num">${s.left}</td><td class="num ${s.anomalies ? 'w' : ''}">${s.anomalies}</td>
+      <td><div class="mini"><i style="width:${s.pct}%"></i></div><span class="num">${s.pct.toLocaleString('fr-FR')} %</span></td>
+      <td>${s.lots ? `<button class="btn ${s.key === sessionKey() ? 'primary' : ''}" data-k="${esc(s.key)}">${s.key === sessionKey() ? 'En cours' : (s.done ? 'Reprendre' : 'Pointer')}</button>` : ''}</td>
+    </tr>`).join('')}</tbody></table>`;
+  $('#fmtTable').querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { const k = tr.dataset.k; const s = fmtStatsCache.find(x => x.key === k); if (!s || !s.lots) return; setFmt(k === sessionKey() ? '' : k, true); });
+}
+
+/* ---------- Anomalies : création et mise à jour ---------- */
+function anoBase(type, r, extra) {
+  const a = { t: Date.now(), type, kind: Formats.TYPE_LABEL[type] || type, st: 'ouverte', sess: sessionKey() || '' };
+  if (r != null) Object.assign(a, { row: r, n: DATA.lots[r], n2: altOf(r), fo: origFmt(r), fk: opKeyRow(r) });
+  return addAno(Object.assign(a, extra || {}));
+}
+function setAno(a, st, res) { a.st = st; a.res = res || a.res || ''; a.tr = Date.now(); return a; }
+const anoById = id => ST.anomalies.find(a => a.id === id);
+
+/* ---------- Pointage d'un lot reconnu (avec format éventuellement corrigé) ---------- */
+function scanApply(r, o) {
+  // o : { fmt: nouveau libellé (corriger) | undefined, scanSt: libellé de statut, ano: anomalie liée, read: texte lu }
+  const prevS = [ST.status[r]], prevT = [ST.time[r]], now = Date.now();
+  const fmtRows = [];
+  let fp = null;
+  if (o.fmt !== undefined) {
+    fp = {}; fp[r] = ST.fmt[r] != null ? ST.fmt[r] : null;
+    if (Formats.normFmt(o.fmt) === Formats.normFmt(origFmt(r))) delete ST.fmt[r]; else ST.fmt[r] = o.fmt;
+    fmtRows.push(r);
+  }
+  const changed = !ST.status[r];
+  if (changed) { ST.status[r] = 1; ST.time[r] = now; }
+  const fs = o.fs || opLbl(r);
+  const h = addHist({ kind: 'check', cmd: o.read || 'Scan', label: `${lotLabel(r)} (scan)`, rows: changed ? [r] : [], prevS: changed ? prevS : [], prevT: changed ? prevT : [], fp,
+    sc: { r, l: lotLabel(r), fo: origFmt(r), fs, st: o.scanSt || 'Validé' }, ano: o.ano ? o.ano.id : null,
+    result: `${o.scanSt || 'Validé'}${fmtCol >= 0 ? ' · ' + fs : ''}` });
+  if (changed) { lastRow = r; ST.lastRow = r; }
+  flashRows = new Set([r]);
+  persist({ rows: changed ? [r] : [], fmt: fmtRows, hist: [h], ano: o.ano ? [o.ano] : [] });
+  afterChange(true);
+}
+function showResult(kind, title, html) {
+  const box = $('#scanRes');
+  box.className = 'scanres ' + kind; box.hidden = false;
+  box.innerHTML = `<b class="srt">${title}</b><div class="srb">${html}</div>`;
+}
+
+/* ---------- Scan : reconnaissance du lot puis contrôle du format ---------- */
+function scanCode(v, raw) {
+  if (!INV) { showScan(v, 'Aucune vente ouverte', 'bad'); setResult("Importez d'abord un listing."); snd.unknown(); return; }
+  const c = Formats.classify(v, { lookup: x => lookupRows(IDX, x), model: model(), session: sessionKey() || null });
+  const read = 'Scan ' + raw.trim();
+  if (c.kind === 'unknown') {
+    const a = anoBase('inconnu', null, { n: c.ids.join(' / '), cmd: read });
+    persist({ ano: [a] }); renderAno();
+    showScan(c.ids.join(' / '), 'Lot inconnu', 'bad');
+    showResult('bad', '✕ LOT INCONNU', `Le numéro <b class="num">${esc(c.ids.join(' / '))}</b> n'existe pas dans la vente « ${esc(INV.name)} ». Rien n'a été pointé ; l'anomalie est enregistrée.`);
+    setResult(`<b>Scan ${esc(v)}</b> — <span class="e">lot inconnu</span>`);
+    addHist({ kind: 'scan', cmd: read, label: `${c.ids.join(' / ')} (scan)`, rows: [], sc: { l: c.ids.join(' / '), fo: '', fs: sessionKey() ? fmtLabelOf(sessionKey()) : '', st: 'Inconnu' }, result: 'Lot inconnu' });
+    renderRecent(); snd.unknown(); return;
+  }
+  if (c.kind === 'conflict') {
+    const a = anoBase('conflit', null, { n: c.ids.join(' / '), cmd: read, res: c.reason });
+    persist({ ano: [a] }); renderAno();
+    showScan(c.ids.join(' / '), 'Conflit d\'identifiants', 'bad');
+    showResult('bad', '✕ IDENTIFIANTS CONTRADICTOIRES', `${esc(c.ids.join(' et '))} : ${esc(c.reason)}. Aucun pointage ; l'anomalie est enregistrée.${c.rows ? '<br>Lots concernés : ' + c.rows.map(r => `<button type="button" class="linkbtn" data-lot="${r}">${esc(lotLabel(r))}</button>`).join(' · ') : ''}`);
+    bindLotLinks($('#scanRes'));
+    setResult(`<b>Scan ${esc(v)}</b> — <span class="e">identifiants contradictoires</span>`);
+    snd.unknown(); return;
+  }
+  if (c.kind === 'ambiguous') {
+    if (c.found) {
+      const plan = { mode: 'check', items: [{ kind: 'single', n: Number(v) }], except: [], warnings: [], label: v + ' (scan)', key: 'scan:' + v };
+      openConfirm('Scan ' + v, { reason: `Le numéro ${v} existe dans les deux colonnes de numéros : lequel ?`, cands: c.found.map(f => ({ plan, via: IDX.names[f.part], r: { rows: f.rows, missing: [], emptyRanges: [], complete: true } })) });
+    } else {
+      // doublon dans le fichier : plusieurs lignes portent ce numéro
+      const plan = { mode: 'check', items: [], except: [], warnings: [], label: v + ' (scan)' };
+      applyPlan(plan, { rows: c.rows, missing: [], emptyRanges: [] }, read);
+    }
+    return;
+  }
+  const r = c.row;
+  if (c.kind === 'already') {
+    showScan(lotLabel(r), 'Déjà pointé', 'dup');
+    showResult('dup', 'ⓘ LOT DÉJÀ POINTÉ', `${esc(lotLabel(r))} a été pointé à ${fmtT(ST.time[r])}${fmtCol >= 0 ? ` (format ${esc(opLbl(r))})` : ''}. Aucun double comptage. <button type="button" class="linkbtn" data-lot="${r}">Voir le lot</button>`);
+    bindLotLinks($('#scanRes'));
+    setResult(`<b>${esc(lotLabel(r))}</b> — déjà pointé`);
+    addHist({ kind: 'scan', cmd: read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: opLbl(r), st: 'Déjà pointé' }, result: 'Déjà pointé' });
+    renderRecent(); snd.already(); scrollToLot(r); return;
+  }
+  if (c.kind === 'mismatch') return openMismatch(c, read);
+  // conforme
+  const pend = ST.anomalies.find(a => a.st === 'attente' && a.row === r);
+  if (pend) setAno(pend, 'resolue', 'Lot rescanné dans son format');
+  scanApply(r, { scanSt: 'Validé', read, ano: pend || null });
+  showScan(lotLabel(r), 'Pointé ✓', 'ok');
+  showResult('ok', '✓ LOT RECONNU ET CONFORME', `${esc(lotLabel(r))}${fmtCol >= 0 ? ` · format <b>${esc(opLbl(r))}</b>` : ''}. ${readNote(c)}`);
+  setResult(`<b>${esc(lotLabel(r))}</b> — <span class="ok">✓ pointé</span>`);
+  snd.ok(); scrollToLot(r);
+}
+function scrollToLot(r) { if (settings.autoScroll && VIEW.includes(r)) { scrollToRow(r, true); renderRows(); } }
+function bindLotLinks(el) { el.querySelectorAll('[data-lot]').forEach(b => b.onclick = e => { e.preventDefault(); openLot(+b.dataset.lot); }); }
+
+/* ---------- Format différent du listing : 4 actions ---------- */
+let mismatchCtx = null;
+function openMismatch(c, read) {
+  const r = c.row, sess = fmtLabelOf(sessionKey());
+  mismatchCtx = { c, read, r, sess };
+  showScan(lotLabel(r), 'Format différent', 'bad warnfmt');
+  setResult(`<b>${esc(lotLabel(r))}</b> — <span class="w">format différent du listing</span>`);
+  modal(`
+    <div class="mm">
+      <h3 class="mmtitle">⚠ FORMAT DIFFÉRENT DU LISTING</h3>
+      <div class="mmgrid">
+        <span>Lot reconnu</span><b>OUI</b>
+        ${idsHtml(r).replace('<div class="idgrid">', '').replace(/<\/div>$/, '')}
+        <span>Format enregistré</span><b class="fmtbig">${esc(opLbl(r))}${c.corrected ? ` <small>(fichier : ${esc(origFmt(r))})</small>` : ''}</b>
+        <span>Format de la séance</span><b class="fmtbig">${esc(sess)}</b>
+      </div>
+      <p class="hint">${readNote(c)} Ce lot est bien présent dans le listing, mais son format enregistré ne correspond pas au format pointé.</p>
+      <div class="mmacts">
+        <button class="mma ok" data-a="1"><kbd>1</kbd><span><b>C'est bien un ${esc(sess)}</b><small>Pointé dans ${esc(sess)}, format corrigé, origine gardée dans l'historique</small></span></button>
+        <button class="mma" data-a="2"><kbd>2</kbd><span><b>Garder « ${esc(opLbl(r))} »</b><small>Pointé dans son format d'origine, anomalie à vérifier</small></span></button>
+        <button class="mma" data-a="3"><kbd>3</kbd><span><b>Mettre en attente</b><small>Non pointé, à revoir dans les anomalies</small></span></button>
+        <button class="mma" data-a="4"><kbd>4</kbd><span><b>Annuler le scan</b><small>Rien n'est pointé</small></span></button>
+      </div>
+      <p class="hint">Touches 1 à 4. Scanner un autre lot met celui-ci en attente.</p>
+    </div>`);
+  $('#modalBox').querySelectorAll('.mma').forEach(b => b.onclick = () => mismatchAct(+b.dataset.a));
+  $('#modalBox').querySelector('.mma').focus();
+  snd.mismatch();
+}
+function mismatchAct(n) {
+  const x = mismatchCtx; if (!x) return;
+  mismatchCtx = null; closeModal();
+  const r = x.r, from = opLbl(r);
+  if (n === 1) {
+    const a = anoBase('format', r, { fs: x.sess, cmd: x.read });
+    setAno(a, 'corrigee', `Format confirmé : ${x.sess} (listing : ${from})`);
+    a.fk = sessionKey();
+    scanApply(r, { fmt: x.sess, fs: x.sess, scanSt: 'Corrigé', read: x.read, ano: a });
+    showScan(lotLabel(r), `Corrigé → ${x.sess}`, 'ok');
+    setResult(`<b>${esc(lotLabel(r))}</b> — <span class="ok">✓ format corrigé : ${esc(from)} → ${esc(x.sess)}</span>`);
+    showResult('ok', '✓ FORMAT CORRIGÉ ET LOT POINTÉ', `${esc(lotLabel(r))} : ${esc(from)} → <b>${esc(x.sess)}</b>. Le format d'origine reste dans l'historique.`);
+    snd.ok();
+  } else if (n === 2) {
+    const a = anoBase('format', r, { fs: x.sess, cmd: x.read });
+    setAno(a, 'conservee', `Format d'origine « ${from} » conservé, constaté « ${x.sess} » : à vérifier`);
+    scanApply(r, { fs: from, scanSt: 'Format conservé', read: x.read, ano: a });
+    showScan(lotLabel(r), `Pointé (${from})`, 'ok');
+    setResult(`<b>${esc(lotLabel(r))}</b> — <span class="ok">✓ pointé</span> dans « ${esc(from)} », <span class="w">écart à vérifier</span>`);
+    showResult('warn', '✓ POINTÉ DANS SON FORMAT D\'ORIGINE', `${esc(lotLabel(r))} est compté dans « ${esc(from)} », pas dans « ${esc(x.sess)} ». L'écart reste visible dans les anomalies.`);
+  } else if (n === 3) {
+    const a = anoBase('format', r, { fs: x.sess, cmd: x.read, st: 'attente', res: 'En attente de décision' });
+    const h = addHist({ kind: 'hold', cmd: x.read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: x.sess, st: 'En attente' }, ano: a.id, result: 'Mis en attente' });
+    persist({ ano: [a], hist: [h] }); refreshPending(); afterChange(false);
+    showScan(lotLabel(r), 'En attente', 'bad warnfmt');
+    setResult(`<b>${esc(lotLabel(r))}</b> — <span class="w">mis en attente</span>`);
+    showResult('warn', '⏸ MIS EN ATTENTE', `${esc(lotLabel(r))} n'est pas pointé. Retrouvez-le dans « Anomalies » pour décider plus tard.`);
+  } else {
+    const h = addHist({ kind: 'scan', cmd: x.read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: x.sess, st: 'Scan annulé' }, result: 'Scan annulé' });
+    persist({ hist: [h] }); renderRecent(); renderHist();
+    showScan(lotLabel(r), 'Scan annulé', '');
+    setResult(`<b>${esc(lotLabel(r))}</b> — scan annulé`);
+    showResult('', 'Scan annulé', `${esc(lotLabel(r))} : rien n'a été pointé.`);
+  }
+}
+// Pendant la fenêtre « format différent » : touches 1-4, ou un nouveau scan (rafale de chiffres) qui met le lot en attente
+let mmBuf = '', mmTimer = null;
+document.addEventListener('keydown', e => {
+  if (!mismatchCtx || $('#modal').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^[0-9]$/.test(e.key)) {
+    e.preventDefault(); mmBuf += e.key; clearTimeout(mmTimer);
+    mmTimer = setTimeout(() => { const b = mmBuf; mmBuf = ''; if (b.length === 1 && /[1-4]/.test(b)) mismatchAct(+b); }, 350);
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    if (!mmBuf) return;
+    e.preventDefault(); clearTimeout(mmTimer); const b = mmBuf; mmBuf = '';
+    if (b.length === 1 && /[1-4]/.test(b)) { mismatchAct(+b); return; }
+    mismatchAct(3); setTimeout(() => scanCode(fixScan(b), b), 0);
+  } else if (e.key === 'Escape') { e.preventDefault(); mismatchAct(4); }
+}, true);
+
+/* ---------- Fiche d'un lot : détail, historique, correction du format ---------- */
+function openLot(r) {
+  const hs = HIST.filter(h => (h.rows || []).includes(r) || (h.sc && h.sc.r === r) || (h.fp && Object.prototype.hasOwnProperty.call(h.fp, r))).slice(-12).reverse();
+  const an = ST.anomalies.filter(a => a.row === r).slice().reverse();
+  const formats = fmtStatsCache.map(s => s.label);
+  modal(`
+    <h3>Lot ${esc(lotLabel(r))}</h3>
+    ${idsHtml(r)}
+    <div class="idgrid">
+      ${fmtCol >= 0 ? `<span>Format d'origine (fichier)</span><b>${esc(origFmt(r))}</b><span>Format opérationnel</span><b>${esc(opLbl(r))}${ST.fmt[r] != null ? ' <span class="tag">corrigé</span>' : ''}</b>` : ''}
+      ${qtyCol >= 0 ? `<span>Quantité</span><b class="num">${esc(DATA.rows[r][qtyCol])}</b>` : ''}
+      <span>Pointage</span><b>${ST.status[r] ? 'Présent, pointé à ' + fmtT(ST.time[r]) : pendingRows.has(r) ? 'En attente' : 'Non pointé'}</b>
+    </div>
+    ${fmtCol >= 0 ? `<form class="fixfmt" id="lotFmt">
+      <b>Corriger le format</b>
+      <div class="grid2">
+        <label>Nouveau format<select id="lfSel">${formats.map(f => `<option ${Formats.normFmt(f) === Formats.normFmt(opLbl(r)) ? 'selected' : ''}>${esc(f)}</option>`).join('')}<option value="__new">Autre format…</option></select></label>
+        <label>Motif (facultatif)<input id="lfWhy" placeholder="ex. étiquette erronée"></label>
+      </div>
+      <input id="lfNew" placeholder="Nom du nouveau format" hidden>
+      <div class="mrow" style="justify-content:flex-start">${ST.fmt[r] != null ? '<button type="button" class="btn" id="lfReset">Revenir au format d\'origine</button>' : ''}<button class="btn primary">Enregistrer le format</button></div>
+    </form>` : ''}
+    ${an.length ? `<b>Anomalies</b><div class="log">${an.map(a => `<div class="a"><time>${fmtT(a.t)}</time><b>${esc(a.kind)}</b> · ${esc(Formats.ST_LABEL[a.st] || 'Note')}${a.res ? '<br>' + esc(a.res) : ''}</div>`).join('')}</div>` : ''}
+    <b>Historique du lot</b>
+    <div class="log">${hs.length ? hs.map(h => `<div class="${h.undone ? 'u' : ''}"><time>${fmtDT(h.t)}</time><b>${esc(h.label)}</b>${h.result ? '<br>' + esc(h.result) : ''}</div>`).join('') : '<div>Aucune opération.</div>'}</div>
+    <div class="mrow"><button class="btn" id="lotTog">${ST.status[r] ? 'Dépointer' : 'Pointer'}</button><button class="btn primary" id="lotClose">Fermer</button></div>`);
+  $('#lotClose').onclick = closeModal;
+  $('#lotTog').onclick = () => { closeModal(); toggleRow(r); };
+  if (fmtCol >= 0) {
+    $('#lfSel').onchange = e => { $('#lfNew').hidden = e.target.value !== '__new'; if (!$('#lfNew').hidden) $('#lfNew').focus(); };
+    $('#lotFmt').onsubmit = e => {
+      e.preventDefault();
+      const v = $('#lfSel').value === '__new' ? $('#lfNew').value.trim() : $('#lfSel').value;
+      if (!v) { toast('Indiquez le nom du format.'); return; }
+      const why = $('#lfWhy').value.trim();
+      closeModal(); reclassify(r, v, why);
+    };
+    if ($('#lfReset')) $('#lfReset').onclick = () => { closeModal(); reclassify(r, origFmt(r), 'Retour au format d\'origine'); };
+  }
+}
+function reclassify(r, to, why) {
+  const from = opLbl(r);
+  if (Formats.normFmt(from) === Formats.normFmt(to)) { toast('Le lot est déjà dans ce format.'); return; }
+  const fp = {}; fp[r] = ST.fmt[r] != null ? ST.fmt[r] : null;
+  if (Formats.normFmt(to) === Formats.normFmt(origFmt(r))) delete ST.fmt[r]; else ST.fmt[r] = to;
+  const a = anoBase('format', r, { fo: origFmt(r), fs: to, cmd: 'Correction manuelle' });
+  setAno(a, 'corrigee', `Format : ${from} → ${to}${why ? ' · motif : ' + why : ''}`);
+  // si le lot était en attente, la décision est prise
+  ST.anomalies.forEach(x => { if (x !== a && x.row === r && x.st === 'attente') setAno(x, 'resolue', 'Format corrigé à la main'); });
+  const h = addHist({ kind: 'reformat', cmd: 'Correction du format', label: `Format de ${lotLabel(r)} : ${from} → ${to}`, rows: [], fp, ano: a.id, result: why ? 'Motif : ' + why : '' });
+  persist({ fmt: [r], hist: [h], ano: ST.anomalies.filter(x => x.row === r) });
+  flashRows = new Set([r]); refreshPending(); afterChange(false);
+  showScan(lotLabel(r), `Format : ${to}`, 'ok');
+  setResult(`<b>Format corrigé</b> — ${esc(lotLabel(r))} : ${esc(from)} → ${esc(to)}`);
+}
+
+/* ---------- Anomalies de pointage : liste filtrable et décisions ---------- */
+function anoRowHtml(a, i) {
+  const open = Formats.isOpen(a), r = a.row;
+  const acts = [];
+  if (a.type === 'format' && open && r != null) {
+    acts.push(`<button class="btn" data-act="confirm" data-i="${i}">Confirmer « ${esc(a.fs)} »</button>`, `<button class="btn" data-act="keep" data-i="${i}">Garder « ${esc(a.fo)} »</button>`);
+  }
+  if (open) acts.push(`<button class="btn" data-act="solve" data-i="${i}">Marquer résolue</button>`);
+  if (r != null && r < DATA.lots.length) acts.push(`<button class="btn" data-act="lot" data-i="${i}">Voir le lot</button>`);
+  return `<tr class="${open ? 'open' : ''}">
+    <td>${fmtDT(a.t)}</td><td>${esc(a.kind || '')}</td><td class="num">${esc(a.n || '')}</td><td class="num">${esc(a.n2 || '')}</td>
+    <td>${esc(a.fo || '')}</td><td>${esc(a.fs || '')}</td>
+    <td><span class="stp ${a.st || 'info'}">${esc(Formats.ST_LABEL[a.st] || 'Note')}</span></td>
+    <td>${esc(a.res || a.cmd || '')}</td><td class="acts">${acts.join('')}</td></tr>`;
+}
+let anoFilter = { type: '', st: 'open', fmt: '' };
+function openAnomalies() {
+  const all = ST ? ST.anomalies.map((a, i) => [a, i]) : [];
+  const types = [...new Set(all.map(([a]) => a.kind || ''))].filter(Boolean);
+  const list = all.filter(([a]) => (!anoFilter.type || a.kind === anoFilter.type)
+    && (anoFilter.st === '' || (anoFilter.st === 'open' ? Formats.isOpen(a) : anoFilter.st === 'closed' ? !Formats.isOpen(a) : a.st === anoFilter.st))
+    && (!anoFilter.fmt || a.fk === anoFilter.fmt || Formats.normFmt(a.fo) === anoFilter.fmt || Formats.normFmt(a.fs) === anoFilter.fmt)).reverse();
+  modal(`
+    <h3>Anomalies de pointage — ${esc(INV ? INV.name : '')}</h3>
+    <div class="grid3">
+      <label>Type<select id="afType"><option value="">Tous</option>${types.map(t => `<option ${t === anoFilter.type ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
+      <label>Statut<select id="afSt">${[['open', 'Ouvertes et en attente'], ['attente', 'En attente'], ['closed', 'Traitées'], ['', 'Toutes']].map(([v, l]) => `<option value="${v}" ${v === anoFilter.st ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label>Format<select id="afFmt"><option value="">Tous</option>${fmtStatsCache.map(s => `<option value="${esc(s.key)}" ${s.key === anoFilter.fmt ? 'selected' : ''}>${esc(s.label)}</option>`).join('')}</select></label>
+    </div>
+    <div class="anotable"><table><thead><tr><th>Date</th><th>Type</th><th>${esc(INV ? INV.columns[INV.lotCol] : 'N°')}</th><th>${esc(INV && INV.altCol != null && INV.altCol >= 0 ? INV.columns[INV.altCol] : '2e n°')}</th><th>Format d'origine</th><th>Format constaté</th><th>Statut</th><th>Détail</th><th></th></tr></thead>
+    <tbody>${list.length ? list.map(([a, i]) => anoRowHtml(a, i)).join('') : '<tr><td colspan="9" class="empty">Aucune anomalie pour ces filtres.</td></tr>'}</tbody></table></div>
+    <div class="mrow"><button class="btn primary" id="afClose">Fermer</button></div>`);
+  $('#modalBox').classList.add('wide');
+  $('#afClose').onclick = closeModal;
+  $('#afType').onchange = e => { anoFilter.type = e.target.value; openAnomalies(); };
+  $('#afSt').onchange = e => { anoFilter.st = e.target.value; openAnomalies(); };
+  $('#afFmt').onchange = e => { anoFilter.fmt = e.target.value; openAnomalies(); };
+  $('#modalBox').querySelectorAll('[data-act]').forEach(b => b.onclick = () => anoAct(b.dataset.act, ST.anomalies[+b.dataset.i]));
+}
+function anoAct(act, a) {
+  if (!a) return;
+  const r = a.row;
+  if (act === 'lot') { openLot(r); return; }
+  if (act === 'solve') { setAno(a, 'resolue', a.res ? a.res + ' · marquée résolue' : 'Marquée résolue'); persist({ ano: [a] }); refreshPending(); afterChange(false); openAnomalies(); return; }
+  if (act === 'confirm') {
+    setAno(a, 'corrigee', `Format confirmé : ${a.fs} (listing : ${opLbl(r)})`); a.fk = Formats.normFmt(a.fs);
+    scanApply(r, { fmt: a.fs, fs: a.fs, scanSt: 'Corrigé', read: 'Décision sur anomalie', ano: a });
+  } else if (act === 'keep') {
+    setAno(a, 'conservee', `Format d'origine « ${opLbl(r)} » conservé`);
+    scanApply(r, { fs: opLbl(r), scanSt: 'Format conservé', read: 'Décision sur anomalie', ano: a });
+  }
+  refreshPending(); afterChange(false); openAnomalies();
+}
+
+/* ---------- Scans récents (séance) ---------- */
+function renderRecent() {
+  const box = $('#recentLog'); if (!box) return;
+  const list = HIST.filter(h => h.sc).slice(-14).reverse();
+  box.innerHTML = list.length ? `<table><thead><tr><th>Lot</th>${fmtCol >= 0 ? '<th>Format listing</th><th>Constaté</th>' : ''}<th>Statut</th></tr></thead><tbody>${list.map(h => `
+    <tr class="${h.undone ? 'u' : ''} ${({ 'Validé': 'ok', 'Corrigé': 'ok', 'Format conservé': 'w', 'En attente': 'w', 'Déjà pointé': 'b', 'Inconnu': 'e', 'Scan annulé': '' })[h.sc.st] || ''}">
+      <td class="num" title="${fmtT(h.t)}">${esc(h.sc.l)}</td>${fmtCol >= 0 ? `<td>${esc(h.sc.fo || '')}</td><td>${esc(h.sc.fs || '')}</td>` : ''}<td>${esc(h.undone ? 'Annulé' : h.sc.st)}</td></tr>`).join('')}</tbody></table>` : '<div class="hint">Aucun scan pour le moment.</div>';
+}
+
+/* ---------- Lecture par la caméra (téléphone / tablette compatibles) ---------- */
+let camStream = null, camTimer = null;
+async function openCamera() {
+  if (!('BarcodeDetector' in window)) { toast('La lecture par caméra n\'est pas disponible dans ce navigateur.'); return; }
+  let det;
+  try { det = new BarcodeDetector(); } catch (e) { toast('Lecture par caméra indisponible.'); return; }
+  modal(`<h3>Scanner avec la caméra</h3><div class="cam"><video id="camV" playsinline muted></video></div><p class="hint" id="camMsg">Visez le code-barres du lot.</p><div class="mrow"><button class="btn primary" id="camClose">Fermer</button></div>`);
+  const stop = () => { clearInterval(camTimer); if (camStream) camStream.getTracks().forEach(t => t.stop()); camStream = null; };
+  $('#camClose').onclick = () => { stop(); closeModal(); };
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    const v = $('#camV'); v.srcObject = camStream; await v.play();
+    let last = '', lastT = 0;
+    camTimer = setInterval(async () => {
+      if ($('#modal').hidden) { stop(); return; }
+      try {
+        const codes = await det.detect(v);
+        const val = codes.map(c => String(c.rawValue || '').trim()).find(Boolean);
+        if (val && (val !== last || Date.now() - lastT > 2500)) { last = val; lastT = Date.now(); $('#camMsg').textContent = 'Lu : ' + val; stop(); closeModal(); scanCode(fixScan(val), val); }
+      } catch (e) {}
+    }, 250);
+  } catch (e) { $('#camMsg').textContent = 'Caméra refusée ou indisponible : autorisez la caméra pour ce site.'; }
+}
+
 
 function applyPlan(plan, r, cmd) {
   if (!INV) { toast("Importez d'abord une liste de lots."); return; }
@@ -1188,20 +1832,24 @@ function applyPlan(plan, r, cmd) {
 function undo() {
   if (!INV) return;
   // d'abord la dernière action faite sur cet appareil (une autre personne peut pointer en même temps)
-  const can = h => (h.kind === 'check' || h.kind === 'uncheck') && !h.undone && h.rows.length;
+  const can = h => !h.undone && (((h.kind === 'check' || h.kind === 'uncheck') && (h.rows.length || h.fp)) || ((h.kind === 'reformat' || h.kind === 'hold') && (h.fp || h.ano)));
   const mine = HIST.some(h => can(h) && h.dev === DEVICE);
   for (let i = HIST.length - 1; i >= 0; i--) {
     const h = HIST[i];
     if (can(h) && (!mine || h.dev === DEVICE)) {
       h.rows.forEach((row, k) => { ST.status[row] = h.prevS[k]; ST.time[row] = h.prevT[k]; });
+      const fmtRows = [];
+      if (h.fp) for (const k in h.fp) { const r = +k; if (h.fp[k] == null) delete ST.fmt[r]; else ST.fmt[r] = h.fp[k]; fmtRows.push(r); }
+      const anos = [];
+      if (h.ano) { const a = anoById(h.ano); if (a) { setAno(a, 'annulee', 'Décision annulée'); anos.push(a); } }
       h.undone = true;
-      const u = addHist({ kind: 'undo', cmd: 'Annuler', label: `Annulation : ${h.label}`, rows: [], result: `${h.rows.length} lot(s) remis dans leur état précédent` });
+      const u = addHist({ kind: 'undo', cmd: 'Annuler', label: `Annulation : ${h.label}`, rows: [], result: h.rows.length ? `${h.rows.length} lot(s) remis dans leur état précédent` : 'Décision annulée' });
       flashRows = new Set(h.rows);
       const lastChk = [...HIST].reverse().find(x => x.kind === 'check' && !x.undone && x.rows.length);
       lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
       setResult(`<b>Annulé</b> — ${esc(h.label)} (${h.rows.length} lot${h.rows.length > 1 ? 's' : ''})`);
       showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Annulé', '');
-      persist({ rows: h.rows, hist: [h, u] }); afterChange(true);
+      persist({ rows: h.rows, fmt: fmtRows, ano: anos, hist: [h, u] }); refreshPending(); afterChange(true);
       return;
     }
   }
@@ -1316,25 +1964,25 @@ function guessFmtCol() {
   }
   return best;
 }
-const fmtOf = r => String(DATA.rows[r][fmtCol] ?? '').trim() || '(vide)';
+const fmtOf = r => opKeyRow(r);
 function setupFmtFilter() {
-  fmtCol = guessFmtCol();
-  const wrap = $('#fmtWrap'), sel = $('#fmtSel');
+  fmtCol = INV.fmtCol != null && INV.fmtCol >= 0 ? INV.fmtCol : guessFmtCol();
+  qtyCol = guessQtyCol();
+  refreshPending();
+  const wrap = $('#fmtWrap');
   if (fmtCol < 0) { wrap.hidden = true; fmtVal = ''; return; }
-  const saved = (settings.fmtFilter || {})[INV.id] || '';
-  const vals = [...new Set(ORDER.map(fmtOf))];
-  fmtVal = vals.includes(saved) ? saved : '';
+  const saved = Formats.normFmt((settings.fmtFilter || {})[INV.id] || '');
+  updateFmtStats();
+  fmtVal = fmtStatsCache.some(x => x.key === saved && x.lots) ? saved : '';
   $('#fmtLbl').textContent = INV.columns[fmtCol];
   wrap.hidden = false;
   renderFmtOptions();
 }
+function updateFmtStats() { fmtStatsCache = INV && fmtCol >= 0 ? Formats.stats(model(), ST.anomalies) : []; }
 function renderFmtOptions() {
   if (fmtCol < 0 || !INV) return;
-  const tot = new Map(), todo = new Map();
-  for (const r of ORDER) { const f = fmtOf(r); tot.set(f, (tot.get(f) || 0) + 1); if (!ST.status[r]) todo.set(f, (todo.get(f) || 0) + 1); }
-  const vals = [...tot.keys()].sort((a, b) => tot.get(b) - tot.get(a) || a.localeCompare(b, 'fr', { numeric: true }));
-  const lab = f => `${f} — ${tot.get(f)} lot${tot.get(f) > 1 ? 's' : ''}${todo.get(f) ? ', ' + todo.get(f) + ' à pointer' : ', tout pointé'}`;
-  $('#fmtSel').innerHTML = `<option value="">Tous les formats (${ORDER.length})</option>` + vals.map(f => `<option value="${esc(f)}" ${f === fmtVal ? 'selected' : ''}>${esc(lab(f))}</option>`).join('');
+  const lab = s => `${s.label} — ${s.lots} lot${s.lots > 1 ? 's' : ''}${s.left ? ', ' + s.left + ' à pointer' : ', tout pointé'}`;
+  $('#fmtSel').innerHTML = `<option value="">Tous les formats (${ORDER.length})</option>` + fmtStatsCache.filter(s => s.lots).map(s => `<option value="${esc(s.key)}">${esc(lab(s))}</option>`).join('');
   $('#fmtSel').value = fmtVal;
   $('#fmtWrap').classList.toggle('on', !!fmtVal);
 }
@@ -1350,14 +1998,18 @@ function applyFilter() {
   if (fmtVal) {
     const all = ORDER.filter(r => fmtOf(r) === fmtVal), done = all.filter(r => ST.status[r]).length;
     vc.hidden = false;
-    vc.innerHTML = `Format « ${esc(fmtVal)} » : ${VIEW.length} ligne${VIEW.length > 1 ? 's' : ''} affichée${VIEW.length > 1 ? 's' : ''} · ${done} / ${all.length} pointé${done > 1 ? 's' : ''} <button type="button" id="fmtClear">Afficher tous les formats</button>`;
-    $('#fmtClear').onclick = () => setFmt('');
+    vc.innerHTML = `Format « ${esc(fmtLabelOf(fmtVal))} » : ${VIEW.length} ligne${VIEW.length > 1 ? 's' : ''} affichée${VIEW.length > 1 ? 's' : ''} · ${done} / ${all.length} pointé${done > 1 ? 's' : ''} <button type="button" id="fmtClear">Afficher tous les formats</button>`;
+    $('#fmtClear').onclick = () => setFmt('', true);
   } else vc.hidden = true;
 }
-function setFmt(v) {
+function setFmt(v, user) {
+  const was = fmtVal;
   fmtVal = v;
   try { settings.fmtFilter = settings.fmtFilter || {}; if (v) settings.fmtFilter[INV.id] = v; else delete settings.fmtFilter[INV.id]; saveSettings(); } catch (e) {}
-  renderFmtOptions(); applyFilter(); $('#scroller').scrollTop = 0; renderRows();
+  if (user && v && v !== was) { const h = addHist({ kind: 'session', cmd: '', label: `Séance de pointage : ${fmtLabelOf(v)}`, rows: [] }); persist({ hist: [h] }); }
+  $('#scanRes').hidden = true;
+  renderFmtOptions(); applyFilter(); $('#scroller').scrollTop = 0; renderRows(); renderStats(); renderHist();
+  if (user && v) { try { scanIn.focus({ preventScroll: true }); } catch (e) {} }
 }
 let nextRow = -1;
 function renderRows() {
@@ -1369,13 +2021,14 @@ function renderRows() {
   const tc = tableCols();
   let html = '';
   for (let p = first; p < last; p++) {
-    const r = VIEW[p], s = ST.status[r], miss = INV.closed && !s;
-    const cls = `trow ${s ? 's1' : ''} ${miss ? 'miss' : ''} ${r === nextRow ? 'next' : ''} ${flashRows.has(r) ? 'flash' : ''}`;
-    const lbl = s ? 'Présent' : miss ? 'Manquant' : 'Non pointé';
+    const r = VIEW[p], s = ST.status[r], miss = INV.closed && !s, pend = !s && pendingRows.has(r);
+    const cls = `trow ${s ? 's1' : ''} ${miss ? 'miss' : ''} ${pend ? 'pend' : ''} ${r === nextRow ? 'next' : ''} ${flashRows.has(r) ? 'flash' : ''}`;
+    const lbl = s ? 'Présent' : pend ? 'En attente' : miss ? 'Manquant' : 'Non pointé';
     const cell = c => c.k === 'lot' ? `<span class="lot">${esc(DATA.lots[r])}${IDX.dupRows.has(r) ? '<span class="dup">DOUBLON</span>' : ''}</span>`
       : c.k === 'alt' ? `<span class="alt">${esc(DATA.rows[r][c.i])}</span>`
-      : c.k === 'st' ? `<button class="st ${s ? 's1' : ''} ${miss ? 'miss' : ''}" data-r="${r}" aria-label="${lbl} — toucher pour ${s ? 'dépointer' : 'pointer'} le lot ${esc(DATA.lots[r])}">${lbl}</button>`
+      : c.k === 'st' ? `<button class="st ${s ? 's1' : ''} ${pend ? 'pend' : ''} ${miss && !pend ? 'miss' : ''}" data-r="${r}" aria-label="${lbl} — toucher pour ${s ? 'dépointer' : 'pointer'} le lot ${esc(DATA.lots[r])}">${lbl}</button>`
       : c.k === 'tm' ? `<span class="tm">${fmtT(ST.time[r])}</span>`
+      : c.i === fmtCol ? `<span class="ex"><button type="button" class="fmtcell" data-lot="${r}" title="Fiche du lot : format, historique, correction">${esc(opLbl(r))}${ST.fmt[r] != null ? `<s>${esc(origFmt(r))}</s>` : ''}</button></span>`
       : `<span class="ex" title="${esc(DATA.rows[r][c.i])}">${esc(DATA.rows[r][c.i])}</span>`;
     html += `<div class="${cls}" data-r="${r}" style="top:${p * ROW_H}px">${tc.map(cell).join('')}</div>`;
   }
@@ -1385,19 +2038,25 @@ function computeNext() {
   nextRow = -1; const list = [];
   if (!INV) return list;
   const startPos = lastRow >= 0 ? POS[lastRow] + 1 : 0;
-  for (let p = startPos; p < ORDER.length && list.length < 8; p++) if (!ST.status[ORDER[p]]) list.push(ORDER[p]);
-  if (!list.length) for (let p = 0; p < ORDER.length && list.length < 8; p++) if (!ST.status[ORDER[p]]) list.push(ORDER[p]);
+  const want = r => !ST.status[r] && (!fmtVal || fmtOf(r) === fmtVal);
+  for (let p = startPos; p < ORDER.length && list.length < 8; p++) if (want(ORDER[p])) list.push(ORDER[p]);
+  if (!list.length) for (let p = 0; p < ORDER.length && list.length < 8; p++) if (want(ORDER[p])) list.push(ORDER[p]);
   nextRow = list[0] ?? -1;
   return list;
 }
 function renderStats() {
   const total = INV ? DATA.lots.length : 0;
   let done = 0; if (INV) for (let i = 0; i < total; i++) done += ST.status[i];
+  refreshPending(); updateFmtStats();
+  const T = INV ? Formats.totals(model(), ST.anomalies) : { open: 0, corrections: 0, units: 0, unitsDone: 0 };
+  $('#kCorr').textContent = T.corrections;
+  $('#kUnitsBox').hidden = !(INV && qtyCol >= 0);
+  $('#kUnits').textContent = `${fmtNum(T.unitsDone)} / ${fmtNum(T.units)}`;
   $('#kTotal').textContent = total.toLocaleString('fr-FR');
   $('#kDone').textContent = done.toLocaleString('fr-FR');
   $('#kLeft').textContent = (total - done).toLocaleString('fr-FR');
   $('#kLeftLbl').textContent = INV && INV.closed ? 'Manquants (clôturé)' : 'Restant à vérifier';
-  $('#kAno').textContent = INV ? ST.anomalies.length : 0;
+  $('#kAno').textContent = T.open;
   $('#kDup').textContent = INV ? IDX.dupRows.size : 0;
   const pct = total ? Math.round(done / total * 1000) / 10 : 0;
   $('#kPct').textContent = pct.toLocaleString('fr-FR') + ' %';
@@ -1405,13 +2064,15 @@ function renderStats() {
   $('#invMeta').textContent = INV ? `${INV.name}${INV.closed ? ' · clôturé' : ''}` : '';
   const nx = computeNext();
   $('#nextList').innerHTML = nx.length ? nx.map(r => `<span>${esc(DATA.lots[r])}</span>`).join('') : `<span>${INV ? 'Tout est pointé' : '—'}</span>`;
+  renderFmtDash(); renderSession(); renderRecent();
 }
 function renderAno() {
   if (!INV) { $('#anoLog').innerHTML = '<div>Aucune anomalie.</div>'; $('#anoCount').textContent = ''; return; }
-  const a = ST.anomalies.slice(-60).reverse();
-  $('#anoCount').textContent = ST.anomalies.length ? `(${ST.anomalies.length})` : '';
-  $('#anoLog').innerHTML = a.length ? a.map(x => `<div class="a"><time>${fmtT(x.t)}</time><b>${esc(x.kind)}</b>${x.n ? ' : ' + esc(x.n) : ''}${x.cmd ? `<br><span class="hint">« ${esc(x.cmd)} »</span>` : ''}</div>`).join('') : '<div>Aucune anomalie.</div>';
-  $('#kAno').textContent = ST.anomalies.length;
+  const open = ST.anomalies.filter(Formats.isOpen);
+  const a = (open.length ? open : ST.anomalies).slice(-30).reverse();
+  $('#anoCount').textContent = open.length ? `(${open.length} ouverte${open.length > 1 ? 's' : ''})` : '';
+  $('#anoLog').innerHTML = a.length ? a.map(x => `<div class="a ${Formats.isOpen(x) ? '' : 'done'}"><time>${fmtT(x.t)}</time><b>${esc(x.kind)}</b>${x.n ? ' : ' + esc(x.n) : ''}${x.fo || x.fs ? `<br>${esc(x.fo || '')}${x.fs ? ' → ' + esc(x.fs) : ''}` : ''} <span class="stp ${x.st || 'info'}">${esc(Formats.ST_LABEL[x.st] || 'Note')}</span>${!x.st && x.cmd ? `<br><span class="hint">« ${esc(x.cmd)} »</span>` : ''}</div>`).join('') : '<div>Aucune anomalie.</div>';
+  $('#kAno').textContent = open.length;
 }
 function renderHist() {
   const h = HIST.slice(-60).reverse();
@@ -1450,10 +2111,10 @@ function closeModal(fromPop) {
 }
 addEventListener('popstate', () => {
   if (backPending) { backPending = false; if (wantPush) { wantPush = false; if (!$('#modal').hidden) modalPush(); } return; }
-  if (!$('#modal').hidden) { modalHist = false; if (confirmCtx) { confirmCtx = null; } closeModal(true); }
+  if (!$('#modal').hidden) { modalHist = false; if (confirmCtx) { confirmCtx = null; } if (mismatchCtx) { mismatchAct(3); return; } closeModal(true); }
 });
 let actx;
-function tone(f, d) { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; g.gain.value = .06; o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {} }
+function tone(f, d) { if (settings.sound === false) return; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; g.gain.value = .06; o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {} }
 const tick = () => tone(880, .06), beep = () => { tone(330, .15); setTimeout(() => tone(260, .2), 160); };
 /* ---------- Volume bip scanner : guide Datalogic QM2400 (codes de programmation à scanner à l'écran) ---------- */
 const BIP_PAGES = [
@@ -1526,9 +2187,13 @@ async function onFile(file) {
   showImport(file.name.replace(/\.[^.]+$/, ''), wb);
 }
 function sheetRows(wb, name) { return XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '', blankrows: false }); }
+function guessColIn(cols, body, re, skip) {
+  return cols.findIndex((c, i) => !skip.includes(i) && re.test(c || ''));
+}
 function showImport(baseName, wb) {
   let sheet = wb.SheetNames[0], aoa = sheetRows(wb, sheet);
   let hasHeader = aoa.length > 1 && aoa[0].some(v => /[a-zé]/i.test(String(v)));
+  const state = { name: baseName, col: null, keep: null, target: '', date: '' };
   const draw = () => {
     const header = hasHeader ? aoa[0].map(String) : (aoa[0] || []).map((_, i) => 'Colonne ' + (i + 1));
     const body = hasHeader ? aoa.slice(1) : aoa;
@@ -1539,82 +2204,184 @@ function showImport(baseName, wb) {
     const sample = body.slice(0, 300);
     const example = i => { const r = sample.find(r => String(r[i] ?? '').trim()); return r ? String(r[i]).trim() : ''; };
     if (!state.keep) {
-      // par défaut : les colonnes choisies au dernier import (mêmes titres), sinon toutes celles qui contiennent des données
       const prev = Array.isArray(settings.keepCols) ? settings.keepCols : null;
       const same = prev ? cols.map((c, i) => prev.includes(c) ? i : -1).filter(i => i >= 0) : [];
       state.keep = new Set(same.length ? same : cols.map((_, i) => i).filter(i => example(i) !== ''));
     }
     if (state.alt === undefined || state.alt === lc) state.alt = guessAltCol(cols, body, lc);
     const ac = state.alt;
-    state.keep.add(lc); if (ac >= 0) state.keep.add(ac);
+    if (state.fmt === undefined) state.fmt = guessColIn(cols, body, /(packag|format|conditionn|emballage|type)/i, [lc, ac]);
+    if (state.qty === undefined) state.qty = guessColIn(cols, body, /(qty|quant|qté|qte|nombre|\bnb\b)/i, [lc, ac, state.fmt]);
+    const fc = state.fmt, qc = state.qty;
+    [lc, ac, fc, qc].forEach(i => { if (i >= 0) state.keep.add(i); });
     const lots = body.map(r => String(r[lc] ?? '').trim()).filter(Boolean);
-    const idx = buildMultiIndex(lots, null);
+    const rep = Formats.importReport(body, { lot: lc, alt: ac, fmt: fc, qty: qc });
+    const fmts = fc >= 0 ? (() => { const m = new Map(); body.forEach(r => { const raw = String(r[fc] ?? '').trim(); if (!raw) return; const k = Formats.normFmt(raw); if (!m.has(k)) m.set(k, { label: raw, n: 0, v: new Set() }); const x = m.get(k); x.n++; x.v.add(raw); }); return [...m.values()].sort((a, b) => b.n - a.n); })() : [];
+    const sales = invList.slice().sort((a, b) => b.created - a.created);
+    const opt = (i, cur, none) => `${none ? `<option value="-1" ${cur < 0 ? 'selected' : ''}>${none}</option>` : ''}${cols.map((c, j) => j === i ? '' : `<option value="${j}" ${j === cur ? 'selected' : ''}>${esc(c)}${example(j) ? ' — ex. ' + esc(example(j).slice(0, 18)) : ''}</option>`).join('')}`;
     modal(`
-      <h3>Importer la liste des lots</h3>
+      <h3>Importer un listing</h3>
       <div class="grid2">
-        <label>Nom de l'inventaire<input id="iName" value="${esc(state.name)}"></label>
+        <label>Importer dans<select id="iTarget"><option value="">Une nouvelle vente</option>${sales.map(v => `<option value="${esc(v.id)}" ${v.id === state.target ? 'selected' : ''}>Mettre à jour « ${esc(v.name)} »</option>`).join('')}</select></label>
+        ${state.target ? '<span></span>' : `<label>Nom de la vente<input id="iName" value="${esc(state.name)}"></label>`}
+        ${state.target ? '' : `<label>Date de la vente (facultative)<input id="iDate" type="date" value="${esc(state.date)}"></label>`}
         <label>Feuille<select id="iSheet">${wb.SheetNames.map(n => `<option ${n === sheet ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
         <label>Colonne des numéros de lots<select id="iCol">${cols.map((c, i) => `<option value="${i}" ${i === lc ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
-        <label>Deuxième numéro pour pointer (facultatif)<select id="iAlt"><option value="-1" ${ac < 0 ? 'selected' : ''}>Aucun</option>${cols.map((c, i) => i === lc ? '' : `<option value="${i}" ${i === ac ? 'selected' : ''}>${esc(c)}${example(i) ? ' — ex. ' + esc(example(i).slice(0, 20)) : ''}</option>`).join('')}</select></label>
+        <label>Deuxième numéro pour pointer<select id="iAlt">${opt(lc, ac, 'Aucun')}</select></label>
+        <label>Colonne du format<select id="iFmt">${opt(lc, fc, 'Aucune')}</select></label>
+        <label>Colonne de la quantité<select id="iQty">${opt(lc, qc, 'Aucune')}</select></label>
         <label>Première ligne<select id="iHead"><option value="1" ${hasHeader ? 'selected' : ''}>Ligne d'en-têtes</option><option value="0" ${!hasHeader ? 'selected' : ''}>Déjà des données</option></select></label>
       </div>
-      ${ac >= 0 ? `<p class="hint" style="margin:0">Les lots pourront être pointés par « ${esc(cols[lc])} » ou par « ${esc(cols[ac])} », à la voix comme au scanner.</p>` : ''}
-      <p><b>${lots.length.toLocaleString('fr-FR')}</b> lots trouvés${idx.dupRows.size ? ` · <b style="color:var(--warn)">${idx.dupRows.size} lignes en doublon</b> (signalées dans le tableau)` : ' · aucun doublon'}. Les numéros sont conservés tels quels, zéros initiaux compris.</p>
+      <p><b>${lots.length.toLocaleString('fr-FR')}</b> lots${fc >= 0 ? ` · <b>${fmts.length}</b> formats : ${fmts.slice(0, 12).map(f => `${esc(f.label)} (${f.n})${f.v.size > 1 ? ' <span class="hint">[' + [...f.v].map(esc).join(', ') + ']</span>' : ''}`).join(', ')}${fmts.length > 12 ? '…' : ''}` : ''}. Les numéros sont gardés tels quels (texte, zéros initiaux compris)${qc >= 0 ? ' ; la quantité est une information totalisée en unités' : ''}.</p>
+      <details class="rep" ${rep.issues.length ? '' : 'hidden'}><summary>Rapport de contrôle : ${rep.issues.length} point${rep.issues.length > 1 ? 's' : ''} à vérifier (${Object.entries(rep.byType).map(([k, n]) => `${esc(k)} : ${n}`).join(' · ')})</summary>
+        <ul>${rep.issues.slice(0, 200).map(x => `<li>Ligne ${x.line} — ${esc(x.type)}${x.detail ? ' : ' + esc(x.detail) : ''}</li>`).join('')}${rep.issues.length > 200 ? '<li>…</li>' : ''}</ul>
+        <p class="hint">Ces lignes sont importées quand même (sauf celles sans aucun numéro) et restent visibles dans le tableau.</p></details>
+      ${rep.issues.length ? '' : '<p class="hint" style="margin:0">Contrôle : aucun doublon, aucun numéro, format ou quantité manquant.</p>'}
       <div class="colpick">
-        <div class="colhead"><b>Colonnes à garder</b> <span class="hint">${state.keep.size} sur ${cols.length}</span><span class="colall"><button type="button" class="linkbtn" id="iAll">Tout</button> · <button type="button" class="linkbtn" id="iNone">Seulement les lots</button></span></div>
-        <div class="colchips">${cols.map((c, i) => `<label class="colchip ${i === lc || i === ac ? 'lot' : ''}"><input type="checkbox" data-c="${i}" ${state.keep.has(i) ? 'checked' : ''} ${i === lc || i === ac ? 'disabled' : ''}><span class="cn">${esc(c)}</span><span class="cx">${i === lc ? 'n° de lot · ' : i === ac ? '2e numéro · ' : ''}${esc(example(i).slice(0, 40)) || 'vide'}</span></label>`).join('')}</div>
-        <div class="hint">Les colonnes gardées s'affichent dans le tableau et sont reprises dans l'export Excel. Les autres ne sont pas enregistrées.</div>
+        <div class="colhead"><b>Colonnes à garder</b> <span class="hint">${state.keep.size} sur ${cols.length}</span><span class="colall"><button type="button" class="linkbtn" id="iAll">Tout</button> · <button type="button" class="linkbtn" id="iNone">Seulement les numéros et le format</button></span></div>
+        <div class="colchips">${cols.map((c, i) => { const role = i === lc ? 'n° de lot' : i === ac ? '2e numéro' : i === fc ? 'format' : i === qc ? 'quantité' : ''; return `<label class="colchip ${role ? 'lot' : ''}"><input type="checkbox" data-c="${i}" ${state.keep.has(i) ? 'checked' : ''} ${role ? 'disabled' : ''}><span class="cn">${esc(c)}</span><span class="cx">${role ? role + ' · ' : ''}${esc(example(i).slice(0, 40)) || 'vide'}</span></label>`; }).join('')}</div>
       </div>
-      <div class="preview"><table><tr>${cols.map((c, i) => `<th class="${i === lc || i === ac ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(c)}</th>`).join('')}</tr>${body.slice(0, 5).map(r => `<tr>${cols.map((_, i) => `<td class="${i === lc || i === ac ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(r[i])}</td>`).join('')}</tr>`).join('')}</table></div>
-      <div class="mrow"><button class="btn" id="iCancel">Annuler</button><button class="btn primary" id="iOk" ${lots.length ? '' : 'disabled'}>Créer l'inventaire</button></div>`);
-    $('#iName').oninput = e => state.name = e.target.value;
-    $('#iSheet').onchange = e => { sheet = e.target.value; aoa = sheetRows(wb, sheet); state.col = null; state.alt = undefined; state.keep = null; draw(); };
+      <div class="preview"><table><tr>${cols.map((c, i) => `<th class="${[lc, ac, fc, qc].includes(i) ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(c)}</th>`).join('')}</tr>${body.slice(0, 5).map(r => `<tr>${cols.map((_, i) => `<td class="${[lc, ac, fc, qc].includes(i) ? 'sel' : ''} ${state.keep.has(i) ? '' : 'off'}">${esc(r[i])}</td>`).join('')}</tr>`).join('')}</table></div>
+      <div class="mrow"><button class="btn" id="iCancel">Annuler</button><button class="btn primary" id="iOk" ${lots.length ? '' : 'disabled'}>${state.target ? 'Comparer avec la vente' : 'Créer la vente'}</button></div>`);
+    if ($('#iName')) $('#iName').oninput = e => state.name = e.target.value;
+    if ($('#iDate')) $('#iDate').oninput = e => state.date = e.target.value;
+    $('#iTarget').onchange = e => { state.target = e.target.value; draw(); };
+    $('#iSheet').onchange = e => { sheet = e.target.value; aoa = sheetRows(wb, sheet); state.col = null; state.alt = state.fmt = state.qty = undefined; state.keep = null; draw(); };
     $('#iCol').onchange = e => { state.col = +e.target.value; if (state.alt === state.col) state.alt = undefined; draw(); };
     $('#iAlt').onchange = e => { state.alt = +e.target.value; draw(); };
-    $('#iHead').onchange = e => { hasHeader = e.target.value === '1'; state.col = null; state.alt = undefined; state.keep = null; draw(); };
+    $('#iFmt').onchange = e => { state.fmt = +e.target.value; draw(); };
+    $('#iQty').onchange = e => { state.qty = +e.target.value; draw(); };
+    $('#iHead').onchange = e => { hasHeader = e.target.value === '1'; state.col = null; state.alt = state.fmt = state.qty = undefined; state.keep = null; draw(); };
     $('#modalBox').querySelectorAll('.colchip input').forEach(cb => cb.onchange = () => { const c = +cb.dataset.c; cb.checked ? state.keep.add(c) : state.keep.delete(c); draw(); });
     $('#iAll').onclick = () => { state.keep = new Set(cols.map((_, i) => i)); draw(); };
     $('#iNone').onclick = () => { state.keep = new Set([lc]); draw(); };
     $('#iCancel').onclick = closeModal;
-    $('#iOk').onclick = () => {
+    $('#iOk').onclick = async () => {
       const idxs = [...state.keep].sort((a, b) => a - b);
       settings.keepCols = idxs.map(i => state.cols[i]); saveSettings();
+      const at = i => i >= 0 ? idxs.indexOf(i) : -1;
+      const cols2 = idxs.map(i => state.cols[i]), rows2 = state.body.map(r => idxs.map(i => r[i] ?? ''));
+      if (state.target) { closeModal(); await reimportPreview(state.target, cols2, rows2, { lot: at(state.col), alt: at(state.alt), fmt: at(state.fmt), qty: at(state.qty) }); return; }
       closeModal();
-      createInventory(state.name.trim() || baseName, idxs.map(i => state.cols[i]), state.body.map(r => idxs.map(i => r[i] ?? '')), idxs.indexOf(state.col), state.alt >= 0 ? idxs.indexOf(state.alt) : -1);
+      createInventory(state.name.trim() || baseName, cols2, rows2, at(state.col), at(state.alt), at(state.fmt), at(state.qty), state.date);
     };
   };
-  const state = { name: baseName, col: null, keep: null };
   draw();
 }
 
+/* ---------- Réimport contrôlé : aperçu des changements, sans duplication ni perte de pointage ---------- */
+async function reimportPreview(id, cols, rows, c) {
+  if (!INV || INV.id !== id) { $('#invSel').value = id; await loadInventory(id); }
+  if (!INV) return;
+  // colonnes du nouveau fichier rangées comme celles de la vente (par nom)
+  const map = INV.columns.map(name => cols.indexOf(name));
+  const missing = INV.columns.filter((n, i) => map[i] < 0);
+  const fresh = rows.filter(r => String(r[c.lot] ?? '').trim() || (c.alt >= 0 && String(r[c.alt] ?? '').trim()))
+    .map(r => map.map(j => j >= 0 ? String(r[j] ?? '') : ''));
+  const alt = INV.altCol != null && INV.altCol >= 0 ? INV.altCol : -1;
+  const lotOf = r => String(r[INV.lotCol] ?? '').trim() || (alt >= 0 ? String(r[alt] ?? '').trim() : '');
+  const neu = { lots: fresh.map(lotOf), alt: fresh.map(r => alt >= 0 ? String(r[alt] ?? '').trim() : ''), rows: fresh };
+  const old = { lots: DATA.lots.slice(), alt: DATA.rows.map(r => alt >= 0 ? String(r[alt] ?? '').trim() : ''), rows: DATA.rows };
+  const d = Formats.diffListing(old, neu);
+  // seules les colonnes présentes dans le nouveau fichier comptent comme modifiées
+  d.changed = d.changed.map(x => Object.assign(x, { cols: x.cols.filter(k => map[k] >= 0) }));
+  d.same = d.same.concat(d.changed.filter(x => !x.cols.length)); d.changed = d.changed.filter(x => x.cols.length);
+  const fmtChanged = d.changed.filter(x => fmtCol >= 0 && x.cols.includes(fmtCol));
+  const scannedTouched = d.changed.filter(x => ST.status[x.i] || ST.fmt[x.i] != null).length;
+  const colName = i => INV.columns[i] || '';
+  modal(`
+    <h3>Mettre à jour « ${esc(INV.name)} »</h3>
+    <div class="diffbox"><div><b>${d.added.length}</b>nouveaux lots</div><div><b>${d.changed.length}</b>lots modifiés</div><div><b>${d.removed.length}</b>absents du nouveau fichier</div><div><b>${d.same.length}</b>identiques</div></div>
+    ${missing.length ? `<p class="hint">Colonnes de la vente absentes du fichier : ${missing.map(esc).join(', ')} (laissées vides pour les nouveaux lots, inchangées pour les autres).</p>` : ''}
+    ${d.changed.length ? `<details class="rep" open><summary>Modifications (${d.changed.length}${fmtChanged.length ? `, dont ${fmtChanged.length} changement${fmtChanged.length > 1 ? 's' : ''} de format d'origine` : ''})</summary><ul>${d.changed.slice(0, 150).map(x => `<li><b>${esc(lotLabel(x.i))}</b> : ${x.cols.map(k => `${esc(colName(k))} « ${esc(DATA.rows[x.i][k] ?? '')} » → « ${esc(fresh[x.j][k] ?? '')} »`).join(' ; ')}${ST.status[x.i] ? ' <span class="tag">déjà pointé</span>' : ''}${ST.fmt[x.i] != null ? ' <span class="tag">format corrigé</span>' : ''}</li>`).join('')}</ul></details>` : ''}
+    ${d.removed.length ? `<details class="rep"><summary>Absents du nouveau fichier (${d.removed.length})</summary><ul>${d.removed.slice(0, 150).map(i => `<li>${esc(lotLabel(i))}${ST.status[i] ? ' <span class="tag">pointé</span>' : ''}</li>`).join('')}</ul><p class="hint">Ils restent dans la vente avec leur pointage ; une anomalie « Absent du nouveau listing » est ouverte pour chacun.</p></details>` : ''}
+    <p class="hint">Les pointages, corrections de format et l'historique sont conservés${scannedTouched ? ` (${scannedTouched} lot${scannedTouched > 1 ? 's' : ''} modifié${scannedTouched > 1 ? 's' : ''} déjà pointé${scannedTouched > 1 ? 's' : ''} ou corrigé${scannedTouched > 1 ? 's' : ''} : leur pointage et leur correction restent)` : ''}. Les nouveaux lots sont ajoutés à la fin, non pointés.</p>
+    <div class="mrow"><button class="btn" id="rCancel">Annuler</button><button class="btn primary" id="rOk" ${d.added.length || d.changed.length || d.removed.length ? '' : 'disabled'}>Appliquer la mise à jour</button></div>`);
+  $('#modalBox').classList.add('wide');
+  $('#rCancel').onclick = closeModal;
+  $('#rOk').onclick = async () => {
+    $('#rOk').disabled = true; $('#rOk').textContent = 'Mise à jour…';
+    const touched = new Set();
+    d.changed.forEach(x => { fresh[x.j].forEach((v, k) => { if (map[k] >= 0) DATA.rows[x.i][k] = v; }); DATA.lots[x.i] = lotOf(DATA.rows[x.i]) || DATA.lots[x.i]; touched.add(Math.floor(x.i / CHUNK)); });
+    const n0 = DATA.lots.length;
+    d.added.forEach(j => { DATA.rows.push(fresh[j]); DATA.lots.push(neu.lots[j]); });
+    const n1 = DATA.lots.length;
+    if (n1 > n0) {
+      const st = new Uint8Array(n1); st.set(ST.status); ST.status = st;
+      while (ST.time.length < n1) ST.time.push(0);
+      for (let k = Math.floor(n0 / CHUNK); k * CHUNK < n1; k++) touched.add(k);
+    }
+    const anos = d.removed.map(i => anoBase('absent-listing', i, { cmd: 'Réimport du listing' }));
+    INV.count = n1;
+    const h = addHist({ kind: 'import', cmd: 'Réimport', label: `Mise à jour du listing : +${d.added.length} nouveaux, ${d.changed.length} modifiés, ${d.removed.length} absents`, rows: [] });
+    try {
+      if (MODE === 'cloud') { await Cloud.writeLines(INV, DATA, [...touched].sort((a, b) => a - b), { count: n1 }); await Cloud.save({ hist: [h], ano: anos }); }
+      else { if (Store.ok) await Store.put([['data', DATA], ['inventories', INV], ['state', ST], ['history', h]]); }
+    } catch (e) { Cloud.fail(e); toast('Mise à jour impossible : ' + (e && e.message || e)); return; }
+    closeModal();
+    await loadInventory(INV.id);
+    toast(`Listing mis à jour : ${d.added.length} ajouté${d.added.length > 1 ? 's' : ''}, ${d.changed.length} modifié${d.changed.length > 1 ? 's' : ''}`);
+  };
+}
 
 /* ---------- Export ---------- */
-async function exportXlsx() {
-  if (!INV) { toast('Aucun inventaire à exporter.'); return; }
+function exportXlsx() {
+  if (!INV) { toast('Aucune vente à exporter.'); return; }
+  if (fmtCol < 0) return doExport('');
+  modal(`<h3>Exporter vers Excel</h3>
+    <div class="cands">
+      <button class="cand" data-x="all"><span class="t" style="font-family:var(--f-ui)">Toute la vente</span><span class="d">Inventaire complet, lots restants, anomalies, corrections et historique (5 feuilles).</span></button>
+      ${fmtVal ? `<button class="cand" data-x="fmt"><span class="t" style="font-family:var(--f-ui)">Format « ${esc(fmtLabelOf(fmtVal))} » uniquement</span><span class="d">Les mêmes feuilles, limitées aux lots de ce format.</span></button>` : ''}
+    </div>
+    <div class="mrow"><button class="btn" id="xCancel">Annuler</button></div>`);
+  $('#xCancel').onclick = closeModal;
+  $('#modalBox').querySelectorAll('[data-x]').forEach(b => b.onclick = () => { closeModal(); doExport(b.dataset.x === 'fmt' ? fmtVal : ''); });
+}
+async function doExport(onlyKey) {
   const cols = INV.columns.slice();
-  const stat = r => ST.status[r] ? 'Présent' : INV.closed ? 'Manquant' : 'Non pointé';
-  const line = r => { const base = cols.map((_, i) => DATA.rows[r][i] ?? ''); base[INV.lotCol] = DATA.lots[r]; return [...base, stat(r), ST.time[r] ? fmtDT(ST.time[r]) : '', IDX.dupRows.has(r) ? 'Doublon dans le fichier' : '']; };
-  const head = [...cols, 'Statut', 'Pointé le', 'Remarque'];
-  const all = DATA.lots.map((_, r) => r);
+  const pend = new Set(pendingRows);
+  const stat = r => ST.status[r] ? 'Présent' : pend.has(r) ? 'En attente' : INV.closed ? 'Manquant' : 'Non pointé';
+  // dernière correction de format, dernière anomalie de chaque lot
+  const corrAt = {}; HIST.forEach(h => { if (h.fp && !h.undone) for (const k in h.fp) corrAt[k] = h.t; });
+  const lastAno = {}; ST.anomalies.forEach(a => { if (a.row != null) lastAno[a.row] = a; });
+  const extra = fmtCol >= 0 ? ['Format d\'origine', 'Format opérationnel'] : [];
+  const qx = qtyCol >= 0 ? ['Quantité attendue', 'Quantité pointée'] : [];
+  const head = [...cols, ...extra, ...qx, 'Statut', 'Pointé le', 'Anomalie', 'Résolution', 'Date de correction', 'Remarque'];
+  const line = r => {
+    const base = cols.map((_, i) => DATA.rows[r][i] ?? ''); base[INV.lotCol] = DATA.lots[r];
+    const a = lastAno[r];
+    return [...base, ...(fmtCol >= 0 ? [origFmt(r), opLbl(r)] : []), ...(qtyCol >= 0 ? [qtyRow(r), ST.status[r] ? qtyRow(r) : 0] : []),
+      stat(r), ST.time[r] ? fmtDT(ST.time[r]) : '', a ? a.kind : '', a ? (Formats.ST_LABEL[a.st] || '') + (a.res ? ' — ' + a.res : '') : '',
+      corrAt[r] ? fmtDT(corrAt[r]) : '', IDX.dupRows.has(r) ? 'Doublon dans le fichier' : ''];
+  };
+  const inScope = r => !onlyKey || fmtOf(r) === onlyKey;
+  const all = DATA.lots.map((_, r) => r).filter(inScope);
   const s1 = [head, ...all.map(line)];
-  const s2 = [head, ...all.filter(r => !ST.status[r]).map(line)];
-  const s3 = [['Date et heure', 'Type', 'Numéro', 'Commande / détail'],
-    ...ST.anomalies.map(a => [fmtDT(a.t), a.kind, a.n, a.cmd]),
-    ...all.filter(r => IDX.dupRows.has(r)).map(r => [fmtDT(INV.created), 'Doublon dans le fichier importé', DATA.lots[r], 'Ligne ' + (r + 1)])];
-  const s4 = [['Date', 'Heure', 'Opération', 'Commande', 'Détail', 'Lots modifiés', 'Annulée'],
-    ...HIST.map(h => [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture' }[h.kind] || h.kind, h.cmd || '', h.label + (h.result ? ' — ' + h.result : ''), h.rows ? h.rows.length : 0, h.undone ? 'Oui' : ''])];
-  // largeur des colonnes d'après le contenu (100 premières lignes)
+  const left = all.filter(r => !ST.status[r]);
+  const s2 = [head, ...left.map(line)];
+  const anos = ST.anomalies.filter(a => !onlyKey || a.fk === onlyKey || Formats.normFmt(a.fo) === onlyKey || Formats.normFmt(a.fs) === onlyKey || (a.row != null && inScope(a.row)));
+  const n1 = cols[INV.lotCol] || 'N° lot', n2 = INV.altCol != null && INV.altCol >= 0 ? cols[INV.altCol] : '2e numéro';
+  const s3 = [['Vente', 'Date et heure', 'Type', n1, n2, 'Format d\'origine', 'Format constaté', 'Statut', 'Résolution / détail'],
+    ...anos.map(a => [INV.name, fmtDT(a.t), a.kind || '', a.n || '', a.n2 || '', a.fo || '', a.fs || '', Formats.ST_LABEL[a.st] || 'Note', a.res || a.cmd || '']),
+    ...(onlyKey ? [] : DATA.lots.map((_, r) => r).filter(r => IDX.dupRows.has(r)).map(r => [INV.name, fmtDT(INV.created), 'Doublon dans le fichier importé', DATA.lots[r], altOf(r), origFmt(r), '', 'Note', 'Ligne ' + (r + 1)]))];
+  const corr = HIST.filter(h => h.fp && (h.kind === 'reformat' || h.kind === 'check'));
+  const s4 = [['Date', 'Heure', n1, n2, 'Ancien format', 'Nouveau format', 'Motif / origine', 'Annulée'],
+    ...corr.flatMap(h => Object.keys(h.fp).map(k => { const r = +k; const a = h.ano ? anoById(h.ano) : null; return [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), DATA.lots[r] ?? '', r < DATA.lots.length ? altOf(r) : '', h.fp[k] != null ? h.fp[k] : (r < DATA.lots.length ? origFmt(r) : ''), a && a.fs ? a.fs : '', a ? a.res || '' : (h.result || ''), h.undone ? 'Oui' : '']; })).filter(x => !onlyKey || Formats.normFmt(x[4]) === onlyKey || Formats.normFmt(x[5]) === onlyKey)];
+  const KIND = { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture', session: 'Séance', scan: 'Scan', hold: 'Mise en attente', reformat: 'Correction de format' };
+  const s5 = [['Date', 'Heure', 'Opération', 'Commande', 'Détail', 'Lots modifiés', 'Annulée'],
+    ...HIST.map(h => [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), KIND[h.kind] || h.kind, h.cmd || '', h.label + (h.result ? ' — ' + h.result : ''), h.rows ? h.rows.length : 0, h.undone ? 'Oui' : ''])];
   const fit = (aoa, min, max) => aoa[0].map((_, i) => Math.min(max, Math.max(min, ...aoa.slice(0, 101).map(r => String(r[i] ?? '').length + 2))));
-  // couleurs : vert = pointé, rouge = non pointé (ou manquant à la clôture), orange = anomalie
-  const st1 = [1, ...all.map(r => ST.status[r] ? 2 : 3)];
+  // couleurs : vert = pointé, rouge = non pointé (ou manquant), orange = en attente / anomalie
+  const color = r => ST.status[r] ? 2 : pend.has(r) ? 4 : 3;
   const blob = XlsxWriter.build([
-    { name: 'Inventaire complet', rows: s1, styles: st1, widths: fit(s1, 8, 50) },
-    { name: 'Lots manquants', rows: s2, styles: s2.map((_, i) => i ? 3 : 1), widths: fit(s2, 8, 50) },
-    { name: 'Anomalies', rows: s3, styles: s3.map((_, i) => i ? 4 : 1), widths: fit(s3, 10, 60) },
-    { name: 'Historique', rows: s4, widths: fit(s4, 8, 70) }
+    { name: 'Inventaire complet', rows: s1, styles: [1, ...all.map(color)], widths: fit(s1, 8, 50) },
+    { name: 'Lots restants', rows: s2, styles: [1, ...left.map(color)], widths: fit(s2, 8, 50) },
+    { name: 'Anomalies', rows: s3, styles: s3.map((x, i) => i ? (/Ouverte|attente/.test(x[7]) ? 4 : 0) : 1), widths: fit(s3, 10, 60) },
+    { name: 'Corrections de format', rows: s4, widths: fit(s4, 8, 50) },
+    { name: 'Historique', rows: s5, widths: fit(s5, 8, 70) }
   ]);
   const d = new Date();
-  const fname = `inventaire_${INV.name.replace(/[^\w\-]+/g, '_')}_${d.toISOString().slice(0, 10)}_${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}.xlsx`;
+  const fname = `vente_${INV.name.replace(/[^\w\-]+/g, '_')}${onlyKey ? '_' + fmtLabelOf(onlyKey).replace(/[^\w\-]+/g, '_') : ''}_${d.toISOString().slice(0, 10)}_${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}.xlsx`;
   if (window.claude && typeof window.claude.use === 'function') {
     const dl = await window.claude.use('downloads');
     if (dl) { try { await dl.save({ filename: fname, data: blob }); toast('Export enregistré : ' + fname); } catch (e) { if (e.code !== 'declined') toast('Export impossible ici (' + (e.code || 'erreur') + ').'); } return; }
@@ -1637,6 +2404,7 @@ function moreMenu() {
     </div>
     <div class="grid2">
       <label>Seuil de confirmation des plages (lots)<input id="oMax" type="number" min="10" step="10" value="${settings.maxAuto}"></label>
+      <label>Sons du pointage<select id="oSound"><option value="1" ${settings.sound !== false ? 'selected' : ''}>Activés (validé, anomalie, déjà pointé, inconnu)</option><option value="0" ${settings.sound === false ? 'selected' : ''}>Désactivés</option></select></label>
       <label>Validation des commandes<select id="oManual"><option value="0" ${!settings.manual ? 'selected' : ''}>Automatique si certaine</option><option value="1" ${settings.manual ? 'selected' : ''}>Toujours demander</option></select></label>
     </div>
     <p class="hint">${MODE === 'cloud' ? 'Les données sont dans la base partagée Firebase : tous les appareils voient le même inventaire en direct. Hors ligne, les actions sont gardées sur l\'appareil et envoyées au retour du réseau.' : 'Les données sont enregistrées dans ce navigateur, sur cet appareil' + (Store.ok ? '.' : ' — <b style="color:var(--bad)">stockage local indisponible ici : rien ne sera conservé après fermeture</b>.')} La dictée de Chrome et Edge nécessite Internet ; le pointage manuel fonctionne hors ligne.</p>
@@ -1644,6 +2412,7 @@ function moreMenu() {
   $('#oDone').onclick = closeModal;
   $('#oMax').onchange = e => { settings.maxAuto = Math.max(10, +e.target.value || 400); saveSettings(); };
   $('#oManual').onchange = e => { settings.manual = e.target.value === '1'; saveSettings(); };
+  $('#oSound').onchange = e => { settings.sound = e.target.value === '1'; saveSettings(); if (settings.sound) tone(880, .06); };
   $('#oLock').onclick = () => { closeModal(); askConfirm('Verrouiller cet appareil ?', 'Le code d\'accès sera demandé pour rouvrir l\'application.', 'Verrouiller', async () => { try { await firebase.auth().signOut(); } catch (e) {} location.reload(); }); };
   $('#oFs').onclick = () => { closeModal(); const el = document.documentElement; (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => toast('Plein écran non disponible ici.')); };
   $('#oClose').onclick = () => {
@@ -1683,7 +2452,7 @@ function manageInventories() {
   const sel = new Set();
   const draw = () => {
     modal(`
-      <h3>Gérer les listes</h3>
+      <h3>Gérer les ventes</h3>
       <p>${list.length} liste${list.length > 1 ? 's' : ''} enregistrée${list.length > 1 ? 's' : ''}${MODE === 'cloud' ? ' dans la base partagée' : ' sur cet appareil'}. Cochez celles à supprimer.</p>
       <div class="mrow" style="justify-content:flex-start">
         <button class="btn" id="mgClosed">Cocher les clôturées</button>
@@ -1693,11 +2462,14 @@ function manageInventories() {
         <label class="invrow ${sel.has(i.id) ? 'on' : ''}">
           <input type="checkbox" data-id="${esc(i.id)}" ${sel.has(i.id) ? 'checked' : ''}>
           <span class="in"><b>${esc(i.name)}</b>${INV && INV.id === i.id ? ' <span class="tag">ouverte</span>' : ''}${i.closed ? ' <span class="tag cl">clôturée</span>' : ''}</span>
-          <span class="im">${(i.count || 0).toLocaleString('fr-FR')} lots · importée le ${new Date(i.created).toLocaleDateString('fr-FR')}</span>
+          <span class="im">${(i.count || 0).toLocaleString('fr-FR')} lots${i.date ? ' · vente du ' + esc(fmtDate(i.date)) : ''} · importée le ${new Date(i.created).toLocaleDateString('fr-FR')}${i.archived ? ' · <b>archivée</b>' : ''}</span>
+          <span class="invacts"><button type="button" class="btn" data-ed="${esc(i.id)}">Modifier</button><button type="button" class="btn" data-ar="${esc(i.id)}">${i.archived ? 'Désarchiver' : 'Archiver'}</button></span>
         </label>`).join('')}</div>
       <p class="hint">La suppression efface la liste, son pointage et son historique${MODE === 'cloud' ? ' pour tous les appareils' : ''}. Elle ne peut pas être annulée : exportez avant si besoin.</p>
       <div class="mrow"><button class="btn" id="mgClose">Fermer</button><button class="btn danger" id="mgDel" ${sel.size ? '' : 'disabled'}>Supprimer ${sel.size ? sel.size + ' liste' + (sel.size > 1 ? 's' : '') : 'la sélection'}</button></div>`);
     $('#modalBox').querySelectorAll('.invrow input').forEach(cb => cb.onchange = () => { cb.checked ? sel.add(cb.dataset.id) : sel.delete(cb.dataset.id); draw(); });
+    $('#modalBox').querySelectorAll('[data-ar]').forEach(b => b.onclick = async e => { e.preventDefault(); const v = list.find(x => x.id === b.dataset.ar); await saveSaleMeta(v, { archived: !v.archived }); draw(); });
+    $('#modalBox').querySelectorAll('[data-ed]').forEach(b => b.onclick = e => { e.preventDefault(); editSale(list.find(x => x.id === b.dataset.ed), draw); });
     $('#mgClosed').onclick = () => { list.forEach(i => { if (i.closed) sel.add(i.id); }); draw(); if (!list.some(i => i.closed)) toast('Aucune liste clôturée.'); };
     $('#mgAll').onclick = () => { if (sel.size === list.length) sel.clear(); else list.forEach(i => sel.add(i.id)); draw(); };
     $('#mgClose').onclick = closeModal;
@@ -1729,10 +2501,30 @@ function manageInventories() {
   draw();
 }
 
+async function saveSaleMeta(v, meta) {
+  Object.assign(v, meta);
+  if (INV && INV.id === v.id) Object.assign(INV, meta);
+  try {
+    if (MODE === 'cloud') await Cloud.commit([['set', Cloud.col('pt_inventaires').doc(v.id), meta, { merge: true }]]);
+    else if (Store.ok) { const x = await Store.get('inventories', v.id); if (x) await Store.put([['inventories', Object.assign(x, meta)]]); }
+  } catch (e) { Cloud.fail(e); toast('Enregistrement impossible : ' + (e && e.message || e)); }
+  refreshInvSelect(INV && INV.id); renderStats();
+}
+function editSale(v, back) {
+  modal(`<h3>Modifier la vente</h3>
+    <div class="grid2"><label>Nom<input id="esName" value="${esc(v.name)}"></label><label>Date de la vente<input id="esDate" type="date" value="${esc(v.date || '')}"></label></div>
+    <div class="mrow"><button class="btn" id="esBack">Retour</button><button class="btn primary" id="esOk">Enregistrer</button></div>`);
+  $('#esBack').onclick = back;
+  $('#esOk').onclick = async () => { const name = $('#esName').value.trim(); if (!name) { toast('Le nom est obligatoire.'); return; } await saveSaleMeta(v, { name, date: $('#esDate').value }); back(); };
+}
+
 /* ---------- Événements ---------- */
 $('#bManage').onclick = async () => { await refreshInvList(INV && INV.id); manageInventories(); };
 $('#bUndo').onclick = undo;
 $('#bBip').onclick = () => openBipGuide();
+$('#bAnoAll').onclick = () => { if (INV) openAnomalies(); };
+$('#kAnoBox').onclick = () => { if (INV) { anoFilter.st = 'open'; openAnomalies(); } };
+if ('BarcodeDetector' in window && navigator.mediaDevices && matchMedia('(pointer: coarse)').matches) { $('#bCam').hidden = false; $('#bCam').onclick = openCamera; }
 let wake = null;
 const keepAwake = () => { try { if (!wake && navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wake = w; w.addEventListener('release', () => wake = null); }).catch(() => {}); } catch (e) {} };
 document.addEventListener('pointerdown', keepAwake); document.addEventListener('keydown', keepAwake);
@@ -1758,28 +2550,10 @@ function scanSubmit() {
   const raw = scanIn.value; scanIn.value = ''; scanStart = 0;
   const v = fixScan(raw);
   if (!v) return;
-  if (!/^\d+$/.test(v)) { handlePhrase([v], 'text'); return; }       // commande écrite
-  if (!INV) { showScan(v, 'Aucun inventaire ouvert', 'bad'); setResult("Importez d'abord une liste de lots."); beep(); return; }
-  const found = lookupRows(IDX, v).found;
-  if (found.length > 1) {
-    // même numéro dans les deux colonnes, pour des lots différents : demander
-    const plan = { mode: 'check', items: [{ kind: 'single', n: Number(v) }], except: [], warnings: [], label: v + ' (scan)', key: 'scan:' + v };
-    openConfirm('Scan ' + v, { reason: `Le numéro ${v} existe dans les deux colonnes de numéros : lequel ?`, cands: found.map(f => ({ plan, via: IDX.names[f.part], r: { rows: f.rows, missing: [], emptyRanges: [], complete: true } })) });
-    return;
-  }
-  const rows = found.length ? found[0].rows : null;
-  if (!rows) {
-    const a = addAno({ t: Date.now(), kind: 'Code scanné absent de la liste', n: v, cmd: 'Scan ' + raw.trim() });
-    persist({ ano: [a] }); renderAno();
-    showScan(v, 'Absent de la liste', 'bad');
-    setResult(`<b>Scan ${esc(v)}</b> — <span class="w">⚠ Attention : le lot ${esc(v)} n'existe pas dans la liste attendue</span>`);
-    beep(); return;
-  }
-  const was = rows.every(r => ST.status[r]);
-  applyPlan({ mode: 'check', items: [{ kind: 'single', n: Number(v) }], except: [], warnings: [], label: DATA.lots[rows[0]] + ' (scan)' }, { rows, missing: [], emptyRanges: [] }, 'Scan ' + raw.trim());
-  showScan(lotLabel(rows[0]), was ? 'Déjà pointé' : 'Pointé ✓', was ? 'dup' : 'ok');
-  if (was) tone(520, .12);
-  if (filter === 'all' && !fmtVal && settings.autoScroll) { scrollToRow(rows[0], true); renderRows(); }
+  const two = v.match(/^(\d+)[\s;|]+(\d+)$/);
+  const twoIds = two && INV && INV.altCol != null && INV.altCol >= 0 && two[1].length !== two[2].length;
+  if (/^\d+$/.test(v) || twoIds) return scanCode(v, raw);
+  handlePhrase([v], 'text');       // commande écrite (plages, « retire », « annule »…)
 }
 function scanInput() {
   const now = Date.now();
@@ -1805,11 +2579,12 @@ $('#autoScroll').onchange = e => { settings.autoScroll = e.target.checked; saveS
 $('#scroller').addEventListener('scroll', () => requestAnimationFrame(renderRows), { passive: true });
 // Toucher n'importe où sur une ligne la coche ou la décoche (un glissement pour faire défiler ne compte pas)
 $('#spacer').addEventListener('click', e => {
+  const fc = e.target.closest('.fmtcell'); if (fc) { openLot(+fc.dataset.lot); return; }
   const row = e.target.closest('.trow'); if (!row) return;
   if (String(window.getSelection && window.getSelection()) !== '') return;
   toggleRow(+row.dataset.r);
 });
-$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') { if (confirmCtx) closeConfirm(); else closeModal(); } });
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') { if (mismatchCtx) mismatchAct(3); else if (confirmCtx) closeConfirm(); else closeModal(); } });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('#modal').hidden) { if (confirmCtx) closeConfirm(); else closeModal(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); undo(); }

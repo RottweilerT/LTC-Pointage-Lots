@@ -17,8 +17,21 @@ Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on po
 3. Scanner les codes-barres ou taper un numéro dans la case « Saisie manuelle / scanner » : le lot est pointé tout de suite (zéros initiaux tolérés). Dans le tableau, **toucher une ligne la coche ou la décoche**. « ↺ Annuler la dernière action » défait le dernier pointage.
    **Filtre par format** (au-dessus du tableau) : n'afficher qu'un `packaging_name` (Single lot, SF, album…), avec le nombre de lots et de lots à pointer ; il se combine avec Tous / Non pointés / Pointés et reste retenu pour chaque liste.
    Le tableau affiche toutes les colonnes gardées (n° de lot, 2e numéro, statut, heure, puis les autres) ; s'il y en a beaucoup, il défile sur le côté et le n° de lot reste visible.
-4. « Gérer les listes » (en haut) : supprimer une ou plusieurs listes déjà traitées, ou toutes (« Cocher les clôturées », « Tout cocher »), avec confirmation.
+4. « Gérer les ventes » (en haut) : supprimer une ou plusieurs listes déjà traitées, ou toutes (« Cocher les clôturées », « Tout cocher »), avec confirmation.
 5. « Exporter Excel » à tout moment : 4 feuilles (inventaire complet, lots manquants, anomalies, historique). Lignes **vertes** = lots pointés, **rouges** = non pointés (ou manquants à la clôture), orange = anomalies ; filtres activés et ligne de titres figée. L'export est fabriqué par `src/xlsx-writer.js` et fonctionne hors ligne.
+
+### Pointage par format (séances)
+
+- **Ventes** : chaque listing importé est une vente indépendante (nom, date facultative, archivage dans « Gérer les ventes »). Un même numéro peut exister dans deux ventes : les scans vont toujours à la vente ouverte.
+- **Import** : choix des colonnes n° de lot, 2e numéro, format et quantité (détectées automatiquement) ; rapport de contrôle (doublons, numéros manquants ou non numériques, formats ou quantités manquants) sans bloquer l'import. « Importer dans : Mettre à jour « … » » compare avec la vente existante (nouveaux, modifiés, absents) et applique sans dupliquer ni toucher aux pointages, corrections et historique.
+- **Formats** : détectés dans le fichier, jamais codés en dur ; « Album », « ALBUM », « albums » = un seul format. Le tableau « Pointage par format » donne lots, unités, pointés, restants, anomalies et progression ; toucher un format démarre ou reprend sa séance.
+- **Quantité** : simple information. Un scan suffit pour qu'un lot soit complet ; les unités attendues et pointées sont totalisées.
+- **Scan pendant une séance** : vert = reconnu et conforme ; orange = lot reconnu mais d'un autre format (choix : 1 c'est bien ce format → corrigé et pointé, 2 garder le format d'origine → pointé, écart à vérifier, 3 mettre en attente, 4 annuler ; scanner un autre lot met le précédent en attente) ; rouge = lot inconnu ou deux numéros de lots différents ; bleu = déjà pointé (aucun double comptage). Sons distincts, désactivables dans Options.
+- **Deux numéros** : un scan d'un seul numéro retrouve le lot et affiche l'autre (indiqué « non lu ») ; « 40000 165903 » (numéro + 2e numéro) vérifie qu'ils désignent le même lot.
+- **Format d'origine / format opérationnel** : le fichier n'est jamais modifié ; la correction est enregistrée à part (`pt_etat.f`), avec motif, date et appareil dans l'historique. Fiche d'un lot : toucher sa cellule de format (détail, historique, correction manuelle, retour au format d'origine).
+- **Anomalies de pointage** : liste filtrable (type, statut, format) avec décisions ; les anomalies traitées restent consultables.
+- **Export** : toute la vente ou le format en cours ; feuilles Inventaire complet, Lots restants, Anomalies, Corrections de format, Historique (format d'origine, format opérationnel, quantités, statut, anomalie, résolution, dates).
+- Tests : `node tests/formats.test.js` (règles : scénarios 1 à 10).
 
 ### Saisies au clavier possibles
 

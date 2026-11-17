@@ -16,7 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lancer les tests
-        run: node tests/test.js
+        run: |
+          node tests/test.js
+          node tests/formats.test.js
       - name: Vérifier que index.html correspond aux sources
         run: |
           cp index.html /tmp/avant.html

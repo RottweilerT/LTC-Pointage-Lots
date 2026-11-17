@@ -4,8 +4,10 @@ const memFallback = { inventories: new Map(), data: new Map(), state: new Map(),
    pt_inventaires/{inv}        nom, colonnes, colonne des lots, clôture
    pt_lignes/{inv}_{k}         tranche de 500 lignes du fichier importé (numéros + autres colonnes)
    pt_etat/{inv}_{k}           pointage de la tranche : t.{i} = heure du pointage (absent = non pointé)
+                               f.{i} = format corrigé du lot (absent = format d'origine du fichier)
    pt_journal/{inv}_{id}       historique des opérations (avec de quoi les annuler)
-   pt_anomalies/{inv}_{id}     numéros absents, commandes ambiguës ou non comprises            */
+   pt_anomalies/{inv}_{id}     anomalies : type, lot (row), formats d'origine / constaté, statut (st), résolution
+   Tous les ajouts sont facultatifs : les ventes créées avant restent lisibles telles quelles.     */
 const CHUNK = 500;
 const AUTH_EMAIL = 'pointage@ltc-pointage-lots.app';   // compte unique ; son mot de passe = le code d'accès
 const DEVICE = (() => { try { let d = localStorage.getItem('pointage-appareil'); if (!d) { d = 'a' + Math.random().toString(36).slice(2, 10); localStorage.setItem('pointage-appareil', d); } return d; } catch (e) { return 'a' + Math.random().toString(36).slice(2, 10); } })();
@@ -66,10 +68,10 @@ const Cloud = {
   },
   histDoc(h) {
     return { inv: h.inv, id: h.id, seq: h.seq, t: h.t, dev: h.dev || '', kind: h.kind, cmd: h.cmd || '', label: h.label || '', result: h.result || '', undone: !!h.undone,
-      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [] }) };
+      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [], fp: h.fp || null, sc: h.sc || null, ano: h.ano || null }) };
   },
-  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [] }; },
-  invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, altCol: inv.altCol ?? null, count: inv.count, chunk: CHUNK }; },
+  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [], fp: d.fp || null, sc: d.sc || null, ano: d.ano || null }; },
+  invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, altCol: inv.altCol ?? null, fmtCol: inv.fmtCol ?? null, qtyCol: inv.qtyCol ?? null, date: inv.date || '', archived: !!inv.archived, count: inv.count, chunk: CHUNK }; },
   watchList(cb) {
     if (this.invUnsub) this.invUnsub();
     this.invUnsub = this.col('pt_inventaires').onSnapshot(s => cb(s.docs.map(d => d.data())), e => this.fail(e));
@@ -97,7 +99,12 @@ const Cloud = {
     }
     (c.hist || []).forEach(h => ops.push(['set', this.col('pt_journal').doc(`${INV.id}_${h.id}`), this.histDoc(h)]));
     (c.ano || []).forEach(a => ops.push(['set', this.col('pt_anomalies').doc(`${INV.id}_${a.id}`), Object.assign({ inv: INV.id }, a)]));
-    if (c.meta) ops.push(['set', this.col('pt_inventaires').doc(INV.id), { closed: !!INV.closed }, { merge: true }]);
+    if (c.fmt && c.fmt.length) {
+      const byChunk = new Map();
+      for (const r of c.fmt) { const k = Math.floor(r / CHUNK); if (!byChunk.has(k)) byChunk.set(k, {}); byChunk.get(k)[r - k * CHUNK] = ST.fmt[r] != null ? ST.fmt[r] : this.FV().delete(); }
+      for (const [k, f] of byChunk) ops.push(['set', this.col('pt_etat').doc(`${INV.id}_${k}`), { inv: INV.id, k, f }, { merge: true }]);
+    }
+    if (c.meta) ops.push(['set', this.col('pt_inventaires').doc(INV.id), Object.assign({ closed: !!INV.closed }, c.meta === true ? {} : c.meta), { merge: true }]);
     if (!ops.length) return;
     const p = this.commit(ops);
     // hors ligne, l'envoi attend le retour du réseau : l'action est déjà gardée sur l'appareil
@@ -122,8 +129,8 @@ const Cloud = {
     }));
     listen('pt_etat', docs => {
       for (const d of docs) {
-        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {};
-        for (let i = a; i < b; i++) { const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0; }
+        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {}, f = d.f || {};
+        for (let i = a; i < b; i++) { const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0; const g = f[i - a]; if (g != null && g !== '') st.fmt[i] = g; else delete st.fmt[i]; }
       }
     });
     const hist = [];   // même tableau que HIST une fois l'inventaire ouvert
@@ -133,9 +140,25 @@ const Cloud = {
       st.seq = Math.max(st.seq || 0, ...h.map(x => x.seq || 0));
     });
     listen('pt_anomalies', docs => { st.anomalies.length = 0; st.anomalies.push(...docs.sort((x, y) => x.t - y.t)); });
-    this.unsubs.push(this.col('pt_inventaires').doc(id).onSnapshot(s => { if (s.exists && INV && INV.id === id) { const c = !!s.data().closed; if (c !== INV.closed) { INV.closed = c; onRemote('pt_inventaires'); } } }, () => {}));
+    this.unsubs.push(this.col('pt_inventaires').doc(id).onSnapshot(s => {
+      if (!s.exists || !INV || INV.id !== id) return;
+      const d = s.data(); let ch = false;
+      for (const k of ['closed', 'date', 'archived', 'name', 'fmtCol', 'qtyCol', 'count', 'columns']) if (JSON.stringify(d[k]) !== JSON.stringify(INV[k]) && d[k] !== undefined) { INV[k] = d[k]; ch = true; }
+      if (ch) onRemote('pt_inventaires');
+    }, () => {}));
     await Promise.all(ready);
     return { inv, data, st, hist };
+  },
+  // Réimport : réécrit les tranches de lignes touchées, crée les tranches nouvelles (pointages et corrections intacts)
+  async writeLines(inv, data, chunks, meta) {
+    const ops = [];
+    for (const k of chunks) {
+      const a = k * CHUNK, b = Math.min(data.lots.length, a + CHUNK);
+      ops.push(['set', this.col('pt_lignes').doc(`${inv.id}_${k}`), { inv: inv.id, k, lots: data.lots.slice(a, b), rows: data.rows.slice(a, b).map(r => JSON.stringify(r)) }]);
+      ops.push(['set', this.col('pt_etat').doc(`${inv.id}_${k}`), { inv: inv.id, k, t: {} }, { merge: true }]);
+    }
+    ops.push(['set', this.col('pt_inventaires').doc(inv.id), meta, { merge: true }]);
+    await this.commit(ops);
   },
   stop() { this.unsubs.forEach(u => { try { u(); } catch (e) {} }); this.unsubs = []; },
   async remove(id) {
@@ -175,6 +198,7 @@ async function localLoad(id) {
   if (!inv || !data) return null;
   st = st || newState(id, data.lots.length);
   if (!(st.status instanceof Uint8Array)) st.status = Uint8Array.from(st.status);
+  st.fmt = st.fmt || {};
   return { inv, data, st, hist: hist.sort((a, b) => a.seq - b.seq) };
 }
 
@@ -209,12 +233,12 @@ function makeIndex(inv, data) {
   return buildMultiIndex(data.lots, alt == null ? null : data.rows.map(r => String(r[alt] ?? '').trim()), [inv.columns[inv.lotCol], alt == null ? '' : inv.columns[alt]]);
 }
 
-function makeInventory(name, columns, rows, lotCol, altCol) {
+function makeInventory(name, columns, rows, lotCol, altCol, fmtCol, qtyCol, date) {
   const id = 'inv' + uid();
   const keep = [], keptRows = [];
   const hasAlt = altCol != null && altCol >= 0;
   rows.forEach(r => { const l = String(r[lotCol] ?? '').trim() || (hasAlt ? String(r[altCol] ?? '').trim() : ''); if (l !== '') { keep.push(l); keptRows.push(r.map(v => String(v ?? ''))); } });
-  const inv = { id, name, created: Date.now(), closed: false, columns: columns.map(String), lotCol, altCol: altCol != null && altCol >= 0 ? altCol : null, count: keep.length };
+  const inv = { id, name, created: Date.now(), closed: false, columns: columns.map(String), lotCol, altCol: altCol != null && altCol >= 0 ? altCol : null, fmtCol: fmtCol != null && fmtCol >= 0 ? fmtCol : null, qtyCol: qtyCol != null && qtyCol >= 0 ? qtyCol : null, date: date || '', archived: false, count: keep.length };
   const data = { id, lots: keep, rows: keptRows };
   const st = newState(id, keep.length);
   const idx = makeIndex(inv, data);
@@ -223,8 +247,8 @@ function makeInventory(name, columns, rows, lotCol, altCol) {
   return { inv, data, st, hist: [h] };
 }
 
-async function createInventory(name, columns, rows, lotCol, altCol) {
-  const x = makeInventory(name, columns, rows, lotCol, altCol);
+async function createInventory(name, columns, rows, lotCol, altCol, fmtCol, qtyCol, date) {
+  const x = makeInventory(name, columns, rows, lotCol, altCol, fmtCol, qtyCol, date);
   const n = x.data.lots.length;
   try {
     if (MODE === 'cloud') { toast(`Envoi de ${n} lots vers la base…`); await Cloud.create(x.inv, x.data, x.st, x.hist); invList = invList.filter(i => i.id !== x.inv.id).concat([x.inv]); }
@@ -233,15 +257,16 @@ async function createInventory(name, columns, rows, lotCol, altCol) {
   } catch (e) { Cloud.fail(e); toast('Création impossible : ' + (e && e.message || e)); return; }
   await refreshInvList(x.inv.id);
   await loadInventory(x.inv.id);
-  toast(`Inventaire « ${name} » créé : ${n} lots`);
+  toast(`Vente « ${name} » créée : ${n} lots`);
 }
 
 function refreshInvSelect(sel) {
-  const list = invList.slice().sort((a, b) => b.created - a.created);
+  const all = invList.slice().sort((a, b) => b.created - a.created);
   const s = $('#invSel'), cur = sel || s.value;
-  s.innerHTML = list.length ? list.map(i => `<option value="${esc(i.id)}">${esc(i.name)}${i.closed ? ' (clôturé)' : ''}</option>`).join('') : '<option value="">Aucun inventaire</option>';
+  const list = all.filter(i => !i.archived || i.id === cur);
+  s.innerHTML = list.length ? list.map(i => `<option value="${esc(i.id)}">${esc(i.name)}${i.date ? ' · ' + esc(fmtDate(i.date)) : ''}${i.closed ? ' (clôturée)' : ''}${i.archived ? ' (archivée)' : ''}</option>`).join('') : '<option value="">Aucune vente</option>';
   if (cur && list.some(i => i.id === cur)) s.value = cur;
-  return list;
+  return all.filter(i => !i.archived).length ? all.filter(i => !i.archived) : all;
 }
 async function refreshInvList(sel) {
   if (MODE === 'local') invList = Store.ok ? (await Store.all('inventories') || []) : Array.from(memFallback.inventories.values());
