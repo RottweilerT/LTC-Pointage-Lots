@@ -67,15 +67,19 @@ function renderFmtDash() {
   box.hidden = false;
   $('#fmtDashTitle').textContent = `Pointage par format · ${INV.columns[fmtCol]}`;
   const rows = fmtStatsCache;
-  $('#fmtTable').innerHTML = `<table><thead><tr><th>Format</th><th>Lots</th>${qtyCol >= 0 ? '<th>Unités</th>' : ''}<th>Pointés</th>${qtyCol >= 0 ? '<th>Unités pointées</th>' : ''}<th>Restants</th><th>Anomalies</th><th>Progression</th><th></th></tr></thead><tbody>${rows.map(s => `
-    <tr class="${s.key === sessionKey() ? 'on' : ''} ${s.lots && s.done === s.lots ? 'full' : ''}" data-k="${esc(s.key)}">
+  $('#fmtTable').innerHTML = `<table><thead><tr><th>Format</th><th class="n">Lots</th>${qtyCol >= 0 ? '<th class="n c2">Unités</th>' : ''}<th class="n">Pointés</th>${qtyCol >= 0 ? '<th class="n c2">Unités pointées</th>' : ''}<th class="n c3">Restants</th><th class="n c3">Anomalies</th><th>Progression</th><th class="c3"><span class="sr">Action</span></th></tr></thead><tbody>${rows.map(s => `
+    <tr class="${s.key === sessionKey() ? 'on' : ''} ${s.lots && s.done === s.lots ? 'full' : ''}" data-k="${esc(s.key)}" ${s.lots ? `tabindex="0" role="button" aria-pressed="${s.key === sessionKey()}" aria-label="Format ${esc(s.label)} : ${s.done} sur ${s.lots} pointés. ${s.key === sessionKey() ? 'Séance en cours' : 'Démarrer la séance'}"` : ''}>
       <th scope="row">${esc(s.label)}${s.corrIn ? ` <span class="tag" title="Lots reclassés dans ce format">+${s.corrIn} corrigé${s.corrIn > 1 ? 's' : ''}</span>` : ''}${s.corrOut ? ` <span class="tag cl" title="Lots sortis de ce format après correction">−${s.corrOut}</span>` : ''}</th>
-      <td class="num">${s.lots}</td>${qtyCol >= 0 ? `<td class="num">${fmtNum(s.units)}</td>` : ''}<td class="num">${s.done}</td>${qtyCol >= 0 ? `<td class="num">${fmtNum(s.unitsDone)}</td>` : ''}
-      <td class="num">${s.left}</td><td class="num ${s.anomalies ? 'w' : ''}">${s.anomalies}</td>
-      <td><div class="mini"><i style="width:${s.pct}%"></i></div><span class="num">${s.pct.toLocaleString('fr-FR')} %</span></td>
-      <td>${s.lots ? `<button class="btn ${s.key === sessionKey() ? 'primary' : ''}" data-k="${esc(s.key)}">${s.key === sessionKey() ? 'En cours' : (s.done ? 'Reprendre' : 'Pointer')}</button>` : ''}</td>
+      <td class="num">${s.lots}</td>${qtyCol >= 0 ? `<td class="num c2">${fmtNum(s.units)}</td>` : ''}<td class="num">${s.done}</td>${qtyCol >= 0 ? `<td class="num c2">${fmtNum(s.unitsDone)}</td>` : ''}
+      <td class="num c3">${s.left}</td><td class="num c3 ${s.anomalies ? 'w' : ''}">${s.anomalies}</td>
+      <td class="pg"><div class="mini"><i style="width:${s.pct}%"></i></div><span class="num">${s.pct.toLocaleString('fr-FR')} %</span>${s.anomalies ? `<span class="anob" title="Anomalies ouvertes">⚠ ${s.anomalies}</span>` : ''}</td>
+      <td class="c3">${s.lots ? `<span class="btn ${s.key === sessionKey() ? 'primary' : ''}" aria-hidden="true">${s.key === sessionKey() ? 'En cours' : (s.done ? 'Reprendre' : 'Pointer')}</span>` : ''}</td>
     </tr>`).join('')}</tbody></table>`;
-  $('#fmtTable').querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { const k = tr.dataset.k; const s = fmtStatsCache.find(x => x.key === k); if (!s || !s.lots) return; setFmt(k === sessionKey() ? '' : k, true); });
+  $('#fmtTable').querySelectorAll('tbody tr').forEach(tr => {
+    const go = () => { const k = tr.dataset.k; const s = fmtStatsCache.find(x => x.key === k); if (!s || !s.lots) return; setFmt(k === sessionKey() ? '' : k, true); };
+    tr.onclick = go;
+    tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+  });
 }
 
 /* ---------- Anomalies : création et mise à jour ---------- */
