@@ -57,5 +57,11 @@
   };
   const firestore = () => db;
   firestore.FieldValue = { delete: () => DEL };
-  window.firebase = { initializeApp: () => ({}), firestore };
+  // Faux compte : mot de passe « 123456 », session gardée dans localStorage
+  const auth = () => ({
+    onAuthStateChanged(cb) { setTimeout(() => cb(localStorage.getItem('__fakeauth') ? { uid: 'u1' } : null), 0); return () => {}; },
+    async signInWithEmailAndPassword(email, pw) { if (pw !== '123456') { const e = new Error('bad'); e.code = 'auth/invalid-credential'; throw e; } localStorage.setItem('__fakeauth', '1'); return { user: { uid: 'u1' } }; },
+    async signOut() { localStorage.removeItem('__fakeauth'); }
+  });
+  window.firebase = { initializeApp: () => ({}), firestore, auth };
 })();

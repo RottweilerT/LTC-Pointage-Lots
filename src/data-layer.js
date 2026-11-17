@@ -7,6 +7,7 @@ const memFallback = { inventories: new Map(), data: new Map(), state: new Map(),
    pt_journal/{inv}_{id}       historique des opérations (avec de quoi les annuler)
    pt_anomalies/{inv}_{id}     numéros absents, commandes ambiguës ou non comprises            */
 const CHUNK = 500;
+const AUTH_EMAIL = 'pointage@ltc-pointage-lots.app';   // compte unique ; son mot de passe = le code d'accès
 const DEVICE = (() => { try { let d = localStorage.getItem('pointage-appareil'); if (!d) { d = 'a' + Math.random().toString(36).slice(2, 10); localStorage.setItem('pointage-appareil', d); } return d; } catch (e) { return 'a' + Math.random().toString(36).slice(2, 10); } })();
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -21,6 +22,33 @@ const Cloud = {
       this.ok = true;
     } catch (e) { this.ok = false; }
     return this.ok;
+  },
+  // Accès protégé : un compte Firebase unique dont le mot de passe est le code d'accès.
+  // La session est gardée sur l'appareil (le code n'est demandé qu'une fois), y compris hors ligne.
+  async signIn() {
+    if (!firebase.auth) return;
+    const auth = firebase.auth();
+    const user = await new Promise(res => { const u = auth.onAuthStateChanged(x => { u(); res(x); }); });
+    if (user) return;
+    const g = $('#gate'), f = $('#gateForm'), inp = $('#gateCode'), btn = $('#gateBtn'), err = $('#gateErr');
+    g.hidden = false; setTimeout(() => inp.focus(), 50);
+    await new Promise(res => {
+      f.onsubmit = async e => {
+        e.preventDefault();
+        const code = inp.value.trim(); if (!code) return;
+        btn.disabled = true; btn.textContent = 'Vérification…'; err.textContent = '';
+        try { await auth.signInWithEmailAndPassword(AUTH_EMAIL, code); g.hidden = true; inp.value = ''; res(); }
+        catch (x) {
+          const c = x && x.code || '';
+          err.textContent = c === 'auth/too-many-requests' ? 'Trop d\'essais : patientez quelques minutes.'
+            : c === 'auth/network-request-failed' ? 'Pas de connexion : la première ouverture demande Internet.'
+            : /invalid|wrong-password|user-not-found/.test(c) ? 'Code incorrect.'
+            : 'Connexion impossible (' + (c || 'erreur') + ').';
+          inp.select();
+        }
+        btn.disabled = false; btn.textContent = 'Entrer';
+      };
+    });
   },
   col(n) { return this.db.collection(n); },
   FV() { return firebase.firestore.FieldValue; },

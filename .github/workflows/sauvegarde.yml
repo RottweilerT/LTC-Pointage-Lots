@@ -22,6 +22,7 @@ jobs:
       - name: Lire toute la base
         env:
           COLLECTIONS: "pt_inventaires pt_lignes pt_etat pt_journal pt_anomalies"
+          CODE: ${{ secrets.POINTAGE_CODE }}
         run: |
           python3 - <<'PY'
           import json, os, re, urllib.request, urllib.error
@@ -32,6 +33,15 @@ jobs:
           KEY = m.group(1)
           os.environ["PROJET"] = re.search(r'projectId:\s*"([^"]+)"', page).group(1)
           HDR = {"Referer": "https://rottweilert.github.io/LTC-Pointage-Lots/"}
+          import os as _os
+          _code = _os.environ.get("CODE", "")
+          if not _code: print("::error::Le secret POINTAGE_CODE manque dans les réglages du dépôt (code d'accès de l'appli)"); raise SystemExit(1)
+          _r = urllib.request.Request(f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={KEY}",
+              data=json.dumps({"email": "pointage@ltc-pointage-lots.app", "password": _code, "returnSecureToken": True}).encode(),
+              headers={"Referer": "https://rottweilert.github.io/LTC-Pointage-Lots/", "Content-Type": "application/json"})
+          try: _tok = json.load(urllib.request.urlopen(_r))["idToken"]
+          except urllib.error.HTTPError as e: print("::error::Connexion avec le code impossible :", e.read()[:300]); raise SystemExit(1)
+          HDR["Authorization"] = "Bearer " + _tok
           base = f"https://firestore.googleapis.com/v1/projects/{os.environ['PROJET']}/databases/(default)/documents"
           out, total = {}, 0
           for col in os.environ["COLLECTIONS"].split():

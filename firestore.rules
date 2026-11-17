@@ -3,31 +3,33 @@ rules_version = '2';
 // À coller dans Firebase → Firestore Database → Règles, puis « Publier ».
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Accès réservé aux appareils connectés avec le code d'accès (compte unique de l'appli)
+    function ok() { return request.auth != null; }
     function invId() { return request.resource.data.inv is string && request.resource.data.inv.size() <= 40; }
 
     match /pt_inventaires/{id} {
-      allow read, delete: if true;
-      allow create: if request.resource.data.name is string
+      allow read, delete: if ok();
+      allow create: if ok() && request.resource.data.name is string
         && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120
         && request.resource.data.columns is list && request.resource.data.lotCol is int;
-      allow update: if request.resource.data.name is string;
+      allow update: if ok() && request.resource.data.name is string;
     }
     match /pt_lignes/{id} {
-      allow read, delete: if true;
-      allow create, update: if invId() && request.resource.data.k is int && request.resource.data.lots is list
+      allow read, delete: if ok();
+      allow create, update: if ok() && invId() && request.resource.data.k is int && request.resource.data.lots is list
         && request.resource.data.lots.size() <= 500;
     }
     match /pt_etat/{id} {
-      allow read, delete: if true;
-      allow create, update: if invId() && request.resource.data.k is int && request.resource.data.t is map;
+      allow read, delete: if ok();
+      allow create, update: if ok() && invId() && request.resource.data.k is int && request.resource.data.t is map;
     }
     match /pt_journal/{id} {
-      allow read, delete: if true;
-      allow create, update: if invId() && request.resource.data.kind is string;
+      allow read, delete: if ok();
+      allow create, update: if ok() && invId() && request.resource.data.kind is string;
     }
     match /pt_anomalies/{id} {
-      allow read, delete: if true;
-      allow create, update: if invId() && request.resource.data.kind is string;
+      allow read, delete: if ok();
+      allow create, update: if ok() && invId() && request.resource.data.kind is string;
     }
   }
 }
