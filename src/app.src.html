@@ -71,7 +71,7 @@ select.btn { padding-right: 8px; max-width: 260px }
 .scanhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap }
 .bipbtn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; min-height: 32px; padding: 4px 8px; border-radius: 6px }
 .bipbtn:hover { background: var(--accent-soft) }
-.modal.wide { width: min(900px, 100%) }
+.modal.wide { width: min(1040px, 100%) }
 .modal.bip { width: min(760px, 100%); height: 100%; padding: 12px; gap: 10px; overflow: hidden }
 .biphead { display: flex; align-items: center; gap: 8px; flex: none }
 .biptabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0 }
@@ -250,6 +250,43 @@ kbd { font: 600 13px var(--f-num); border: 1px solid var(--line); border-bottom-
 .cam video { width: 100%; max-height: 60vh; background: #000; border-radius: 8px }
 .rep { font-size: 13px } .rep summary { cursor: pointer; font-weight: 600 } .rep ul { margin: 6px 0 0; padding-left: 18px; max-height: 160px; overflow: auto }
 .diffbox { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px } .diffbox div { border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center } .diffbox b { display: block; font: 600 22px var(--f-num) }
+/* bilans, étiquettes, impression */
+.bilan { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px }
+@media (max-width: 900px) { .bilan { grid-template-columns: repeat(4, minmax(0, 1fr)) } } @media (max-width: 480px) { .bilan { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+.lbltable td small { display: block; color: var(--muted); font-size: 12px } .lbltable .acts { min-width: 0; flex-wrap: nowrap } .lbltable .acts .btn { white-space: nowrap }
+@media (max-width: 900px) {
+  .lbltable thead { display: none } .lbltable, .lbltable tbody, .lbltable tr, .lbltable td { display: block }
+  .lbltable tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 10px 10px 12px; border-bottom: 1px solid var(--line); align-items: baseline }
+  .lbltable td { border: 0 !important; padding: 0 !important; grid-column: 2 / 4 } .lbltable td > small { display: inline; margin-left: 6px }
+  .lbltable td:first-child.noprint { grid-column: 1; grid-row: 1 } .lbltable td.lid { grid-column: 2; grid-row: 1 } .lbltable td.lst { grid-column: 3; grid-row: 1 }
+  .lbltable td.lid small { margin-left: 8px } .lbltable td.lfm { font-size: 15px }
+  .lbltable td[data-l]::before { content: attr(data-l) " : "; color: var(--muted); font-size: 13px }
+  .lbltable .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px } .lbltable .acts .btn { min-height: 40px; font-size: 14px }
+  .lbltable tr.open { box-shadow: inset 3px 0 0 var(--warn) } .lbltable tr.open td:first-child { box-shadow: none }
+  .lbltable td.empty { grid-column: 1 / 4 }
+}
+@media (max-width: 640px) { .mm .mmtitle { font-size: 17px } .mm.alert .mma { min-height: 0; padding: 8px 10px } }
+.lblact .btn { width: 100%; white-space: normal; min-height: 46px }
+.lblmore summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 600; padding: 2px 0 } .lblmore[open] summary { margin-bottom: 8px }
+.sbq input { width: min(340px, 100%) }
+.bilan div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px }
+.bilan b { font: 600 22px var(--f-num) } .bilan span { font-size: 12px; color: var(--muted) } .bilan .w { border-color: var(--warn); background: var(--warn-soft) } .bilan .w b { color: var(--warn) }
+.mmgrid .w, .idgrid .w { color: var(--warn); font-weight: 600 } .idgrid .ok { color: var(--ok) }
+.anotable td.w, .anotable td.num.w { color: var(--warn); font-weight: 600 }
+.anotable tr.u td { color: var(--muted); text-decoration: line-through }
+.lothist { max-height: 34vh } .lothist td { white-space: normal }
+.mm.alert { border-left: 5px solid var(--warn); padding-left: 12px }
+.sidebtns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px } .sidebtns .btn { font-size: 13px; padding: 6px 8px }
+.lblf input, .sbq input { border: 1px solid var(--line); border-radius: var(--r); padding: 8px; background: var(--surface-2); min-height: 42px; color: var(--ink); font: inherit }
+@media print {
+  body.printing { background: #fff !important }
+  body.printing > :not(#modal) { display: none !important }
+  body.printing #modal { position: static; background: none; display: block; padding: 0 }
+  body.printing #modalBox { width: 100%; max-height: none; overflow: visible; border: 0; padding: 0 }
+  body.printing .noprint, body.printing .mrow, body.printing .lblf, body.printing .lblmore, body.printing .sbq { display: none !important }
+  body.printing .anotable { max-height: none; overflow: visible; border: 0 }
+  body.printing .anotable th, body.printing .anotable td { font-size: 11px; padding: 3px 5px }
+}
 @media (max-width: 640px) { .mmacts, .grid3 { grid-template-columns: 1fr } .diffbox { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 
 /* fenêtres */
@@ -372,6 +409,7 @@ kbd { font: 600 13px var(--f-num); border: 1px solid var(--line); border-bottom-
     <div class="stat" id="kUnitsBox" hidden><div class="k">Unités pointées</div><div class="v vsm" id="kUnits">0</div></div>
     <button class="stat warn statbtn" id="kAnoBox" type="button" aria-label="Anomalies ouvertes : voir et traiter"><div class="k">Anomalies ouvertes</div><div class="v" id="kAno">0</div></button>
     <div class="stat"><div class="k">Corrections</div><div class="v" id="kCorr">0</div></div>
+    <button class="stat warn statbtn" id="kLblBox" type="button" hidden aria-label="Étiquettes à remplacer : voir la liste"><div class="k">Étiquettes à remplacer</div><div class="v" id="kLbl">0</div></button>
     <div class="stat" id="kDupBox" hidden><div class="k">Doublons fichier</div><div class="v" id="kDup">0</div></div>
     <div class="stat prog"><div class="row"><span>Avancement</span><b class="num" id="kPct">0 %</b></div><div class="bar"><i id="kBar"></i></div><div class="row"><span id="kSave">Sauvegarde locale</span><span id="kNet"></span></div></div>
   </section>
@@ -412,6 +450,7 @@ kbd { font: 600 13px var(--f-num); border: 1px solid var(--line); border-bottom-
         <h2>Anomalies de pointage <span class="num" id="anoCount"></span></h2>
         <div class="log" id="anoLog"><div>Aucune anomalie.</div></div>
         <button class="btn anoall" id="bAnoAll" type="button">Voir et traiter les anomalies</button>
+        <div class="sidebtns"><button class="btn" id="bLblAll" type="button">Étiquettes à remplacer</button><button class="btn" id="bBilan" type="button">Bilan des séances</button></div>
       </section>
       <section class="panel">
         <h2>Historique</h2>
@@ -515,7 +554,7 @@ const settings = loadSettings();
 function loadSettings() { try { return Object.assign({ maxAuto: 400, manual: false, autoScroll: true, last: null }, JSON.parse(localStorage.getItem('pointage-settings') || '{}')); } catch (e) { return { maxAuto: 400, manual: false, autoScroll: true, last: null }; } }
 function saveSettings() { try { localStorage.setItem('pointage-settings', JSON.stringify(settings)); } catch (e) {} }
 
-function newState(id, n) { return { id, status: new Uint8Array(n), time: new Array(n).fill(0), fmt: {}, anomalies: [], seq: 0, lastRow: -1 }; }
+function newState(id, n) { return { id, status: new Uint8Array(n), time: new Array(n).fill(0), fmt: {}, lbl: {}, anomalies: [], seq: 0, lastRow: -1 }; }
 const fmtDate = d => { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(d || ''); };
 
 /*DATA*/
@@ -555,7 +594,9 @@ function applyPlan(plan, r, cmd) {
 }
 
 /* ---------- Annuler / rétablir : la dernière action, ou n'importe quelle opération de l'historique ---------- */
-const canUndo = h => !!h && !h.undone && (((h.kind === 'check' || h.kind === 'uncheck') && (h.rows.length || h.fp)) || ((h.kind === 'reformat' || h.kind === 'hold') && (h.fp || h.ano)));
+const canUndo = h => !!h && !h.undone && (((h.kind === 'check' || h.kind === 'uncheck') && (h.rows.length || h.fp)) || ((h.kind === 'reformat' || h.kind === 'hold') && (h.fp || h.ano)) || (h.kind === 'label' && h.lr != null));
+const opRows = h => [...(h.rows || []), ...Object.keys(h.fp || {}).map(Number), ...(h.kind === 'label' && h.lr != null ? [h.lr] : [])];
+function setLblRow(r, v) { if (r == null || r >= DATA.lots.length) return; if (v) ST.lbl[r] = v; else delete ST.lbl[r]; }
 // l'opération d'origine d'une annulation (les anciennes annulations n'ont pas de lien : retrouvée par son libellé)
 function origOf(u) {
   if (!u || u.kind !== 'undo') return null;
@@ -567,15 +608,17 @@ function origOf(u) {
 const canRedo = u => { const h = origOf(u); return !!u && u.kind === 'undo' && !u.undone && !!h && h.undone; };
 // opérations plus récentes, toujours actives, qui touchent les mêmes lots
 function laterOverlap(h) {
-  const rows = new Set([...(h.rows || []), ...Object.keys(h.fp || {}).map(Number)]);
+  const rows = new Set(opRows(h));
   if (!rows.size) return [];
   const i = HIST.indexOf(h);
-  return HIST.slice(i + 1).filter(x => canUndo(x) && [...(x.rows || []), ...Object.keys(x.fp || {}).map(Number)].some(r => rows.has(r)));
+  return HIST.slice(i + 1).filter(x => canUndo(x) && opRows(x).some(r => rows.has(r)));
 }
 function undoEntry(h) {
   h.rows.forEach((row, k) => { ST.status[row] = h.prevS[k]; ST.time[row] = h.prevT[k]; });
   const fmtRows = [];
   if (h.fp) for (const k in h.fp) { const r = +k; if (h.fp[k] == null) delete ST.fmt[r]; else ST.fmt[r] = h.fp[k]; fmtRows.push(r); }
+  const lblRows = h.kind === 'label' ? [h.lr] : [];
+  if (h.kind === 'label') setLblRow(h.lr, h.lp);
   const anos = []; let ap = null;
   if (h.ano) { const a = anoById(h.ano); if (a) { ap = { st: a.st, res: a.res || '' }; setAno(a, 'annulee', 'Décision annulée'); anos.push(a); } }
   h.undone = true;
@@ -585,7 +628,7 @@ function undoEntry(h) {
   lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
   setResult(`<b>Annulé</b> — ${esc(h.label)} (${h.rows.length} lot${h.rows.length > 1 ? 's' : ''})`);
   showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Annulé', '');
-  persist({ rows: h.rows, fmt: fmtRows, ano: anos, hist: [h, u] }); refreshPending(); afterChange(true);
+  persist({ rows: h.rows, fmt: fmtRows, lbl: lblRows, ano: anos, hist: [h, u] }); refreshPending(); afterChange(true);
 }
 // Rétablir = annuler l'annulation : l'opération d'origine retrouve son effet
 function redoEntry(u) {
@@ -600,6 +643,8 @@ function redoEntry(u) {
     if (v == null || Formats.normFmt(v) === Formats.normFmt(origFmt(r))) delete ST.fmt[r]; else ST.fmt[r] = v;
     fmtRows.push(r);
   }
+  const lblRows = h.kind === 'label' ? [h.lr] : [];
+  if (h.kind === 'label') setLblRow(h.lr, h.ln);
   const anos = [];
   if (h.ano) {
     const a = anoById(h.ano);
@@ -610,7 +655,7 @@ function redoEntry(u) {
   flashRows = new Set([...h.rows, ...fmtRows]);
   setResult(`<b>Rétabli</b> — ${esc(h.label)}`);
   showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Rétabli', 'ok');
-  persist({ rows: h.rows, fmt: fmtRows, ano: anos, hist: [h, u, r2] }); refreshPending(); afterChange(false);
+  persist({ rows: h.rows, fmt: fmtRows, lbl: lblRows, ano: anos, hist: [h, u, r2] }); refreshPending(); afterChange(false);
 }
 function undo() {
   if (!INV) return;
@@ -788,12 +833,16 @@ function applyFilter() {
 }
 function setFmt(v, user) {
   const was = fmtVal;
+  // changer de format = fin de la séance en cours, puis début d'une nouvelle (chacune garde son identifiant)
+  const ended = INV && v !== was ? endSession() : '';
   fmtVal = v;
   try { settings.fmtFilter = settings.fmtFilter || {}; if (v) settings.fmtFilter[INV.id] = v; else delete settings.fmtFilter[INV.id]; saveSettings(); } catch (e) {}
-  if (user && v && v !== was) { const h = addHist({ kind: 'session', cmd: '', label: `Séance de pointage : ${fmtLabelOf(v)}`, rows: [] }); persist({ hist: [h] }); }
+  if (INV && v && v !== was) startSession(v);
   $('#scanRes').hidden = true;
   renderFmtOptions(); applyFilter(); $('#scroller').scrollTop = 0; renderRows(); renderStats(); renderHist();
   if (user && v) { try { scanIn.focus({ preventScroll: true }); } catch (e) {} }
+  // à la fin d'une séance : son bilan (il reste consultable ensuite dans « Bilan des séances »)
+  if (user && ended && !v) showSessionEnd(ended);
 }
 let nextRow = -1;
 function renderRows() {
@@ -834,6 +883,9 @@ function renderStats() {
   refreshPending(); updateFmtStats();
   const T = INV ? Formats.totals(model(), ST.anomalies) : { open: 0, corrections: 0, units: 0, unitsDone: 0 };
   $('#kCorr').textContent = T.corrections;
+  const nl = INV && fmtCol >= 0 ? labelsToReplace() : 0;
+  $('#kLblBox').hidden = !(INV && fmtCol >= 0 && (nl || T.corrections || Object.keys(ST.lbl || {}).length));
+  $('#kLbl').textContent = nl; $('#kLblBox').classList.toggle('warn', !!nl);
   $('#kUnitsBox').hidden = !(INV && qtyCol >= 0);
   $('#kUnits').textContent = `${fmtNum(T.unitsDone)} / ${fmtNum(T.units)}`;
   $('#kTotal').textContent = total.toLocaleString('fr-FR');
@@ -1134,7 +1186,7 @@ function exportXlsx() {
   if (fmtCol < 0) return doExport('');
   modal(`<h3>Exporter vers Excel</h3>
     <div class="cands">
-      <button class="cand" data-x="all"><span class="t" style="font-family:var(--f-ui)">Toute la vente</span><span class="d">Inventaire complet, lots restants, anomalies, corrections et historique (5 feuilles).</span></button>
+      <button class="cand" data-x="all"><span class="t" style="font-family:var(--f-ui)">Toute la vente</span><span class="d">Inventaire complet, lots restants, anomalies, corrections, historique et étiquettes à remplacer (6 feuilles).</span></button>
       ${fmtVal ? `<button class="cand" data-x="fmt"><span class="t" style="font-family:var(--f-ui)">Format « ${esc(fmtLabelOf(fmtVal))} » uniquement</span><span class="d">Les mêmes feuilles, limitées aux lots de ce format.</span></button>` : ''}
     </div>
     <div class="mrow"><button class="btn" id="xCancel">Annuler</button></div>`);
@@ -1171,7 +1223,7 @@ async function doExport(onlyKey) {
   const corr = HIST.filter(h => h.fp && (h.kind === 'reformat' || h.kind === 'check'));
   const s4 = [['Date', 'Heure', n1, n2, 'Ancien format', 'Nouveau format', 'Motif / origine', 'Annulée'],
     ...corr.flatMap(h => Object.keys(h.fp).map(k => { const r = +k; const a = h.ano ? anoById(h.ano) : null; return [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), DATA.lots[r] ?? '', r < DATA.lots.length ? altOf(r) : '', h.fp[k] != null ? h.fp[k] : (r < DATA.lots.length ? origFmt(r) : ''), a && a.fs ? a.fs : '', a ? a.res || '' : (h.result || ''), h.undone ? 'Oui' : '']; })).filter(x => !onlyKey || Formats.normFmt(x[4]) === onlyKey || Formats.normFmt(x[5]) === onlyKey)];
-  const KIND = { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture', session: 'Séance', scan: 'Scan', hold: 'Mise en attente', reformat: 'Correction de format', redo: 'Rétablissement', anodel: 'Suppression d\'anomalies' };
+  const KIND = { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture', session: 'Séance', scan: 'Scan', hold: 'Mise en attente', reformat: 'Correction de format', redo: 'Rétablissement', anodel: 'Suppression d\'anomalies', sessend: 'Fin de séance', label: 'Réétiquetage', note: 'Observation', postpone: 'Correction reportée' };
   const s5 = [['Date', 'Heure', 'Opération', 'Commande', 'Détail', 'Lots modifiés', 'Annulée'],
     ...HIST.map(h => [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), KIND[h.kind] || h.kind, h.cmd || '', h.label + (h.result ? ' — ' + h.result : ''), h.rows ? h.rows.length : 0, h.undone ? 'Oui' : ''])];
   const fit = (aoa, min, max) => aoa[0].map((_, i) => Math.min(max, Math.max(min, ...aoa.slice(0, 101).map(r => String(r[i] ?? '').length + 2))));
@@ -1182,10 +1234,14 @@ async function doExport(onlyKey) {
     { name: 'Lots restants', rows: s2, styles: [1, ...left.map(color)], widths: fit(s2, 8, 50) },
     { name: 'Anomalies', rows: s3, styles: s3.map((x, i) => i ? (/Ouverte|attente/.test(x[7]) ? 4 : 0) : 1), widths: fit(s3, 10, 60) },
     { name: 'Corrections de format', rows: s4, widths: fit(s4, 8, 50) },
-    { name: 'Historique', rows: s5, widths: fit(s5, 8, 70) }
+    { name: 'Historique', rows: s5, widths: fit(s5, 8, 70) },
+    ...(fmtCol >= 0 ? [(() => { refreshPending(); const ls = labelSheet(labelRows().filter(r => !onlyKey || inScope(r) || Formats.normFmt(origFmt(r)) === onlyKey).map(labelRowData)); return { name: 'Étiquettes à remplacer', rows: ls.rows, styles: ls.styles, widths: fit(ls.rows, 8, 40) }; })()] : [])
   ]);
   const d = new Date();
   const fname = `vente_${INV.name.replace(/[^\w\-]+/g, '_')}${onlyKey ? '_' + fmtLabelOf(onlyKey).replace(/[^\w\-]+/g, '_') : ''}_${d.toISOString().slice(0, 10)}_${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}.xlsx`;
+  return downloadBlob(blob, fname);
+}
+async function downloadBlob(blob, fname) {
   if (window.claude && typeof window.claude.use === 'function') {
     const dl = await window.claude.use('downloads');
     if (dl) { try { await dl.save({ filename: fname, data: blob }); toast('Export enregistré : ' + fname); } catch (e) { if (e.code !== 'declined') toast('Export impossible ici (' + (e.code || 'erreur') + ').'); } return; }
@@ -1329,6 +1385,9 @@ $('#bBip').onclick = () => openBipGuide();
 $('#bAnoAll').onclick = () => { if (INV) openAnomalies(); };
 $('#bHistAll').onclick = () => { if (INV) openHistory(); };
 $('#kAnoBox').onclick = () => { if (INV) { anoFilter.st = 'open'; openAnomalies(); } };
+$('#kLblBox').onclick = () => { if (INV) { lblFilter.st = 'remplacer'; openLabels(); } };
+$('#bLblAll').onclick = () => { if (INV) openLabels(); };
+$('#bBilan').onclick = () => { if (INV) openBilan(); };
 if ('BarcodeDetector' in window && navigator.mediaDevices && matchMedia('(pointer: coarse)').matches) { $('#bCam').hidden = false; $('#bCam').onclick = openCamera; }
 let wake = null;
 const keepAwake = () => { try { if (!wake && navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wake = w; w.addEventListener('release', () => wake = null); }).catch(() => {}); } catch (e) {} };

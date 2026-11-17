@@ -5,6 +5,7 @@ const memFallback = { inventories: new Map(), data: new Map(), state: new Map(),
    pt_lignes/{inv}_{k}         tranche de 500 lignes du fichier importé (numéros + autres colonnes)
    pt_etat/{inv}_{k}           pointage de la tranche : t.{i} = heure du pointage (absent = non pointé)
                                f.{i} = format corrigé du lot (absent = format d'origine du fichier)
+                               e.{i} = étiquette physique remplacée : { t: heure, f: format de la nouvelle étiquette }
    pt_journal/{inv}_{id}       historique des opérations (avec de quoi les annuler)
    pt_anomalies/{inv}_{id}     anomalies : type, lot (row), formats d'origine / constaté, statut (st), résolution
    Tous les ajouts sont facultatifs : les ventes créées avant restent lisibles telles quelles.     */
@@ -68,9 +69,9 @@ const Cloud = {
   },
   histDoc(h) {
     return { inv: h.inv, id: h.id, seq: h.seq, t: h.t, dev: h.dev || '', kind: h.kind, cmd: h.cmd || '', label: h.label || '', result: h.result || '', undone: !!h.undone,
-      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [], fp: h.fp || null, fn: h.fn || null, sc: h.sc || null, ano: h.ano || null, ref: h.ref || null, ap: h.ap || null }) };
+      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [], fp: h.fp || null, fn: h.fn || null, sc: h.sc || null, ano: h.ano || null, ref: h.ref || null, ap: h.ap || null, sid: h.sid, sk: h.sk, ss: h.ss, lr: h.lr, lp: h.lp, ln: h.ln }) };
   },
-  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [], fp: d.fp || null, fn: d.fn || null, sc: d.sc || null, ano: d.ano || null, ref: d.ref || null, ap: d.ap || null }; },
+  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [], fp: d.fp || null, fn: d.fn || null, sc: d.sc || null, ano: d.ano || null, ref: d.ref || null, ap: d.ap || null, sid: d.sid, sk: d.sk, ss: d.ss, lr: d.lr, lp: d.lp, ln: d.ln }; },
   invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, altCol: inv.altCol ?? null, fmtCol: inv.fmtCol ?? null, qtyCol: inv.qtyCol ?? null, date: inv.date || '', archived: !!inv.archived, count: inv.count, chunk: CHUNK }; },
   watchList(cb) {
     if (this.invUnsub) this.invUnsub();
@@ -82,9 +83,9 @@ const Cloud = {
     for (let k = 0; k * CHUNK < n; k++) {
       const a = k * CHUNK, b = Math.min(n, a + CHUNK);
       ops.push(['set', this.col('pt_lignes').doc(`${inv.id}_${k}`), { inv: inv.id, k, lots: data.lots.slice(a, b), rows: data.rows.slice(a, b).map(r => JSON.stringify(r)) }]);
-      const t = {};
-      for (let i = a; i < b; i++) if (st.status[i]) t[i - a] = st.time[i] || Date.now();
-      ops.push(['set', this.col('pt_etat').doc(`${inv.id}_${k}`), { inv: inv.id, k, t }]);
+      const t = {}, f = {}, e = {};
+      for (let i = a; i < b; i++) { if (st.status[i]) t[i - a] = st.time[i] || Date.now(); if (st.fmt && st.fmt[i] != null) f[i - a] = st.fmt[i]; if (st.lbl && st.lbl[i]) e[i - a] = st.lbl[i]; }
+      ops.push(['set', this.col('pt_etat').doc(`${inv.id}_${k}`), { inv: inv.id, k, t, f, e }]);
     }
     (hist || []).forEach(h => ops.push(['set', this.col('pt_journal').doc(`${inv.id}_${h.id}`), this.histDoc(h)]));
     (st.anomalies || []).forEach(a => ops.push(['set', this.col('pt_anomalies').doc(`${inv.id}_${a.id}`), Object.assign({ inv: inv.id }, a)]));
@@ -104,6 +105,11 @@ const Cloud = {
       const byChunk = new Map();
       for (const r of c.fmt) { const k = Math.floor(r / CHUNK); if (!byChunk.has(k)) byChunk.set(k, {}); byChunk.get(k)[r - k * CHUNK] = ST.fmt[r] != null ? ST.fmt[r] : this.FV().delete(); }
       for (const [k, f] of byChunk) ops.push(['set', this.col('pt_etat').doc(`${INV.id}_${k}`), { inv: INV.id, k, f }, { merge: true }]);
+    }
+    if (c.lbl && c.lbl.length) {
+      const byChunk = new Map();
+      for (const r of c.lbl) { const k = Math.floor(r / CHUNK); if (!byChunk.has(k)) byChunk.set(k, {}); byChunk.get(k)[r - k * CHUNK] = ST.lbl[r] ? ST.lbl[r] : this.FV().delete(); }
+      for (const [k, e] of byChunk) ops.push(['set', this.col('pt_etat').doc(`${INV.id}_${k}`), { inv: INV.id, k, e }, { merge: true }]);
     }
     if (c.meta) ops.push(['set', this.col('pt_inventaires').doc(INV.id), Object.assign({ closed: !!INV.closed }, c.meta === true ? {} : c.meta), { merge: true }]);
     if (!ops.length) return;
@@ -130,8 +136,12 @@ const Cloud = {
     }));
     listen('pt_etat', docs => {
       for (const d of docs) {
-        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {}, f = d.f || {};
-        for (let i = a; i < b; i++) { const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0; const g = f[i - a]; if (g != null && g !== '') st.fmt[i] = g; else delete st.fmt[i]; }
+        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {}, f = d.f || {}, e = d.e || {};
+        for (let i = a; i < b; i++) {
+          const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0;
+          const g = f[i - a]; if (g != null && g !== '') st.fmt[i] = g; else delete st.fmt[i];
+          const l = e[i - a]; if (l && l.t) st.lbl[i] = l; else delete st.lbl[i];
+        }
       }
     });
     const hist = [];   // même tableau que HIST une fois l'inventaire ouvert
@@ -200,6 +210,7 @@ async function localLoad(id) {
   st = st || newState(id, data.lots.length);
   if (!(st.status instanceof Uint8Array)) st.status = Uint8Array.from(st.status);
   st.fmt = st.fmt || {};
+  st.lbl = st.lbl || {};
   return { inv, data, st, hist: hist.sort((a, b) => a.seq - b.seq) };
 }
 
@@ -308,7 +319,9 @@ function showDbNotice(kind) {
 
 /* ---------- Opérations ---------- */
 function addHist(h) {
-  ST.seq = (ST.seq || 0) + 1; h.inv = INV.id; h.seq = ST.seq; h.t = Date.now(); h.id = uid(); h.dev = DEVICE;
+  ST.seq = (ST.seq || 0) + 1; h.inv = INV.id;
+  // chaque opération porte sa séance de scannage ('' = hors séance)
+  if (h.sid === undefined && typeof currentSid === 'function') { h.sid = currentSid(); if (h.sid) h.sk = sessionKey(); } h.seq = ST.seq; h.t = Date.now(); h.id = uid(); h.dev = DEVICE;
   HIST.push(h);
   if (MODE === 'local' && !Store.ok) { const a = memFallback.history.get(INV.id) || []; a.push(h); memFallback.history.set(INV.id, a); }
   return h;

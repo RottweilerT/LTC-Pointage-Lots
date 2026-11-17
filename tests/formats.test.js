@@ -89,5 +89,45 @@ t('rapport d\'import', () => {
   assert.strictEqual(rep.byType['Numéro principal manquant'], 1); assert.strictEqual(rep.byType['Numéro non numérique'], 1);
 });
 
+/* ===== Étiquettes et séances ===== */
+t('étiquette : corriger le format ne remplace pas l\'étiquette', () => {
+  assert.strictEqual(Formats.labelState('Single lot', 'Single lot', null, false), '');
+  assert.strictEqual(Formats.labelState('Single lot', 'SF', null, false), 'remplacer');
+  assert.strictEqual(Formats.labelState('Single lot', 'SF', { t: 1, f: 'SF' }, false), 'remplacee');
+  assert.strictEqual(Formats.labelState('Single lot', 'Single lot', null, true), 'verifier');
+  // étiquette posée « SF » puis format remis à « Single lot » : de nouveau à remplacer
+  assert.strictEqual(Formats.labelState('Single lot', 'Single lots', { t: 1, f: 'SF' }, false), 'remplacer');
+});
+const sc = (id, t, r, fo, extra) => Object.assign({ id, t, dev: 'A', kind: 'check', sc: { r, fo, l: String(r) } }, extra || {});
+t('séances : rattachement (récent par sid, ancien par appareil)', () => {
+  const H = [
+    { id: 's1', t: 1, dev: 'A', kind: 'session', label: 'Séance de pointage : SF' },
+    sc('a', 2, 5, 'Single lot'),                          // ancien : sans sid -> séance s1
+    { id: 's2', t: 3, dev: 'B', kind: 'session', label: 'Séance de pointage : Single lot', sk: 'single lot', ss: 'Single lot', sid: 's2' },
+    sc('b', 4, 5, 'Single lot', { dev: 'B', sid: 's2' }),
+    sc('c', 5, 7, 'SF'),                                  // appareil A, toujours dans s1
+    { id: 'e1', t: 6, dev: 'A', kind: 'sessend', sid: 's1' },
+    sc('d', 7, 8, 'SF', { sid: '' })                      // hors séance
+  ];
+  const I = Formats.sessionIndex(H);
+  assert.strictEqual(I.sidOf('a'), 's1'); assert.strictEqual(I.sidOf('b'), 's2'); assert.strictEqual(I.sidOf('c'), 's1'); assert.strictEqual(I.sidOf('d'), '');
+  assert.strictEqual(I.sessions.get('s1').key, 'sf'); assert.strictEqual(I.sessions.get('s1').events.length, 2); assert.ok(I.sessions.get('s1').closed);
+});
+t('bilan de séance : scans, lots uniques, hors catégorie, sans double comptage', () => {
+  const ev = [sc('1', 1, 1, 'SF'), sc('2', 2, 2, 'Single lot'), sc('3', 3, 2, 'Single lot'), sc('4', 4, 3, 'Album'), { id: '5', t: 5, sc: { r: undefined, fo: '' } }];
+  const info = r => ({ corrected: r === 2, pending: r === 3, label: r === 2 ? 'remplacer' : '' });
+  const b = Formats.sessionSummary(ev, 'sf', info);
+  assert.deepStrictEqual([b.total, b.unique, b.conform, b.out, b.confirmed, b.verify, b.labels], [5, 3, 1, 2, 1, 1, 1]);
+  assert.strictEqual(b.rows.find(x => x.r === 2).n, 2);
+});
+t('lot corrigé SF rescanné pendant les Single lots : hors catégorie', () => {
+  assert.ok(Formats.outOfCategory({ sc: { fo: 'Single lot', ko: 'sf' } }, 'single lot'));
+  assert.ok(!Formats.outOfCategory({ sc: { fo: 'Single lot', ko: 'single lot' } }, 'single lot'));
+  assert.ok(!Formats.outOfCategory({ sc: { fo: 'Single lot' } }, ''));
+});
+t('scans annulés ou décisions de bureau : pas des scans', () => {
+  assert.ok(!Formats.isScanEvent({ sc: { r: 1 }, undone: true })); assert.ok(!Formats.isScanEvent({ sc: { r: 1, dec: 1 } })); assert.ok(Formats.isScanEvent({ sc: { r: 1 } }));
+});
+
 console.log(`${pass} réussis, ${fail} échoués`);
 process.exit(fail ? 1 : 0);

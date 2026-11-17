@@ -137,6 +137,74 @@ const Formats = (function () {
     return { issues, byType };
   }
 
-  return { normFmt, qtyOf, qtyValid, opLabel, opKey, labels, stats, totals, isOpen, ST_LABEL, TYPE_LABEL, classify, diffListing, importReport };
+  /* ===== Étiquettes physiques =====
+     L'étiquette d'un lot porte le format du listing, ou celui de la nouvelle étiquette posée (lbl.f).
+     Elle est à remplacer tant qu'elle ne correspond pas au format opérationnel confirmé :
+     corriger le format ne vaut jamais remplacement de l'étiquette.                                    */
+  function labelState(origF, opF, lbl, pending) {
+    const onLabel = lbl && lbl.f != null ? lbl.f : origF;
+    if (normFmt(onLabel) !== normFmt(opF)) return 'remplacer';
+    if (pending) return 'verifier';
+    if (lbl) return 'remplacee';
+    return '';
+  }
+  const LABEL_ST = { remplacer: 'À remplacer', verifier: 'Format à confirmer', remplacee: 'Étiquette remplacée' };
+
+  /* ===== Séances de scannage =====
+     Une séance = une entrée « session » du journal (son id) jusqu'à la séance suivante ou « sessend » du même appareil.
+     Les opérations récentes portent leur séance (sid, '' = hors séance) ; les plus anciennes sont rattachées
+     par appareil, dans l'ordre du journal. Rien n'est stocké en plus : tout se recalcule.            */
+  const isScanEvent = h => !!h && !!h.sc && !h.undone && !h.sc.dec;
+  function sessionIndex(hist) {
+    const sessions = new Map(), sidOf = new Map(), cur = {};
+    for (const h of hist) {
+      const dev = h.dev || '';
+      if (h.kind === 'session') {
+        const label = h.ss || String(h.label || '').replace(/^Séance de pointage : /, '').replace(/ \(reprise\)$/, '');
+        const s = { id: h.id, key: h.sk || normFmt(label) || '(vide)', label, start: h.t, end: h.t, dev, closed: false, events: [] };
+        sessions.set(h.id, s); cur[dev] = s; sidOf.set(h.id, h.id); continue;
+      }
+      if (h.kind === 'sessend') {
+        const s = sessions.get(h.sid) || cur[dev];
+        if (s) { s.end = Math.max(s.end, h.t); s.closed = true; }
+        if (!h.sid || (cur[dev] && cur[dev].id === h.sid)) cur[dev] = null;
+        sidOf.set(h.id, s ? s.id : ''); continue;
+      }
+      const sid = h.sid !== undefined && h.sid !== null ? h.sid : (cur[dev] ? cur[dev].id : '');
+      sidOf.set(h.id, sid);
+      const s = sessions.get(sid);
+      if (s && isScanEvent(h)) { s.events.push(h); s.end = Math.max(s.end, h.t); }
+    }
+    return { sessions, sidOf: id => sidOf.get(id) || '' };
+  }
+  // un scan est « hors catégorie » si le format du listing, ou le format confirmé au moment du scan, diffère de la séance
+  function outOfCategory(h, key) {
+    if (!key) return false;
+    const fo = normFmt(h.sc.fo) || '(vide)';
+    return fo !== key || (!!h.sc.ko && h.sc.ko !== key);
+  }
+  /* Bilan d'une séance. info(r) -> { corrected, pending, label } (état actuel du lot).
+     Chaque scan compte dans « scans », mais un lot ne compte qu'une fois comme lot unique. */
+  function sessionSummary(events, key, info) {
+    const rows = new Map(); let total = 0;
+    for (const h of events) {
+      total++;
+      const r = h.sc.r; if (r == null) continue;
+      const x = rows.get(r) || { r, first: h.t, last: h.t, n: 0, out: false, firstOut: null };
+      x.n++; x.last = h.t;
+      if (outOfCategory(h, key)) { x.out = true; if (x.firstOut == null) x.firstOut = h.t; }
+      rows.set(r, x);
+    }
+    const list = [...rows.values()], out = list.filter(x => x.out);
+    const st = out.map(x => Object.assign(x, info(x.r)));
+    return {
+      total, unique: list.length, conform: list.length - out.length, out: out.length,
+      confirmed: st.filter(x => x.corrected).length, verify: st.filter(x => x.pending).length,
+      labels: st.filter(x => x.label === 'remplacer').length, rows: out
+    };
+  }
+
+  return { normFmt, qtyOf, qtyValid, opLabel, opKey, labels, stats, totals, isOpen, ST_LABEL, TYPE_LABEL, classify, diffListing, importReport,
+    labelState, LABEL_ST, isScanEvent, sessionIndex, outOfCategory, sessionSummary };
 })();
 if (typeof module !== 'undefined') module.exports = { Formats };

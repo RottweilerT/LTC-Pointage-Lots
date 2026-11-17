@@ -31,7 +31,16 @@ Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on po
 - **Format d'origine / format opérationnel** : le fichier n'est jamais modifié ; la correction est enregistrée à part (`pt_etat.f`), avec motif, date et appareil dans l'historique. Fiche d'un lot : toucher sa cellule de format (détail, historique, correction manuelle, retour au format d'origine).
 - **Historique** : chaque opération a un bouton « Annuler » (retour à l'état d'avant cette opération précise) et chaque annulation un bouton « Rétablir » (l'annulation est annulée : l'opération retrouve son effet, format et décision compris). Avertissement si une opération plus récente touche les mêmes lots. « Historique complet » liste tout.
 - **Anomalies de pointage** : liste filtrable (type, statut, format) avec décisions ; les anomalies traitées restent consultables jusqu'à leur suppression (« Supprimer » sur une ligne, « Supprimer toutes les anomalies traitées » ou « Supprimer les … affichées », avec confirmation ; définitif).
-- **Export** : toute la vente ou le format en cours ; feuilles Inventaire complet, Lots restants, Anomalies, Corrections de format, Historique (format d'origine, format opérationnel, quantités, statut, anomalie, résolution, dates).
+- **Export** : toute la vente ou le format en cours ; feuilles Inventaire complet, Lots restants, Anomalies, Corrections de format, Historique, Étiquettes à remplacer (format d'origine, format opérationnel, quantités, statut, anomalie, résolution, dates).
+
+### Scans croisés et étiquettes à remplacer
+
+- **Séances tracées** : chaque séance de format a un identifiant ; chaque scan est un événement distinct du journal (vente, lot, deux numéros, séance, date, format du listing, format confirmé, résultat). Aucun scan n'écrase le précédent.
+- **Correction informatique ≠ remplacement physique** : confirmer « c'est un SF » corrige le format opérationnel (origine gardée) et met le lot dans « Étiquettes à remplacer ». Il n'en sort que par « Confirmer le remplacement de l'étiquette » (date, appareil ; annulable dans l'historique). L'état de l'étiquette est stocké à part (`pt_etat.e`).
+- **Rescan dans une autre séance** : un lot identifié SF puis rescanné pendant les Single lots déclenche l'alerte « LOT IDENTIFIÉ COMME SF — ÉTIQUETTE À REMPLACER » (historique, format, observation, étiquette remplacée, reporter). Un lot mis en attente pendant les SF déclenche « LOT DÉJÀ SCANNÉ PENDANT LES SF » : il n'est jamais résolu automatiquement. Une seule anomalie active par lot ; le lot n'est compté qu'une fois.
+- **Étiquettes à remplacer** (tuile du tableau de bord, panneau latéral) : filtres vente, statut (à remplacer / à vérifier / remplacées), format Excel, format réel, séance de détection, date, recherche par n° ; confirmation une par une ou groupée ; export Excel ; impression.
+- **Bilan des séances** : à la sortie d'une séance, puis à tout moment (« Bilan ») : scans, lots uniques, conformes, hors catégorie, anomalies confirmées / à vérifier, étiquettes à remplacer, et la liste des lots scannés dans la séance mais enregistrés dans une autre catégorie.
+- Aucune migration : les ventes existantes sont lues telles quelles (les corrections de format déjà faites apparaissent dans « Étiquettes à remplacer »). Règles Firebase inchangées.
 - Tests : `node tests/formats.test.js` (règles : scénarios 1 à 10).
 
 ### Saisies au clavier possibles

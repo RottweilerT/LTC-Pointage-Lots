@@ -71,7 +71,7 @@ select.btn { padding-right: 8px; max-width: 260px }
 .scanhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap }
 .bipbtn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; min-height: 32px; padding: 4px 8px; border-radius: 6px }
 .bipbtn:hover { background: var(--accent-soft) }
-.modal.wide { width: min(900px, 100%) }
+.modal.wide { width: min(1040px, 100%) }
 .modal.bip { width: min(760px, 100%); height: 100%; padding: 12px; gap: 10px; overflow: hidden }
 .biphead { display: flex; align-items: center; gap: 8px; flex: none }
 .biptabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0 }
@@ -250,6 +250,43 @@ kbd { font: 600 13px var(--f-num); border: 1px solid var(--line); border-bottom-
 .cam video { width: 100%; max-height: 60vh; background: #000; border-radius: 8px }
 .rep { font-size: 13px } .rep summary { cursor: pointer; font-weight: 600 } .rep ul { margin: 6px 0 0; padding-left: 18px; max-height: 160px; overflow: auto }
 .diffbox { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px } .diffbox div { border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center } .diffbox b { display: block; font: 600 22px var(--f-num) }
+/* bilans, étiquettes, impression */
+.bilan { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px }
+@media (max-width: 900px) { .bilan { grid-template-columns: repeat(4, minmax(0, 1fr)) } } @media (max-width: 480px) { .bilan { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+.lbltable td small { display: block; color: var(--muted); font-size: 12px } .lbltable .acts { min-width: 0; flex-wrap: nowrap } .lbltable .acts .btn { white-space: nowrap }
+@media (max-width: 900px) {
+  .lbltable thead { display: none } .lbltable, .lbltable tbody, .lbltable tr, .lbltable td { display: block }
+  .lbltable tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 10px 10px 12px; border-bottom: 1px solid var(--line); align-items: baseline }
+  .lbltable td { border: 0 !important; padding: 0 !important; grid-column: 2 / 4 } .lbltable td > small { display: inline; margin-left: 6px }
+  .lbltable td:first-child.noprint { grid-column: 1; grid-row: 1 } .lbltable td.lid { grid-column: 2; grid-row: 1 } .lbltable td.lst { grid-column: 3; grid-row: 1 }
+  .lbltable td.lid small { margin-left: 8px } .lbltable td.lfm { font-size: 15px }
+  .lbltable td[data-l]::before { content: attr(data-l) " : "; color: var(--muted); font-size: 13px }
+  .lbltable .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px } .lbltable .acts .btn { min-height: 40px; font-size: 14px }
+  .lbltable tr.open { box-shadow: inset 3px 0 0 var(--warn) } .lbltable tr.open td:first-child { box-shadow: none }
+  .lbltable td.empty { grid-column: 1 / 4 }
+}
+@media (max-width: 640px) { .mm .mmtitle { font-size: 17px } .mm.alert .mma { min-height: 0; padding: 8px 10px } }
+.lblact .btn { width: 100%; white-space: normal; min-height: 46px }
+.lblmore summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 600; padding: 2px 0 } .lblmore[open] summary { margin-bottom: 8px }
+.sbq input { width: min(340px, 100%) }
+.bilan div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px }
+.bilan b { font: 600 22px var(--f-num) } .bilan span { font-size: 12px; color: var(--muted) } .bilan .w { border-color: var(--warn); background: var(--warn-soft) } .bilan .w b { color: var(--warn) }
+.mmgrid .w, .idgrid .w { color: var(--warn); font-weight: 600 } .idgrid .ok { color: var(--ok) }
+.anotable td.w, .anotable td.num.w { color: var(--warn); font-weight: 600 }
+.anotable tr.u td { color: var(--muted); text-decoration: line-through }
+.lothist { max-height: 34vh } .lothist td { white-space: normal }
+.mm.alert { border-left: 5px solid var(--warn); padding-left: 12px }
+.sidebtns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px } .sidebtns .btn { font-size: 13px; padding: 6px 8px }
+.lblf input, .sbq input { border: 1px solid var(--line); border-radius: var(--r); padding: 8px; background: var(--surface-2); min-height: 42px; color: var(--ink); font: inherit }
+@media print {
+  body.printing { background: #fff !important }
+  body.printing > :not(#modal) { display: none !important }
+  body.printing #modal { position: static; background: none; display: block; padding: 0 }
+  body.printing #modalBox { width: 100%; max-height: none; overflow: visible; border: 0; padding: 0 }
+  body.printing .noprint, body.printing .mrow, body.printing .lblf, body.printing .lblmore, body.printing .sbq { display: none !important }
+  body.printing .anotable { max-height: none; overflow: visible; border: 0 }
+  body.printing .anotable th, body.printing .anotable td { font-size: 11px; padding: 3px 5px }
+}
 @media (max-width: 640px) { .mmacts, .grid3 { grid-template-columns: 1fr } .diffbox { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 
 /* fenêtres */
@@ -372,6 +409,7 @@ kbd { font: 600 13px var(--f-num); border: 1px solid var(--line); border-bottom-
     <div class="stat" id="kUnitsBox" hidden><div class="k">Unités pointées</div><div class="v vsm" id="kUnits">0</div></div>
     <button class="stat warn statbtn" id="kAnoBox" type="button" aria-label="Anomalies ouvertes : voir et traiter"><div class="k">Anomalies ouvertes</div><div class="v" id="kAno">0</div></button>
     <div class="stat"><div class="k">Corrections</div><div class="v" id="kCorr">0</div></div>
+    <button class="stat warn statbtn" id="kLblBox" type="button" hidden aria-label="Étiquettes à remplacer : voir la liste"><div class="k">Étiquettes à remplacer</div><div class="v" id="kLbl">0</div></button>
     <div class="stat" id="kDupBox" hidden><div class="k">Doublons fichier</div><div class="v" id="kDup">0</div></div>
     <div class="stat prog"><div class="row"><span>Avancement</span><b class="num" id="kPct">0 %</b></div><div class="bar"><i id="kBar"></i></div><div class="row"><span id="kSave">Sauvegarde locale</span><span id="kNet"></span></div></div>
   </section>
@@ -412,6 +450,7 @@ kbd { font: 600 13px var(--f-num); border: 1px solid var(--line); border-bottom-
         <h2>Anomalies de pointage <span class="num" id="anoCount"></span></h2>
         <div class="log" id="anoLog"><div>Aucune anomalie.</div></div>
         <button class="btn anoall" id="bAnoAll" type="button">Voir et traiter les anomalies</button>
+        <div class="sidebtns"><button class="btn" id="bLblAll" type="button">Étiquettes à remplacer</button><button class="btn" id="bBilan" type="button">Bilan des séances</button></div>
       </section>
       <section class="panel">
         <h2>Historique</h2>
@@ -1051,7 +1090,75 @@ const Formats = (function () {
     return { issues, byType };
   }
 
-  return { normFmt, qtyOf, qtyValid, opLabel, opKey, labels, stats, totals, isOpen, ST_LABEL, TYPE_LABEL, classify, diffListing, importReport };
+  /* ===== Étiquettes physiques =====
+     L'étiquette d'un lot porte le format du listing, ou celui de la nouvelle étiquette posée (lbl.f).
+     Elle est à remplacer tant qu'elle ne correspond pas au format opérationnel confirmé :
+     corriger le format ne vaut jamais remplacement de l'étiquette.                                    */
+  function labelState(origF, opF, lbl, pending) {
+    const onLabel = lbl && lbl.f != null ? lbl.f : origF;
+    if (normFmt(onLabel) !== normFmt(opF)) return 'remplacer';
+    if (pending) return 'verifier';
+    if (lbl) return 'remplacee';
+    return '';
+  }
+  const LABEL_ST = { remplacer: 'À remplacer', verifier: 'Format à confirmer', remplacee: 'Étiquette remplacée' };
+
+  /* ===== Séances de scannage =====
+     Une séance = une entrée « session » du journal (son id) jusqu'à la séance suivante ou « sessend » du même appareil.
+     Les opérations récentes portent leur séance (sid, '' = hors séance) ; les plus anciennes sont rattachées
+     par appareil, dans l'ordre du journal. Rien n'est stocké en plus : tout se recalcule.            */
+  const isScanEvent = h => !!h && !!h.sc && !h.undone && !h.sc.dec;
+  function sessionIndex(hist) {
+    const sessions = new Map(), sidOf = new Map(), cur = {};
+    for (const h of hist) {
+      const dev = h.dev || '';
+      if (h.kind === 'session') {
+        const label = h.ss || String(h.label || '').replace(/^Séance de pointage : /, '').replace(/ \(reprise\)$/, '');
+        const s = { id: h.id, key: h.sk || normFmt(label) || '(vide)', label, start: h.t, end: h.t, dev, closed: false, events: [] };
+        sessions.set(h.id, s); cur[dev] = s; sidOf.set(h.id, h.id); continue;
+      }
+      if (h.kind === 'sessend') {
+        const s = sessions.get(h.sid) || cur[dev];
+        if (s) { s.end = Math.max(s.end, h.t); s.closed = true; }
+        if (!h.sid || (cur[dev] && cur[dev].id === h.sid)) cur[dev] = null;
+        sidOf.set(h.id, s ? s.id : ''); continue;
+      }
+      const sid = h.sid !== undefined && h.sid !== null ? h.sid : (cur[dev] ? cur[dev].id : '');
+      sidOf.set(h.id, sid);
+      const s = sessions.get(sid);
+      if (s && isScanEvent(h)) { s.events.push(h); s.end = Math.max(s.end, h.t); }
+    }
+    return { sessions, sidOf: id => sidOf.get(id) || '' };
+  }
+  // un scan est « hors catégorie » si le format du listing, ou le format confirmé au moment du scan, diffère de la séance
+  function outOfCategory(h, key) {
+    if (!key) return false;
+    const fo = normFmt(h.sc.fo) || '(vide)';
+    return fo !== key || (!!h.sc.ko && h.sc.ko !== key);
+  }
+  /* Bilan d'une séance. info(r) -> { corrected, pending, label } (état actuel du lot).
+     Chaque scan compte dans « scans », mais un lot ne compte qu'une fois comme lot unique. */
+  function sessionSummary(events, key, info) {
+    const rows = new Map(); let total = 0;
+    for (const h of events) {
+      total++;
+      const r = h.sc.r; if (r == null) continue;
+      const x = rows.get(r) || { r, first: h.t, last: h.t, n: 0, out: false, firstOut: null };
+      x.n++; x.last = h.t;
+      if (outOfCategory(h, key)) { x.out = true; if (x.firstOut == null) x.firstOut = h.t; }
+      rows.set(r, x);
+    }
+    const list = [...rows.values()], out = list.filter(x => x.out);
+    const st = out.map(x => Object.assign(x, info(x.r)));
+    return {
+      total, unique: list.length, conform: list.length - out.length, out: out.length,
+      confirmed: st.filter(x => x.corrected).length, verify: st.filter(x => x.pending).length,
+      labels: st.filter(x => x.label === 'remplacer').length, rows: out
+    };
+  }
+
+  return { normFmt, qtyOf, qtyValid, opLabel, opKey, labels, stats, totals, isOpen, ST_LABEL, TYPE_LABEL, classify, diffListing, importReport,
+    labelState, LABEL_ST, isScanEvent, sessionIndex, outOfCategory, sessionSummary };
 })();
 if (typeof module !== 'undefined') module.exports = { Formats };
 
@@ -1115,7 +1222,7 @@ const settings = loadSettings();
 function loadSettings() { try { return Object.assign({ maxAuto: 400, manual: false, autoScroll: true, last: null }, JSON.parse(localStorage.getItem('pointage-settings') || '{}')); } catch (e) { return { maxAuto: 400, manual: false, autoScroll: true, last: null }; } }
 function saveSettings() { try { localStorage.setItem('pointage-settings', JSON.stringify(settings)); } catch (e) {} }
 
-function newState(id, n) { return { id, status: new Uint8Array(n), time: new Array(n).fill(0), fmt: {}, anomalies: [], seq: 0, lastRow: -1 }; }
+function newState(id, n) { return { id, status: new Uint8Array(n), time: new Array(n).fill(0), fmt: {}, lbl: {}, anomalies: [], seq: 0, lastRow: -1 }; }
 const fmtDate = d => { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(d || ''); };
 
 const memFallback = { inventories: new Map(), data: new Map(), state: new Map(), history: new Map() };
@@ -1125,6 +1232,7 @@ const memFallback = { inventories: new Map(), data: new Map(), state: new Map(),
    pt_lignes/{inv}_{k}         tranche de 500 lignes du fichier importé (numéros + autres colonnes)
    pt_etat/{inv}_{k}           pointage de la tranche : t.{i} = heure du pointage (absent = non pointé)
                                f.{i} = format corrigé du lot (absent = format d'origine du fichier)
+                               e.{i} = étiquette physique remplacée : { t: heure, f: format de la nouvelle étiquette }
    pt_journal/{inv}_{id}       historique des opérations (avec de quoi les annuler)
    pt_anomalies/{inv}_{id}     anomalies : type, lot (row), formats d'origine / constaté, statut (st), résolution
    Tous les ajouts sont facultatifs : les ventes créées avant restent lisibles telles quelles.     */
@@ -1188,9 +1296,9 @@ const Cloud = {
   },
   histDoc(h) {
     return { inv: h.inv, id: h.id, seq: h.seq, t: h.t, dev: h.dev || '', kind: h.kind, cmd: h.cmd || '', label: h.label || '', result: h.result || '', undone: !!h.undone,
-      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [], fp: h.fp || null, fn: h.fn || null, sc: h.sc || null, ano: h.ano || null, ref: h.ref || null, ap: h.ap || null }) };
+      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [], fp: h.fp || null, fn: h.fn || null, sc: h.sc || null, ano: h.ano || null, ref: h.ref || null, ap: h.ap || null, sid: h.sid, sk: h.sk, ss: h.ss, lr: h.lr, lp: h.lp, ln: h.ln }) };
   },
-  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [], fp: d.fp || null, fn: d.fn || null, sc: d.sc || null, ano: d.ano || null, ref: d.ref || null, ap: d.ap || null }; },
+  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [], fp: d.fp || null, fn: d.fn || null, sc: d.sc || null, ano: d.ano || null, ref: d.ref || null, ap: d.ap || null, sid: d.sid, sk: d.sk, ss: d.ss, lr: d.lr, lp: d.lp, ln: d.ln }; },
   invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, altCol: inv.altCol ?? null, fmtCol: inv.fmtCol ?? null, qtyCol: inv.qtyCol ?? null, date: inv.date || '', archived: !!inv.archived, count: inv.count, chunk: CHUNK }; },
   watchList(cb) {
     if (this.invUnsub) this.invUnsub();
@@ -1202,9 +1310,9 @@ const Cloud = {
     for (let k = 0; k * CHUNK < n; k++) {
       const a = k * CHUNK, b = Math.min(n, a + CHUNK);
       ops.push(['set', this.col('pt_lignes').doc(`${inv.id}_${k}`), { inv: inv.id, k, lots: data.lots.slice(a, b), rows: data.rows.slice(a, b).map(r => JSON.stringify(r)) }]);
-      const t = {};
-      for (let i = a; i < b; i++) if (st.status[i]) t[i - a] = st.time[i] || Date.now();
-      ops.push(['set', this.col('pt_etat').doc(`${inv.id}_${k}`), { inv: inv.id, k, t }]);
+      const t = {}, f = {}, e = {};
+      for (let i = a; i < b; i++) { if (st.status[i]) t[i - a] = st.time[i] || Date.now(); if (st.fmt && st.fmt[i] != null) f[i - a] = st.fmt[i]; if (st.lbl && st.lbl[i]) e[i - a] = st.lbl[i]; }
+      ops.push(['set', this.col('pt_etat').doc(`${inv.id}_${k}`), { inv: inv.id, k, t, f, e }]);
     }
     (hist || []).forEach(h => ops.push(['set', this.col('pt_journal').doc(`${inv.id}_${h.id}`), this.histDoc(h)]));
     (st.anomalies || []).forEach(a => ops.push(['set', this.col('pt_anomalies').doc(`${inv.id}_${a.id}`), Object.assign({ inv: inv.id }, a)]));
@@ -1224,6 +1332,11 @@ const Cloud = {
       const byChunk = new Map();
       for (const r of c.fmt) { const k = Math.floor(r / CHUNK); if (!byChunk.has(k)) byChunk.set(k, {}); byChunk.get(k)[r - k * CHUNK] = ST.fmt[r] != null ? ST.fmt[r] : this.FV().delete(); }
       for (const [k, f] of byChunk) ops.push(['set', this.col('pt_etat').doc(`${INV.id}_${k}`), { inv: INV.id, k, f }, { merge: true }]);
+    }
+    if (c.lbl && c.lbl.length) {
+      const byChunk = new Map();
+      for (const r of c.lbl) { const k = Math.floor(r / CHUNK); if (!byChunk.has(k)) byChunk.set(k, {}); byChunk.get(k)[r - k * CHUNK] = ST.lbl[r] ? ST.lbl[r] : this.FV().delete(); }
+      for (const [k, e] of byChunk) ops.push(['set', this.col('pt_etat').doc(`${INV.id}_${k}`), { inv: INV.id, k, e }, { merge: true }]);
     }
     if (c.meta) ops.push(['set', this.col('pt_inventaires').doc(INV.id), Object.assign({ closed: !!INV.closed }, c.meta === true ? {} : c.meta), { merge: true }]);
     if (!ops.length) return;
@@ -1250,8 +1363,12 @@ const Cloud = {
     }));
     listen('pt_etat', docs => {
       for (const d of docs) {
-        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {}, f = d.f || {};
-        for (let i = a; i < b; i++) { const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0; const g = f[i - a]; if (g != null && g !== '') st.fmt[i] = g; else delete st.fmt[i]; }
+        const a = d.k * CHUNK, b = Math.min(st.status.length, a + CHUNK), t = d.t || {}, f = d.f || {}, e = d.e || {};
+        for (let i = a; i < b; i++) {
+          const v = t[i - a]; st.status[i] = v ? 1 : 0; st.time[i] = v || 0;
+          const g = f[i - a]; if (g != null && g !== '') st.fmt[i] = g; else delete st.fmt[i];
+          const l = e[i - a]; if (l && l.t) st.lbl[i] = l; else delete st.lbl[i];
+        }
       }
     });
     const hist = [];   // même tableau que HIST une fois l'inventaire ouvert
@@ -1320,6 +1437,7 @@ async function localLoad(id) {
   st = st || newState(id, data.lots.length);
   if (!(st.status instanceof Uint8Array)) st.status = Uint8Array.from(st.status);
   st.fmt = st.fmt || {};
+  st.lbl = st.lbl || {};
   return { inv, data, st, hist: hist.sort((a, b) => a.seq - b.seq) };
 }
 
@@ -1428,7 +1546,9 @@ function showDbNotice(kind) {
 
 /* ---------- Opérations ---------- */
 function addHist(h) {
-  ST.seq = (ST.seq || 0) + 1; h.inv = INV.id; h.seq = ST.seq; h.t = Date.now(); h.id = uid(); h.dev = DEVICE;
+  ST.seq = (ST.seq || 0) + 1; h.inv = INV.id;
+  // chaque opération porte sa séance de scannage ('' = hors séance)
+  if (h.sid === undefined && typeof currentSid === 'function') { h.sid = currentSid(); if (h.sid) h.sk = sessionKey(); } h.seq = ST.seq; h.t = Date.now(); h.id = uid(); h.dev = DEVICE;
   HIST.push(h);
   if (MODE === 'local' && !Store.ok) { const a = memFallback.history.get(INV.id) || []; a.push(h); memFallback.history.set(INV.id, a); }
   return h;
@@ -1446,11 +1566,14 @@ function guessQtyCol() {
 }
 const origFmt = r => fmtCol >= 0 ? (String(DATA.rows[r][fmtCol] ?? '').trim() || '(vide)') : '';
 const qtyRow = r => qtyCol >= 0 ? Formats.qtyOf(DATA.rows[r][qtyCol]) : 1;
-let pendingRows = new Set();
+let pendingRows = new Set(), verifyRows = new Set();
 function refreshPending() {
-  pendingRows = new Set();
+  pendingRows = new Set(); verifyRows = new Set();
   if (!ST) return;
-  for (const a of ST.anomalies) if (a.st === 'attente' && a.row != null && !ST.status[a.row]) pendingRows.add(a.row);
+  for (const a of ST.anomalies) if (a.st === 'attente' && a.row != null) {
+    if (!ST.status[a.row]) pendingRows.add(a.row);
+    if (a.type === 'format') verifyRows.add(a.row);   // format constaté différent, pas encore confirmé
+  }
 }
 function model() {
   return { n: INV ? DATA.lots.length : 0, orig: origFmt, qty: qtyRow, status: r => ST.status[r], corr: ST ? ST.fmt : {}, pending: pendingRows };
@@ -1490,10 +1613,11 @@ function renderSession() {
   $('#scanTitle').textContent = 'Séance de pointage';
   b.hidden = false;
   b.innerHTML = `<div class="sesstop"><span class="sessname">${esc(INV.name)} — <b>POINTAGE ${esc(String(s.label).toUpperCase())}</b></span>
-      <button type="button" class="linkbtn" id="sessQuit">Quitter la séance</button></div>
+      <span><button type="button" class="linkbtn" id="sessBilan">Bilan</button> · <button type="button" class="linkbtn" id="sessQuit">Quitter la séance</button></span></div>
     <div class="sessnums"><span><b class="num">${s.done}</b> / ${s.lots} lots</span><span><b class="num">${s.lots - s.done}</b> restants</span>${qtyCol >= 0 ? `<span><b class="num">${fmtNum(s.unitsDone)}</b> / ${fmtNum(s.units)} unités</span>` : ''}<span class="${s.anomalies ? 'w' : ''}"><b class="num">${s.anomalies}</b> anomalie${s.anomalies > 1 ? 's' : ''}</span><b class="num sesspct">${s.pct.toLocaleString('fr-FR')} %</b></div>
     <div class="bar"><i style="width:${s.pct}%"></i></div>`;
   $('#sessQuit').onclick = () => setFmt('', true);
+  $('#sessBilan').onclick = () => openBilan(currentSid() || null);
 }
 const fmtNum = n => Number.isInteger(n) ? n.toLocaleString('fr-FR') : n.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
 
@@ -1521,17 +1645,25 @@ function renderFmtDash() {
 
 /* ---------- Anomalies : création et mise à jour ---------- */
 function anoBase(type, r, extra) {
-  const a = { t: Date.now(), type, kind: Formats.TYPE_LABEL[type] || type, st: 'ouverte', sess: sessionKey() || '' };
+  const a = { t: Date.now(), type, kind: Formats.TYPE_LABEL[type] || type, st: 'ouverte', sess: sessionKey() || '', sid: currentSid() };
   if (r != null) Object.assign(a, { row: r, n: DATA.lots[r], n2: altOf(r), fo: origFmt(r), fk: opKeyRow(r) });
   return addAno(Object.assign(a, extra || {}));
 }
 function setAno(a, st, res) { a.st = st; a.res = res || a.res || ''; a.tr = Date.now(); return a; }
 const anoById = id => ST.anomalies.find(a => a.id === id);
+// une seule anomalie de format active par lot : un nouveau scan la complète, n'en crée pas une deuxième
+const openFmtAno = r => ST.anomalies.find(a => a.type === 'format' && a.row === r && Formats.isOpen(a)) || null;
+function fmtAnoFor(r, extra) {
+  const a = openFmtAno(r);
+  if (!a) return anoBase('format', r, extra);
+  a.scans = (a.scans || 1) + 1; a.lastSid = currentSid(); a.lastSess = sessionKey() || '';
+  return a;
+}
 
 /* ---------- Pointage d'un lot reconnu (avec format éventuellement corrigé) ---------- */
 function scanApply(r, o) {
   // o : { fmt: nouveau libellé (corriger) | undefined, scanSt: libellé de statut, ano: anomalie liée, read: texte lu }
-  const prevS = [ST.status[r]], prevT = [ST.time[r]], now = Date.now();
+  const prevS = [ST.status[r]], prevT = [ST.time[r]], now = Date.now(), ko = opKeyRow(r);
   const fmtRows = [];
   let fp = null, fn = null;
   if (o.fmt !== undefined) {
@@ -1543,8 +1675,9 @@ function scanApply(r, o) {
   const changed = !ST.status[r];
   if (changed) { ST.status[r] = 1; ST.time[r] = now; }
   const fs = o.fs || opLbl(r);
+  if (o.ano) o.ano.fk = o.ano.fk || ko;
   const h = addHist({ kind: 'check', cmd: o.read || 'Scan', label: `${lotLabel(r)} (scan)`, rows: changed ? [r] : [], prevS: changed ? prevS : [], prevT: changed ? prevT : [], fp, fn,
-    sc: { r, l: lotLabel(r), fo: origFmt(r), fs, st: o.scanSt || 'Validé' }, ano: o.ano ? o.ano.id : null,
+    sc: Object.assign({ r, l: lotLabel(r), fo: origFmt(r), fs, ko, st: o.scanSt || 'Validé' }, o.dec ? { dec: 1 } : {}), ano: o.ano ? o.ano.id : null,
     result: `${o.scanSt || 'Validé'}${fmtCol >= 0 ? ' · ' + fs : ''}` });
   if (changed) { lastRow = r; ST.lastRow = r; }
   flashRows = new Set([r]);
@@ -1560,6 +1693,7 @@ function showResult(kind, title, html) {
 /* ---------- Scan : reconnaissance du lot puis contrôle du format ---------- */
 function scanCode(v, raw) {
   if (!INV) { showScan(v, 'Aucune vente ouverte', 'bad'); setResult("Importez d'abord un listing."); snd.unknown(); return; }
+  ensureSid();
   const c = Formats.classify(v, { lookup: x => lookupRows(IDX, x), model: model(), session: sessionKey() || null });
   const read = 'Scan ' + raw.trim();
   if (c.kind === 'unknown') {
@@ -1592,19 +1726,22 @@ function scanCode(v, raw) {
     return;
   }
   const r = c.row;
+  // lot déjà identifié dans un autre format : l'alerte reste active tant que l'étiquette n'est pas remplacée
+  const ls = labelOf(r);
+  if (ls === 'verifier' || (ls === 'remplacer' && !lotTrace(r).seen(currentSid()))) return openLotAlert(c, read, ls);
   if (c.kind === 'already') {
     showScan(lotLabel(r), 'Déjà pointé', 'dup');
-    showResult('dup', 'ⓘ LOT DÉJÀ POINTÉ', `${esc(lotLabel(r))} a été pointé à ${fmtT(ST.time[r])}${fmtCol >= 0 ? ` (format ${esc(opLbl(r))})` : ''}. Aucun double comptage. <button type="button" class="linkbtn" data-lot="${r}">Voir le lot</button>`);
+    const rl = ls === 'remplacer';
+    showResult(rl ? 'warn' : 'dup', rl ? '⚠ DÉJÀ POINTÉ — ÉTIQUETTE À REMPLACER' : 'ⓘ LOT DÉJÀ POINTÉ', `${esc(lotLabel(r))} a été pointé à ${fmtT(ST.time[r])}${fmtCol >= 0 ? ` (format ${esc(opLbl(r))})` : ''}. Aucun double comptage.${rl ? ` L'étiquette porte encore « ${esc(labelOn(r))} ».` : ''} <button type="button" class="linkbtn" data-lot="${r}">Voir le lot</button>`);
     bindLotLinks($('#scanRes'));
-    setResult(`<b>${esc(lotLabel(r))}</b> — déjà pointé`);
-    addHist({ kind: 'scan', cmd: read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: opLbl(r), st: 'Déjà pointé' }, result: 'Déjà pointé' });
+    setResult(`<b>${esc(lotLabel(r))}</b> — déjà pointé${rl ? ' · <span class="w">étiquette à remplacer</span>' : ''}`);
+    const h = addHist({ kind: 'scan', cmd: read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: opLbl(r), ko: opKeyRow(r), st: rl ? 'Déjà pointé · étiquette à remplacer' : 'Déjà pointé' }, result: 'Déjà pointé' });
+    persist({ hist: [h] });
     renderRecent(); snd.already(); scrollToLot(r); return;
   }
   if (c.kind === 'mismatch') return openMismatch(c, read);
   // conforme
-  const pend = ST.anomalies.find(a => a.st === 'attente' && a.row === r);
-  if (pend) setAno(pend, 'resolue', 'Lot rescanné dans son format');
-  scanApply(r, { scanSt: 'Validé', read, ano: pend || null });
+  scanApply(r, { scanSt: 'Validé', read });
   showScan(lotLabel(r), 'Pointé ✓', 'ok');
   showResult('ok', '✓ LOT RECONNU ET CONFORME', `${esc(lotLabel(r))}${fmtCol >= 0 ? ` · format <b>${esc(opLbl(r))}</b>` : ''}. ${readNote(c)}`);
   setResult(`<b>${esc(lotLabel(r))}</b> — <span class="ok">✓ pointé</span>`);
@@ -1622,18 +1759,19 @@ function openMismatch(c, read) {
   setResult(`<b>${esc(lotLabel(r))}</b> — <span class="w">format différent du listing</span>`);
   modal(`
     <div class="mm">
-      <h3 class="mmtitle">⚠ FORMAT DIFFÉRENT DU LISTING</h3>
+      <h3 class="mmtitle">⚠ LOT RECONNU — ANOMALIE DE FORMAT</h3>
       <div class="mmgrid">
         <span>Lot reconnu</span><b>OUI</b>
         ${idsHtml(r).replace('<div class="idgrid">', '').replace(/<\/div>$/, '')}
         <span>Format enregistré</span><b class="fmtbig">${esc(opLbl(r))}${c.corrected ? ` <small>(fichier : ${esc(origFmt(r))})</small>` : ''}</b>
-        <span>Format de la séance</span><b class="fmtbig">${esc(sess)}</b>
+        <span>Séance actuelle</span><b class="fmtbig">${esc(sess)}</b>
+        <span>Si c'est un ${esc(sess)}</span><b class="w">Étiquette à remplacer</b>
       </div>
       <p class="hint">${readNote(c)} Ce lot est bien présent dans le listing, mais son format enregistré ne correspond pas au format pointé.</p>
       <div class="mmacts">
-        <button class="mma ok" data-a="1"><kbd>1</kbd><span><b>C'est bien un ${esc(sess)}</b><small>Pointé dans ${esc(sess)}, format corrigé, origine gardée dans l'historique</small></span></button>
+        <button class="mma ok" data-a="1"><kbd>1</kbd><span><b>C'est bien un ${esc(sess)}</b><small>Pointé dans ${esc(sess)}, format corrigé (origine gardée), étiquette à remplacer</small></span></button>
         <button class="mma" data-a="2"><kbd>2</kbd><span><b>Garder « ${esc(opLbl(r))} »</b><small>Pointé dans son format d'origine, anomalie à vérifier</small></span></button>
-        <button class="mma" data-a="3"><kbd>3</kbd><span><b>Mettre en attente</b><small>Non pointé, à revoir dans les anomalies</small></span></button>
+        <button class="mma" data-a="3"><kbd>3</kbd><span><b>Mettre en attente</b><small>Non pointé ; le lot reste signalé « vu pendant ${esc(sess)} »</small></span></button>
         <button class="mma" data-a="4"><kbd>4</kbd><span><b>Annuler le scan</b><small>Rien n'est pointé</small></span></button>
       </div>
       <p class="hint">Touches 1 à 4. Scanner un autre lot met celui-ci en attente.</p>
@@ -1647,30 +1785,32 @@ function mismatchAct(n) {
   mismatchCtx = null; closeModal();
   const r = x.r, from = opLbl(r);
   if (n === 1) {
-    const a = anoBase('format', r, { fs: x.sess, cmd: x.read });
+    const a = fmtAnoFor(r, { fs: x.sess, cmd: x.read });
+    a.fs = x.sess;
     setAno(a, 'corrigee', `Format confirmé : ${x.sess} (listing : ${from})`);
     a.fk = sessionKey();
     scanApply(r, { fmt: x.sess, fs: x.sess, scanSt: 'Corrigé', read: x.read, ano: a });
-    showScan(lotLabel(r), `Corrigé → ${x.sess}`, 'ok');
-    setResult(`<b>${esc(lotLabel(r))}</b> — <span class="ok">✓ format corrigé : ${esc(from)} → ${esc(x.sess)}</span>`);
-    showResult('ok', '✓ FORMAT CORRIGÉ ET LOT POINTÉ', `${esc(lotLabel(r))} : ${esc(from)} → <b>${esc(x.sess)}</b>. Le format d'origine reste dans l'historique.`);
+    showScan(lotLabel(r), `Corrigé → ${x.sess} · étiquette à remplacer`, 'ok');
+    setResult(`<b>${esc(lotLabel(r))}</b> — <span class="ok">✓ format corrigé : ${esc(from)} → ${esc(x.sess)}</span> · <span class="w">étiquette à remplacer</span>`);
+    showResult('warn', '✓ FORMAT CORRIGÉ — ÉTIQUETTE À REMPLACER', `${esc(lotLabel(r))} : ${esc(from)} → <b>${esc(x.sess)}</b>, pointé. Le lot est ajouté aux « Étiquettes à remplacer ».`);
     snd.ok();
   } else if (n === 2) {
-    const a = anoBase('format', r, { fs: x.sess, cmd: x.read });
+    const a = fmtAnoFor(r, { fs: x.sess, cmd: x.read });
     setAno(a, 'conservee', `Format d'origine « ${from} » conservé, constaté « ${x.sess} » : à vérifier`);
     scanApply(r, { fs: from, scanSt: 'Format conservé', read: x.read, ano: a });
     showScan(lotLabel(r), `Pointé (${from})`, 'ok');
     setResult(`<b>${esc(lotLabel(r))}</b> — <span class="ok">✓ pointé</span> dans « ${esc(from)} », <span class="w">écart à vérifier</span>`);
     showResult('warn', '✓ POINTÉ DANS SON FORMAT D\'ORIGINE', `${esc(lotLabel(r))} est compté dans « ${esc(from)} », pas dans « ${esc(x.sess)} ». L'écart reste visible dans les anomalies.`);
   } else if (n === 3) {
-    const a = anoBase('format', r, { fs: x.sess, cmd: x.read, st: 'attente', res: 'En attente de décision' });
-    const h = addHist({ kind: 'hold', cmd: x.read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: x.sess, st: 'En attente' }, ano: a.id, result: 'Mis en attente' });
+    const a = fmtAnoFor(r, { fs: x.sess, cmd: x.read, st: 'attente', res: 'En attente de décision' });
+    if (a.st !== 'attente') setAno(a, 'attente', 'En attente de décision');
+    const h = addHist({ kind: 'hold', cmd: x.read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: x.sess, ko: opKeyRow(r), st: 'En attente' }, ano: a.id, result: 'Mis en attente' });
     persist({ ano: [a], hist: [h] }); refreshPending(); afterChange(false);
     showScan(lotLabel(r), 'En attente', 'bad warnfmt');
     setResult(`<b>${esc(lotLabel(r))}</b> — <span class="w">mis en attente</span>`);
     showResult('warn', '⏸ MIS EN ATTENTE', `${esc(lotLabel(r))} n'est pas pointé. Retrouvez-le dans « Anomalies » pour décider plus tard.`);
   } else {
-    const h = addHist({ kind: 'scan', cmd: x.read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: x.sess, st: 'Scan annulé' }, result: 'Scan annulé' });
+    const h = addHist({ kind: 'scan', cmd: x.read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: x.sess, ko: opKeyRow(r), st: 'Scan annulé' }, result: 'Scan annulé' });
     persist({ hist: [h] }); renderRecent(); renderHist();
     showScan(lotLabel(r), 'Scan annulé', '');
     setResult(`<b>${esc(lotLabel(r))}</b> — scan annulé`);
@@ -1679,24 +1819,28 @@ function mismatchAct(n) {
 }
 // Pendant la fenêtre « format différent » : touches 1-4, ou un nouveau scan (rafale de chiffres) qui met le lot en attente
 let mmBuf = '', mmTimer = null;
+// Pendant l'alerte « lot déjà identifié » : touches 1-5, Échap ou un nouveau scan = reporter
 document.addEventListener('keydown', e => {
-  if (!mismatchCtx || $('#modal').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if ((!mismatchCtx && !alertCtx) || $('#modal').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  const isA = !!alertCtx, max = isA ? 5 : 4, act = n => isA ? alertAct(n) : mismatchAct(n), later = isA ? 5 : 3;
+  const keyOk = b => b.length === 1 && +b >= 1 && +b <= max;
   if (/^[0-9]$/.test(e.key)) {
     e.preventDefault(); mmBuf += e.key; clearTimeout(mmTimer);
-    mmTimer = setTimeout(() => { const b = mmBuf; mmBuf = ''; if (b.length === 1 && /[1-4]/.test(b)) mismatchAct(+b); }, 350);
+    mmTimer = setTimeout(() => { const b = mmBuf; mmBuf = ''; if (keyOk(b)) act(+b); }, 350);
   } else if (e.key === 'Enter' || e.key === 'Tab') {
     if (!mmBuf) return;
     e.preventDefault(); clearTimeout(mmTimer); const b = mmBuf; mmBuf = '';
-    if (b.length === 1 && /[1-4]/.test(b)) { mismatchAct(+b); return; }
-    mismatchAct(3); setTimeout(() => scanCode(fixScan(b), b), 0);
-  } else if (e.key === 'Escape') { e.preventDefault(); mismatchAct(4); }
+    if (keyOk(b)) { act(+b); return; }
+    act(later); setTimeout(() => scanCode(fixScan(b), b), 0);
+  } else if (e.key === 'Escape') { e.preventDefault(); act(isA ? 5 : 4); }
 }, true);
 
-/* ---------- Fiche d'un lot : détail, historique, correction du format ---------- */
-function openLot(r) {
-  const hs = HIST.filter(h => (h.rows || []).includes(r) || (h.sc && h.sc.r === r) || (h.fp && Object.prototype.hasOwnProperty.call(h.fp, r))).slice(-12).reverse();
+/* ---------- Fiche d'un lot : identité, formats, étiquette, historique chronologique complet ---------- */
+function openLot(r, focusFmt) {
   const an = ST.anomalies.filter(a => a.row === r).slice().reverse();
   const formats = fmtStatsCache.map(s => s.label);
+  const ls = labelOf(r), tr = lotTrace(r);
+  const ev = lotEvents(r);
   modal(`
     <h3>Lot ${esc(lotLabel(r))}</h3>
     ${idsHtml(r)}
@@ -1704,22 +1848,31 @@ function openLot(r) {
       ${fmtCol >= 0 ? `<span>Format d'origine (fichier)</span><b>${esc(origFmt(r))}</b><span>Format opérationnel</span><b>${esc(opLbl(r))}${ST.fmt[r] != null ? ' <span class="tag">corrigé</span>' : ''}</b>` : ''}
       ${qtyCol >= 0 ? `<span>Quantité</span><b class="num">${esc(DATA.rows[r][qtyCol])}</b>` : ''}
       <span>Pointage</span><b>${ST.status[r] ? 'Présent, pointé à ' + fmtT(ST.time[r]) : pendingRows.has(r) ? 'En attente' : 'Non pointé'}</b>
+      ${fmtCol >= 0 ? `<span>Étiquette physique</span><b class="${ls === 'remplacer' || ls === 'verifier' ? 'w' : ls === 'remplacee' ? 'ok' : ''}">${labelText(r)}</b>` : ''}
+      <span>Scans</span><b>${tr.n}${tr.first ? ` · écart vu pendant « ${esc(tr.first.sess)} » le ${fmtDT(tr.first.t)}` : ''}</b>
     </div>
+    ${fmtCol >= 0 && (ls === 'remplacer' || ls === 'remplacee') ? `<div class="lblact">${ls === 'remplacer'
+      ? `<button class="btn primary" id="lotLbl">✓ Confirmer le remplacement de l'étiquette</button>`
+      : `<button class="btn" id="lotLblBack">Remettre « étiquette à remplacer »</button>`}</div>` : ''}
     ${fmtCol >= 0 ? `<form class="fixfmt" id="lotFmt">
-      <b>Corriger le format</b>
+      <b>Confirmer ou corriger le format réel</b>
       <div class="grid2">
-        <label>Nouveau format<select id="lfSel">${formats.map(f => `<option ${Formats.normFmt(f) === Formats.normFmt(opLbl(r)) ? 'selected' : ''}>${esc(f)}</option>`).join('')}<option value="__new">Autre format…</option></select></label>
+        <label>Format réel<select id="lfSel">${formats.map(f => `<option ${Formats.normFmt(f) === Formats.normFmt(opLbl(r)) ? 'selected' : ''}>${esc(f)}</option>`).join('')}<option value="__new">Autre format…</option></select></label>
         <label>Motif (facultatif)<input id="lfWhy" placeholder="ex. étiquette erronée"></label>
       </div>
       <input id="lfNew" placeholder="Nom du nouveau format" hidden>
       <div class="mrow" style="justify-content:flex-start">${ST.fmt[r] != null ? '<button type="button" class="btn" id="lfReset">Revenir au format d\'origine</button>' : ''}<button class="btn primary">Enregistrer le format</button></div>
     </form>` : ''}
-    ${an.length ? `<b>Anomalies</b><div class="log">${an.map(a => `<div class="a"><time>${fmtT(a.t)}</time><b>${esc(a.kind)}</b> · ${esc(Formats.ST_LABEL[a.st] || 'Note')}${a.res ? '<br>' + esc(a.res) : ''}</div>`).join('')}</div>` : ''}
-    <b>Historique du lot</b>
-    <div class="log">${hs.length ? hs.map(h => `<div class="${h.undone ? 'u' : ''}"><time>${fmtDT(h.t)}</time><b>${esc(h.label)}</b>${h.result ? '<br>' + esc(h.result) : ''}</div>`).join('') : '<div>Aucune opération.</div>'}</div>
+    <form class="fixfmt" id="lotNote"><b>Ajouter une observation</b><div class="mrow" style="justify-content:flex-start;flex-wrap:nowrap"><input id="lnTxt" placeholder="ex. étiquette introuvable, lot dans le carton B12" style="flex:1"><button class="btn">Ajouter</button></div></form>
+    ${an.length ? `<b>Anomalies</b><div class="log">${an.map(a => `<div class="a"><time>${fmtDT(a.t)}</time><b>${esc(a.kind)}</b> · ${esc(Formats.ST_LABEL[a.st] || 'Note')}${a.res ? '<br>' + esc(a.res) : ''}</div>`).join('')}</div>` : ''}
+    <b>Historique du lot (${ev.length})</b>
+    <div class="anotable lothist"><table><thead><tr><th>Date et heure</th><th>Séance</th><th>Événement</th></tr></thead><tbody>${ev.length ? ev.map(e => `<tr class="${e.undone ? 'u' : ''}"><td class="num">${fmtDT(e.t)}</td><td>${esc(e.sess)}</td><td>${esc(e.what)}${e.undone ? ' <span class="tag cl">annulé</span>' : ''}</td></tr>`).join('') : '<tr><td colspan="3" class="empty">Aucune opération.</td></tr>'}</tbody></table></div>
     <div class="mrow"><button class="btn" id="lotTog">${ST.status[r] ? 'Dépointer' : 'Pointer'}</button><button class="btn primary" id="lotClose">Fermer</button></div>`);
   $('#lotClose').onclick = closeModal;
   $('#lotTog').onclick = () => { closeModal(); toggleRow(r); };
+  if ($('#lotLbl')) $('#lotLbl').onclick = () => { confirmLabels([r]); openLot(r); };
+  if ($('#lotLblBack')) $('#lotLblBack').onclick = () => { resetLabel(r); openLot(r); };
+  $('#lotNote').onsubmit = e => { e.preventDefault(); const t = $('#lnTxt').value.trim(); if (!t) return; addNote(r, t); openLot(r); };
   if (fmtCol >= 0) {
     $('#lfSel').onchange = e => { $('#lfNew').hidden = e.target.value !== '__new'; if (!$('#lfNew').hidden) $('#lfNew').focus(); };
     $('#lotFmt').onsubmit = e => {
@@ -1727,10 +1880,20 @@ function openLot(r) {
       const v = $('#lfSel').value === '__new' ? $('#lfNew').value.trim() : $('#lfSel').value;
       if (!v) { toast('Indiquez le nom du format.'); return; }
       const why = $('#lfWhy').value.trim();
+      if (Formats.normFmt(v) === Formats.normFmt(opLbl(r)) && verifyRows.has(r)) { closeModal(); confirmVerified(r, v, why); return; }
       closeModal(); reclassify(r, v, why);
     };
     if ($('#lfReset')) $('#lfReset').onclick = () => { closeModal(); reclassify(r, origFmt(r), 'Retour au format d\'origine'); };
+    if (focusFmt) setTimeout(() => { try { $('#lfSel').focus(); $('#lotFmt').scrollIntoView({ block: 'center' }); } catch (e) {} }, 30);
   }
+}
+// format réel = format du listing, confirmé à la main pour un lot « à vérifier »
+function confirmVerified(r, v, why) {
+  const a = openFmtAno(r);
+  if (a) { setAno(a, 'conservee', `Format « ${v} » confirmé à la main${why ? ' · motif : ' + why : ''}`); }
+  const h = addHist({ kind: 'reformat', cmd: 'Confirmation du format', label: `Format de ${lotLabel(r)} confirmé : ${v}`, rows: [], lr: r, ano: a ? a.id : null, result: why ? 'Motif : ' + why : '' });
+  persist({ hist: [h], ano: a ? [a] : [] }); refreshPending(); afterChange(false);
+  setResult(`<b>Format confirmé</b> — ${esc(lotLabel(r))} : ${esc(v)}`);
 }
 function reclassify(r, to, why) {
   const from = opLbl(r);
@@ -1799,10 +1962,10 @@ function anoAct(act, a) {
   if (act === 'solve') { setAno(a, 'resolue', a.res ? a.res + ' · marquée résolue' : 'Marquée résolue'); persist({ ano: [a] }); refreshPending(); afterChange(false); openAnomalies(); return; }
   if (act === 'confirm') {
     setAno(a, 'corrigee', `Format confirmé : ${a.fs} (listing : ${opLbl(r)})`); a.fk = Formats.normFmt(a.fs);
-    scanApply(r, { fmt: a.fs, fs: a.fs, scanSt: 'Corrigé', read: 'Décision sur anomalie', ano: a });
+    scanApply(r, { fmt: a.fs, fs: a.fs, scanSt: 'Corrigé', read: 'Décision sur anomalie', ano: a, dec: true });
   } else if (act === 'keep') {
     setAno(a, 'conservee', `Format d'origine « ${opLbl(r)} » conservé`);
-    scanApply(r, { fs: opLbl(r), scanSt: 'Format conservé', read: 'Décision sur anomalie', ano: a });
+    scanApply(r, { fs: opLbl(r), scanSt: 'Format conservé', read: 'Décision sur anomalie', ano: a, dec: true });
   }
   refreshPending(); afterChange(false); openAnomalies();
 }
@@ -1812,7 +1975,7 @@ function renderRecent() {
   const box = $('#recentLog'); if (!box) return;
   const list = HIST.filter(h => h.sc).slice(-14).reverse();
   box.innerHTML = list.length ? `<table><thead><tr><th>Lot</th>${fmtCol >= 0 ? '<th>Format listing</th><th>Constaté</th>' : ''}<th>Statut</th></tr></thead><tbody>${list.map(h => `
-    <tr class="${h.undone ? 'u' : ''} ${({ 'Validé': 'ok', 'Corrigé': 'ok', 'Format conservé': 'w', 'En attente': 'w', 'Déjà pointé': 'b', 'Inconnu': 'e', 'Scan annulé': '' })[h.sc.st] || ''}">
+    <tr class="${h.undone ? 'u' : ''} ${(/étiquette|Alerte|Reporté/.test(h.sc.st) ? 'w' : ({ 'Validé': 'ok', 'Corrigé': 'ok', 'Format conservé': 'w', 'En attente': 'w', 'Déjà pointé': 'b', 'Inconnu': 'e', 'Scan annulé': '' })[h.sc.st]) || ''}">
       <td class="num" title="${fmtT(h.t)}">${esc(h.sc.l)}</td>${fmtCol >= 0 ? `<td>${esc(h.sc.fo || '')}</td><td>${esc(h.sc.fs || '')}</td>` : ''}<td>${esc(h.undone ? 'Annulé' : h.sc.st)}</td></tr>`).join('')}</tbody></table>` : '<div class="hint">Aucun scan pour le moment.</div>';
 }
 
@@ -1861,6 +2024,397 @@ function deleteAnos(list, what) {
   };
 }
 
+/* ===================== Séances, traçabilité des scans et étiquettes à remplacer =====================
+   Chaque scan reste un événement distinct du journal (jamais écrasé). Une séance = une entrée « session ».
+   L'étiquette physique a son propre statut (pt_etat e.{i}) : corriger le format ne la remplace jamais.     */
+
+/* ---------- Séance courante : identifiant gardé sur l'appareil (survit à la fermeture de l'appli) ---------- */
+function currentSid() {
+  if (!INV || !sessionKey()) return '';
+  const s = (settings.sess || {})[INV.id];
+  return s && s.k === sessionKey() ? s.id : '';
+}
+function startSession(k, reprise) {
+  const lab = fmtLabelOf(k);
+  const h = addHist({ kind: 'session', cmd: '', label: `Séance de pointage : ${lab}${reprise ? ' (reprise)' : ''}`, rows: [], sid: '', sk: k, ss: lab });
+  h.sid = h.id;
+  settings.sess = settings.sess || {}; settings.sess[INV.id] = { k, id: h.id }; saveSettings();
+  persist({ hist: [h] });
+  return h.id;
+}
+function ensureSid() { if (!INV || !sessionKey()) return ''; return currentSid() || startSession(sessionKey(), true); }
+function endSession() {
+  const sid = currentSid(); if (!sid) return '';
+  const h = addHist({ kind: 'sessend', cmd: '', label: `Fin de séance : ${fmtLabelOf(sessionKey())}`, rows: [], sid, sk: sessionKey() });
+  delete settings.sess[INV.id]; saveSettings();
+  persist({ hist: [h] });
+  return sid;
+}
+
+/* ---------- Traçabilité (recalculée à partir du journal, mise en cache) ---------- */
+let traceMemo = { key: '', v: null };
+function trace() {
+  let und = 0; for (const h of HIST) if (h.undone) und++;
+  const key = (INV ? INV.id : '') + ':' + HIST.length + ':' + (HIST.length ? HIST[HIST.length - 1].id : '') + ':' + und;
+  if (traceMemo.key === key) return traceMemo.v;
+  const I = Formats.sessionIndex(HIST), byRow = new Map();
+  for (const h of HIST) if (Formats.isScanEvent(h) && h.sc.r != null) { if (!byRow.has(h.sc.r)) byRow.set(h.sc.r, []); byRow.get(h.sc.r).push(h); }
+  traceMemo = { key, v: { I, byRow } };
+  return traceMemo.v;
+}
+const sessOf = h => { const T = trace(); return T.I.sessions.get(T.I.sidOf(h.id)) || null; };
+function lotTrace(r) {
+  const T = trace(), ev = T.byRow.get(r) || [];
+  const outs = ev.filter(h => { const s = sessOf(h); return s && Formats.outOfCategory(h, s.key); });
+  const fa = ST.anomalies.filter(a => a.type === 'format' && a.row === r);
+  let first = null;
+  if (outs.length) { const s = sessOf(outs[0]); first = { t: outs[0].t, sess: s.label, sid: s.id }; }
+  else if (fa.length) first = { t: fa[0].t, sess: fa[0].cmd === 'Correction manuelle' ? 'Correction manuelle' : fa[0].sess ? fmtLabelOf(fa[0].sess) : 'Hors séance', sid: fa[0].sid || '' };
+  const lh = ev[ev.length - 1], ls = lh ? sessOf(lh) : null;
+  return {
+    n: ev.length, ev, first,
+    last: lh ? { t: lh.t, sess: ls ? ls.label : 'Hors séance', sid: ls ? ls.id : '' } : null,
+    seen: sid => !!sid && ev.some(h => T.I.sidOf(h.id) === sid)
+  };
+}
+// tous les événements d'un lot, dans l'ordre : scans, corrections, réétiquetage, observations
+function lotEvents(r) {
+  const out = [];
+  for (const h of HIST) {
+    const isScan = h.sc && h.sc.r === r, fp = h.fp && Object.prototype.hasOwnProperty.call(h.fp, r);
+    if (!isScan && !fp && h.lr !== r && !(h.rows || []).includes(r)) continue;
+    const s = sessOf(h);
+    let sess = s ? s.label : 'Hors séance', what = h.label;
+    if (h.kind === 'label') { sess = 'Réétiquetage'; what = h.ln ? `Étiquette remplacée (${h.ln.f})` : 'Étiquette remise « à remplacer »'; }
+    else if (h.kind === 'note') { sess = 'Observation'; what = h.result; }
+    else if (h.kind === 'postpone') what = 'Correction reportée';
+    else if (h.kind === 'reformat') { sess = 'Correction'; what = h.label.replace(/^Format de .+? : /, 'Format : ').replace(/^Format de .+? confirmé : /, 'Format confirmé : ') + (h.result ? ' · ' + h.result : ''); }
+    else if (isScan) {
+      const out = s && Formats.outOfCategory(h, s.key);
+      const st = h.sc.st || '';
+      what = h.sc.dec ? `Décision : ${st}` : /Alerte|étiquette à remplacer|Reporté/.test(st) ? `Nouveau scan, alerte (${st})`
+        : out ? `Anomalie détectée : listing « ${h.sc.fo} », séance « ${s.label} » → ${st}` : `Scan : ${st}`;
+    } else if (h.kind === 'check' || h.kind === 'uncheck') what = h.kind === 'check' ? 'Pointé à la main' : 'Dépointé';
+    out.push({ t: h.t, sess, what, undone: h.undone && h.kind !== 'undo' });
+  }
+  return out;
+}
+const labelOf = r => fmtCol < 0 ? '' : Formats.labelState(origFmt(r), opLbl(r), ST.lbl[r], verifyRows.has(r));
+const labelOn = r => ST.lbl[r] && ST.lbl[r].f != null ? ST.lbl[r].f : origFmt(r);
+function labelText(r) {
+  const s = labelOf(r);
+  if (s === 'remplacer') return `À remplacer — porte « ${esc(labelOn(r))} », format réel « ${esc(opLbl(r))} »`;
+  if (s === 'verifier') { const a = openFmtAno(r); return `Format à confirmer — vu pendant « ${esc(a && a.fs || '?')} »`; }
+  if (s === 'remplacee') return `Remplacée le ${fmtDT(ST.lbl[r].t)} (${esc(ST.lbl[r].f)})`;
+  return 'Conforme au listing';
+}
+// lots concernés : format corrigé, étiquette déjà posée, ou format à confirmer
+function labelRows() {
+  if (!INV || fmtCol < 0) return [];
+  const cand = new Set([...Object.keys(ST.fmt).map(Number), ...Object.keys(ST.lbl || {}).map(Number), ...verifyRows]);
+  return [...cand].filter(r => r < DATA.lots.length && labelOf(r)).sort((a, b) => POS[a] - POS[b]);
+}
+const labelsToReplace = () => labelRows().filter(r => labelOf(r) === 'remplacer').length;
+
+/* ---------- Réétiquetage physique : confirmé à la main, horodaté, annulable ---------- */
+function confirmLabels(rows) {
+  const hs = [], done = [];
+  for (const r of rows) {
+    if (labelOf(r) !== 'remplacer') continue;
+    const prev = ST.lbl[r] || null;
+    ST.lbl[r] = { t: Date.now(), f: opLbl(r), dev: DEVICE };
+    hs.push(addHist({ kind: 'label', cmd: 'Réétiquetage', label: `Étiquette remplacée : ${lotLabel(r)} → ${opLbl(r)}`, rows: [], lr: r, lp: prev, ln: ST.lbl[r], result: `Ancienne étiquette : ${prev ? prev.f : origFmt(r)}` }));
+    done.push(r);
+  }
+  if (!done.length) return 0;
+  persist({ lbl: done, hist: hs }); flashRows = new Set(done); afterChange(false);
+  toast(done.length > 1 ? `${done.length} étiquettes confirmées remplacées` : `Étiquette de ${lotLabel(done[0])} confirmée remplacée`);
+  return done.length;
+}
+function resetLabel(r) {
+  const prev = ST.lbl[r]; if (!prev) return;
+  delete ST.lbl[r];
+  const h = addHist({ kind: 'label', cmd: 'Réétiquetage', label: `Étiquette de ${lotLabel(r)} remise « à remplacer »`, rows: [], lr: r, lp: prev, ln: null });
+  persist({ lbl: [r], hist: [h] }); afterChange(false);
+}
+function addNote(r, text) {
+  const h = addHist({ kind: 'note', cmd: 'Observation', label: `Observation : ${lotLabel(r)}`, rows: [], lr: r, result: text });
+  persist({ hist: [h] }); renderHist(); toast('Observation ajoutée');
+}
+
+/* ---------- Alerte : lot déjà identifié dans un autre format, rescanné dans une nouvelle séance ---------- */
+let alertCtx = null;
+function openLotAlert(c, read, ls) {
+  const r = c.row, tr = lotTrace(r), a = openFmtAno(r), now = sessionKey() ? fmtLabelOf(sessionKey()) : 'Hors séance';
+  alertCtx = { r, read, ls, c, recorded: false };
+  const prev = tr.last || tr.first;
+  if (ls === 'remplacer') {
+    // format déjà confirmé : le lot est présent, il est pointé tout de suite (une seule fois) dans son format réel
+    if (!ST.status[r]) scanApply(r, { scanSt: 'Validé · étiquette à remplacer', read });
+    else { const h = addHist({ kind: 'scan', cmd: read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: opLbl(r), ko: opKeyRow(r), st: 'Alerte · étiquette à remplacer' }, result: 'Lot déjà identifié : étiquette à remplacer' }); persist({ hist: [h] }); renderRecent(); }
+    alertCtx.recorded = true;
+  }
+  const real = ls === 'remplacer' ? opLbl(r) : (a && a.fs) || '?';
+  const prevSess = (tr.first && tr.first.sess) || (a && a.sess ? fmtLabelOf(a.sess) : '?');
+  showScan(lotLabel(r), ls === 'remplacer' ? `Étiquette à remplacer (${real})` : `Vu pendant ${prevSess} : à confirmer`, 'bad warnfmt');
+  setResult(`<b>${esc(lotLabel(r))}</b> — <span class="w">${ls === 'remplacer' ? `identifié comme ${esc(real)} : étiquette à remplacer` : `déjà scanné pendant ${esc(prevSess)} : format à confirmer`}</span>`);
+  const title = ls === 'remplacer' ? `⚠ LOT IDENTIFIÉ COMME ${esc(String(real).toUpperCase())} — ÉTIQUETTE À REMPLACER` : `⚠ ATTENTION — LOT DÉJÀ SCANNÉ PENDANT LES ${esc(String(prevSess).toUpperCase())}`;
+  const keep = esc(origFmt(r));
+  modal(`
+    <div class="mm alert">
+      <h3 class="mmtitle">${title}</h3>
+      <p>${ls === 'remplacer'
+        ? `Ce lot est enregistré « ${keep} » dans le listing, mais il a été identifié comme « ${esc(real)} ». Retrouvez-le et remplacez son étiquette.`
+        : `Ce lot est enregistré « ${keep} » dans le listing, mais il a été scanné pendant la séance « ${esc(prevSess)} ». Son format réel n'est pas encore confirmé.`}</p>
+      <div class="mmgrid">
+        ${idsHtml(r).replace('<div class="idgrid">', '').replace(/<\/div>$/, '')}
+        <span>Format Excel</span><b class="fmtbig">${keep}</b>
+        <span>Format réel ${ls === 'remplacer' ? 'confirmé' : 'constaté'}</span><b class="fmtbig">${esc(real)}${ls === 'verifier' ? ' <small>(à confirmer)</small>' : ''}</b>
+        <span>Première séance</span><b>${esc(prevSess)}${tr.first ? ' · ' + fmtDT(tr.first.t) : ''}</b>
+        ${prev && tr.last && tr.first && tr.last.t !== tr.first.t ? `<span>Scan précédent</span><b>${esc(prev.sess)} · ${fmtDT(prev.t)}</b>` : ''}
+        <span>Séance actuelle</span><b>${esc(now)}</b>
+        <span>Étiquette physique</span><b class="w">${ls === 'remplacer' ? `NON REMPLACÉE (porte « ${esc(labelOn(r))} »)` : 'EN ATTENTE DE CONFIRMATION'}</b>
+        <span>Scans du lot</span><b>${tr.n + 1} (celui-ci compris)</b>
+      </div>
+      <div class="mmacts">
+        <button class="mma" data-a="1"><kbd>1</kbd><span><b>Historique des scans</b><small>Fiche du lot, toutes les séances</small></span></button>
+        ${ls === 'remplacer'
+          ? `<button class="mma" data-a="2"><kbd>2</kbd><span><b>Confirmer ou modifier le format réel</b><small>Ouvre la correction du format</small></span></button>`
+          : `<button class="mma ok" data-a="2"><kbd>2</kbd><span><b>C'est bien un ${esc(real)}</b><small>Format corrigé, pointé, étiquette à remplacer</small></span></button>`}
+        <button class="mma" data-a="3"><kbd>3</kbd><span><b>Ajouter une observation</b><small>Note datée dans l'historique du lot</small></span></button>
+        ${ls === 'remplacer'
+          ? `<button class="mma ok" data-a="4"><kbd>4</kbd><span><b>Étiquette remplacée ✓</b><small>Confirmer le remplacement physique maintenant</small></span></button>`
+          : `<button class="mma" data-a="4"><kbd>4</kbd><span><b>Garder « ${keep} »</b><small>Pointé dans le format du listing, pas d'étiquette à changer</small></span></button>`}
+        <button class="mma" data-a="5"><kbd>5</kbd><span><b>Reporter</b><small>${ls === 'remplacer' ? 'Le lot reste dans « Étiquettes à remplacer »' : 'Non pointé, l\'alerte reste active'}</small></span></button>
+      </div>
+      <p class="hint">Touches 1 à 5. Échap ou un nouveau scan = reporter.</p>
+    </div>`);
+  $('#modalBox').querySelectorAll('.mma').forEach(b => b.onclick = () => alertAct(+b.dataset.a));
+  $('#modalBox').querySelector('.mma.ok, .mma').focus();
+  snd.mismatch();
+}
+function alertAct(n) {
+  const x = alertCtx; if (!x) return;
+  alertCtx = null;
+  const r = x.r, a = openFmtAno(r);
+  // un scan = un événement : enregistré ici s'il ne l'a pas été à l'ouverture
+  const record = st => { if (x.recorded) return; x.recorded = true; const h = addHist({ kind: 'scan', cmd: x.read, label: `${lotLabel(r)} (scan)`, rows: [], sc: { r, l: lotLabel(r), fo: origFmt(r), fs: a && a.fs || opLbl(r), ko: opKeyRow(r), st }, ano: a ? a.id : null, result: st }); persist({ hist: [h] }); };
+  if (x.ls === 'verifier' && (n === 2 || n === 4)) {
+    closeModal();
+    if (n === 2) {
+      const to = a.fs, from = opLbl(r);
+      setAno(a, 'corrigee', `Format confirmé : ${to} (listing : ${from})`); a.fk = Formats.normFmt(to);
+      scanApply(r, { fmt: to, fs: to, scanSt: 'Corrigé', read: x.read, ano: a });
+      showScan(lotLabel(r), `Corrigé → ${to} · étiquette à remplacer`, 'ok');
+      showResult('warn', '✓ FORMAT CONFIRMÉ — ÉTIQUETTE À REMPLACER', `${esc(lotLabel(r))} : ${esc(from)} → <b>${esc(to)}</b>, pointé. Ajouté aux « Étiquettes à remplacer ».`);
+    } else {
+      setAno(a, 'conservee', `Format du listing « ${opLbl(r)} » gardé après rescan (vu pendant ${a.fs})`);
+      scanApply(r, { fs: opLbl(r), scanSt: 'Format conservé', read: x.read, ano: a });
+      showScan(lotLabel(r), `Pointé (${opLbl(r)})`, 'ok');
+      showResult('ok', '✓ POINTÉ DANS LE FORMAT DU LISTING', `${esc(lotLabel(r))} reste « ${esc(opLbl(r))} ». Pas d'étiquette à changer.`);
+    }
+    refreshPending(); afterChange(false); return;
+  }
+  if (n === 1) { record(x.ls === 'verifier' ? 'Alerte · format à confirmer' : 'Alerte'); refreshPending(); afterChange(false); openLot(r); return; }
+  if (n === 2) { openLot(r, true); return; }
+  if (n === 3) {
+    record(x.ls === 'verifier' ? 'Alerte · format à confirmer' : 'Alerte');
+    modal(`<h3>Observation — lot ${esc(lotLabel(r))}</h3><form id="obsF" class="fixfmt"><input id="obsT" placeholder="ex. étiquette introuvable, lot rangé carton B12" style="min-height:42px"><div class="mrow"><button type="button" class="btn" id="obsNo">Annuler</button><button class="btn primary">Ajouter</button></div></form>`);
+    setTimeout(() => $('#obsT').focus(), 30);
+    $('#obsNo').onclick = closeModal;
+    $('#obsF').onsubmit = e => { e.preventDefault(); const t = $('#obsT').value.trim(); closeModal(); if (t) addNote(r, t); afterChange(false); };
+    return;
+  }
+  closeModal();
+  if (n === 4) { confirmLabels([r]); showResult('ok', '✓ ÉTIQUETTE REMPLACÉE', `${esc(lotLabel(r))} : nouvelle étiquette « ${esc(opLbl(r))} » confirmée. Le lot reste consultable dans les corrections terminées.`); return; }
+  // 5 : reporter
+  record(x.ls === 'verifier' ? 'Reporté · format à confirmer' : 'Alerte');
+  const h = addHist({ kind: 'postpone', cmd: x.read, label: `Correction reportée : ${lotLabel(r)}`, rows: [], lr: r });
+  persist({ hist: [h] }); refreshPending(); afterChange(false);
+  showResult('warn', x.ls === 'remplacer' ? '⏸ ÉTIQUETTE À REMPLACER — REPORTÉ' : '⏸ FORMAT À CONFIRMER — REPORTÉ', `${esc(lotLabel(r))} ${x.ls === 'remplacer' ? 'est pointé ; il reste dans « Étiquettes à remplacer »' : 'n\'est pas pointé ; l\'alerte réapparaîtra au prochain scan'}.`);
+}
+
+/* ---------- Liste « Étiquettes à remplacer » ---------- */
+let lblFilter = { st: 'remplacer', fo: '', fr: '', ses: '', day: '', q: '' };
+function labelRowData(r) {
+  const tr = lotTrace(r), st = labelOf(r), a = verifyRows.has(r) ? openFmtAno(r) : null;
+  const corrH = [...HIST].reverse().find(h => !h.undone && h.fp && Object.prototype.hasOwnProperty.call(h.fp, r));
+  return {
+    r, n1: String(DATA.lots[r]), n2: altOf(r), fo: origFmt(r), fr: a ? a.fs : opLbl(r), st, tr,
+    info: ST.fmt[r] != null ? 'Corrigé' + (corrH ? ' le ' + fmtDT(corrH.t) : '') : a ? 'À confirmer' : 'Format du listing',
+    lbl: st === 'remplacer' ? 'À remplacer' : st === 'verifier' ? 'À vérifier' : st === 'remplacee' ? `Remplacée le ${fmtDT(ST.lbl[r].t)}` : 'Pas à changer'
+  };
+}
+const fmtDay = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+function openLabels() {
+  if (!INV) return;
+  if (fmtCol < 0) { toast('Aucune colonne de format dans cette vente.'); return; }
+  const all = labelRows().map(labelRowData);
+  const uniq = f => [...new Set(all.map(f).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr', { numeric: true }));
+  const n = k => all.filter(x => x.st === k).length;
+  modal(`
+    <h3>Étiquettes à remplacer — ${esc(INV.name)}</h3>
+    <p>Lots dont le format réel confirmé diffère de l'étiquette posée. Un lot ne quitte la liste qu'une fois l'étiquette confirmée remplacée.</p>
+    <div class="grid3 lblf">
+      <label>Vente<select id="lfInv">${invList.filter(i => !i.archived || i.id === INV.id).sort((a, b) => b.created - a.created).map(i => `<option value="${esc(i.id)}" ${i.id === INV.id ? 'selected' : ''}>${esc(i.name)}</option>`).join('')}</select></label>
+      <label>Statut<select id="lfSt">${[['remplacer', `Étiquettes à remplacer (${n('remplacer')})`], ['verifier', `Anomalies à vérifier (${n('verifier')})`], ['remplacee', `Étiquettes déjà remplacées (${n('remplacee')})`], ['', `Tous (${all.length})`]].map(([v, l]) => `<option value="${v}" ${v === lblFilter.st ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label>Rechercher un n°<input id="lfQ" inputmode="numeric" placeholder="5 ou 6 chiffres" value="${esc(lblFilter.q)}"></label>
+    </div>
+    <details class="lblmore" ${lblFilter.fo || lblFilter.fr || lblFilter.ses || lblFilter.day ? 'open' : ''}><summary>Filtrer par format, séance ou date</summary><div class="grid3 lblf">
+      <label>Format enregistré<select id="lfFo"><option value="">Tous</option>${uniq(x => x.fo).map(f => `<option ${f === lblFilter.fo ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
+      <label>Format réel<select id="lfFr"><option value="">Tous</option>${uniq(x => x.fr).map(f => `<option ${f === lblFilter.fr ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
+      <label>Séance de détection<select id="lfSes"><option value="">Toutes</option>${uniq(x => x.tr.first && x.tr.first.sess).map(f => `<option ${f === lblFilter.ses ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
+      <label>Date du scan<input type="date" id="lfDay" value="${esc(lblFilter.day)}"></label>
+    </div></details>
+    <div class="anotable" id="lfTable"></div>
+    <div class="mrow"><span class="hint" id="lfCount"></span><button class="btn primary" id="lfAll" hidden></button><button class="btn" id="lfXls">Exporter Excel</button><button class="btn" id="lfPrint">Imprimer</button><button class="btn primary" id="lfClose">Fermer</button></div>`);
+  $('#modalBox').classList.add('wide');
+  const sel = new Set();
+  const shown = () => all.filter(x => (!lblFilter.st || x.st === lblFilter.st) && (!lblFilter.fo || x.fo === lblFilter.fo) && (!lblFilter.fr || x.fr === lblFilter.fr)
+    && (!lblFilter.ses || (x.tr.first && x.tr.first.sess === lblFilter.ses)) && (!lblFilter.day || (x.tr.first && fmtDay(x.tr.first.t) === lblFilter.day) || (x.tr.last && fmtDay(x.tr.last.t) === lblFilter.day))
+    && (!lblFilter.q || x.n1.includes(lblFilter.q) || x.n2.includes(lblFilter.q)));
+  const draw = () => {
+    const list = shown();
+    $('#lfTable').innerHTML = labelTable(list, { select: true, sel });
+    $('#lfCount').textContent = `${list.length} lot${list.length > 1 ? 's' : ''} affiché${list.length > 1 ? 's' : ''}`;
+    const can = list.filter(x => x.st === 'remplacer');
+    const pick = can.filter(x => sel.has(x.r));
+    $('#lfAll').hidden = !pick.length;
+    $('#lfAll').textContent = `✓ Étiquettes remplacées (${pick.length})`;
+    bindLabelTable($('#lfTable'), list, sel, draw, openLabels);
+  };
+  draw();
+  $('#lfClose').onclick = closeModal;
+  $('#lfInv').onchange = async e => { closeModal(); await loadInventory(e.target.value); $('#invSel').value = e.target.value; openLabels(); };
+  $('#lfSt').onchange = e => { lblFilter.st = e.target.value; sel.clear(); draw(); };
+  $('#lfFo').onchange = e => { lblFilter.fo = e.target.value; draw(); };
+  $('#lfFr').onchange = e => { lblFilter.fr = e.target.value; draw(); };
+  $('#lfSes').onchange = e => { lblFilter.ses = e.target.value; draw(); };
+  $('#lfDay').onchange = e => { lblFilter.day = e.target.value; draw(); };
+  $('#lfQ').oninput = e => { lblFilter.q = e.target.value.replace(/\D/g, ''); draw(); };
+  $('#lfAll').onclick = () => { const rows = shown().filter(x => x.st === 'remplacer' && sel.has(x.r)).map(x => x.r); if (rows.length) { confirmLabels(rows); openLabels(); } };
+  $('#lfXls').onclick = () => exportLabels(shown(), `etiquettes_${{ remplacer: 'a_remplacer', verifier: 'a_verifier', remplacee: 'remplacees' }[lblFilter.st] || 'toutes'}`);
+  $('#lfPrint').onclick = () => printModal();
+}
+const fmtShort = t => new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const infoHtml = i => { const m = String(i).match(/^(.+?) le (.+)$/); return m ? `${esc(m[1])}<small class="num">${esc(m[2].replace(/:\d\d$/, '').replace(/\/\d{4}/, ''))}</small>` : esc(i); };
+function labelTable(list, o) {
+  const n1 = INV.columns[INV.lotCol] || 'N° lot', n2 = INV.altCol != null && INV.altCol >= 0 ? INV.columns[INV.altCol] : '';
+  const can = list.filter(x => x.st === 'remplacer');
+  const allOn = o.select && can.length && can.every(x => o.sel.has(x.r));
+  return `<table class="lbltable"><thead><tr>${o.select ? `<th class="noprint">${can.length ? `<input type="checkbox" class="lselall" ${allOn ? 'checked' : ''} aria-label="Tout cocher">` : ''}</th>` : ''}<th>${esc(n1)}${n2 ? ' / ' + esc(n2) : ''}</th><th>Format Excel → réel</th><th>${o.scanTime ? 'Heure du scan' : 'Détecté pendant'}</th>${o.scanTime ? '' : '<th>Dernier scan</th>'}<th>Correction</th><th>Étiquette</th><th class="noprint"><span class="sr">Actions</span></th></tr></thead>
+    <tbody>${list.length ? list.map(x => `<tr class="${x.st === 'remplacer' || x.st === 'verifier' ? 'open' : ''}">
+      ${o.select ? `<td class="noprint">${x.st === 'remplacer' ? `<input type="checkbox" class="lsel" data-r="${x.r}" ${o.sel.has(x.r) ? 'checked' : ''} aria-label="Étiquette du lot ${esc(x.n1)} remplacée">` : ''}</td>` : ''}
+      <td class="num lid"><b>${esc(x.n1)}</b>${x.n2 ? `<small>${esc(x.n2)}</small>` : ''}</td>
+      <td class="lfm">${esc(x.fo)} → <b>${esc(x.fr)}</b>${x.st === 'verifier' ? ' ?' : ''}</td>
+      ${o.scanTime ? `<td class="num" data-l="Scan">${x.scanT ? fmtShort(x.scanT) : ''}</td>` : `<td data-l="Détecté">${x.tr.first ? `${esc(x.tr.first.sess)}<small class="num">${fmtShort(x.tr.first.t)}</small>` : '—'}</td><td data-l="Dernier scan">${x.tr.last ? `${esc(x.tr.last.sess)}<small>${x.tr.n} scan${x.tr.n > 1 ? 's' : ''}</small>` : '—'}</td>`}
+      <td data-l="Correction">${infoHtml(x.info)}</td><td class="lst"><span class="stp ${x.st === 'remplacee' ? 'corrigee' : x.st ? 'attente' : ''}">${esc(x.lbl)}</span></td>
+      <td class="acts noprint">${x.st === 'remplacer' ? `<button class="btn primary" data-la="ok" data-r="${x.r}" title="Confirmer le remplacement de l'étiquette">✓ Remplacée</button>` : ''}${x.st === 'verifier' ? `<button class="btn" data-la="confirm" data-r="${x.r}">C'est un ${esc(x.fr)}</button><button class="btn" data-la="keep" data-r="${x.r}">Garder ${esc(x.fo)}</button>` : ''}${x.st === 'remplacee' ? `<button class="btn" data-la="back" data-r="${x.r}">Remettre à remplacer</button>` : ''}<button class="btn" data-la="lot" data-r="${x.r}">Fiche</button></td></tr>`).join('')
+      : `<tr><td colspan="9" class="empty">Aucun lot pour ces filtres.</td></tr>`}</tbody></table>`;
+}
+function bindLabelTable(el, list, sel, redraw, reopen) {
+  el.querySelectorAll('.lsel').forEach(c => c.onchange = () => { const r = +c.dataset.r; if (c.checked) sel.add(r); else sel.delete(r); redraw(); });
+  el.querySelectorAll('.lselall').forEach(c => c.onchange = () => { list.filter(x => x.st === 'remplacer').forEach(x => c.checked ? sel.add(x.r) : sel.delete(x.r)); redraw(); });
+  el.querySelectorAll('[data-la]').forEach(b => b.onclick = () => {
+    const r = +b.dataset.r, act = b.dataset.la;
+    if (act === 'lot') { openLot(r); return; }
+    if (act === 'ok') confirmLabels([r]);
+    else if (act === 'back') resetLabel(r);
+    else if (act === 'confirm' || act === 'keep') { const a = openFmtAno(r); if (a) anoDecide(a, act); }
+    reopen();
+  });
+}
+// décision prise depuis une liste (bureau) : ce n'est pas un scan
+function anoDecide(a, act) {
+  const r = a.row;
+  if (act === 'confirm') { setAno(a, 'corrigee', `Format confirmé : ${a.fs} (listing : ${opLbl(r)})`); a.fk = Formats.normFmt(a.fs); scanApply(r, { fmt: a.fs, fs: a.fs, scanSt: 'Corrigé', read: 'Décision sur anomalie', ano: a, dec: true }); }
+  else { setAno(a, 'conservee', `Format d'origine « ${opLbl(r)} » conservé`); scanApply(r, { fs: opLbl(r), scanSt: 'Format conservé', read: 'Décision sur anomalie', ano: a, dec: true }); }
+  refreshPending(); afterChange(false);
+}
+function labelSheet(list) {
+  const n1 = INV.columns[INV.lotCol] || 'N° lot', n2 = INV.altCol != null && INV.altCol >= 0 ? INV.columns[INV.altCol] : '2e numéro';
+  const rows = [['Vente', n1, n2, 'Format Excel', 'Format réel', 'Séance initiale', '1er scan problématique', 'Dernière séance', 'Nombre de scans', 'Correction informatique', 'Étiquette', 'Remplacée le']];
+  list.forEach(x => rows.push([INV.name, x.n1, x.n2, x.fo, x.fr, x.tr.first ? x.tr.first.sess : '', x.tr.first ? fmtDT(x.tr.first.t) : '', x.tr.last ? x.tr.last.sess : '', x.tr.n, x.info, x.st === 'remplacee' ? 'Remplacée' : x.lbl, x.st === 'remplacee' ? fmtDT(ST.lbl[x.r].t) : '']));
+  return { rows, styles: rows.map((x, i) => i ? (x[10] === 'Remplacée' ? 2 : 4) : 1) };
+}
+function exportLabels(list, what) {
+  const s = labelSheet(list);
+  const fit = s.rows[0].map((_, i) => Math.min(40, Math.max(8, ...s.rows.slice(0, 101).map(r => String(r[i] ?? '').length + 2))));
+  const blob = XlsxWriter.build([{ name: 'Étiquettes', rows: s.rows, styles: s.styles, widths: fit }]);
+  const d = new Date();
+  downloadBlob(blob, `${what}_${INV.name.replace(/[^\w\-]+/g, '_')}_${d.toISOString().slice(0, 10)}.xlsx`);
+}
+function printModal() {
+  document.body.classList.add('printing');
+  const done = () => { document.body.classList.remove('printing'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  try { window.print(); } catch (e) {}
+  setTimeout(done, 1500);
+}
+
+/* ---------- Bilan des séances ---------- */
+function rowInfo(r) { return { corrected: ST.fmt[r] != null, pending: verifyRows.has(r), label: labelOf(r) }; }
+function globalSummary() {
+  const T = trace(); let scans = 0; const out = new Set();
+  for (const h of HIST) if (Formats.isScanEvent(h)) { scans++; const s = sessOf(h); if (h.sc.r != null && s && Formats.outOfCategory(h, s.key)) out.add(h.sc.r); }
+  const Tt = Formats.totals(model(), ST.anomalies);
+  return { scans, unique: T.byRow.size, conform: T.byRow.size - out.size, out: out.size, open: Tt.open, corrections: Tt.corrections, labels: labelsToReplace() };
+}
+const tiles = list => `<div class="bilan">${list.map(([k, v, w]) => `<div class="${w && v ? 'w' : ''}"><b class="num">${v}</b><span>${k}</span></div>`).join('')}</div>`;
+function sessionList() {
+  const T = trace(), list = [...T.I.sessions.values()].filter(s => s.events.length || s.id === currentSid());
+  const none = HIST.filter(h => Formats.isScanEvent(h) && !T.I.sidOf(h.id));
+  if (none.length) list.push({ id: '', key: '', label: 'Hors séance', start: none[0].t, end: none[none.length - 1].t, events: none });
+  return list.sort((a, b) => b.start - a.start);
+}
+function openBilan(sid) {
+  if (!INV) return;
+  refreshPending();
+  if (sid !== undefined && sid !== null) return openSessionBilan(sid);
+  const g = globalSummary(), list = sessionList();
+  modal(`
+    <h3>Bilan des séances — ${esc(INV.name)}</h3>
+    ${tiles([['Scans enregistrés', g.scans], ['Lots uniques scannés', g.unique], ['Lots conformes', g.conform], ['Scannés hors catégorie', g.out, 1], ['Anomalies ouvertes', g.open, 1], ['Corrections informatiques', g.corrections], ['Étiquettes à remplacer', g.labels, 1]])}
+    <div class="anotable"><table><thead><tr><th>Séance</th><th>Début</th><th>Fin</th><th class="n">Scans</th><th class="n">Lots uniques</th><th class="n">Hors catégorie</th><th class="n">Étiquettes à remplacer</th><th></th></tr></thead>
+    <tbody>${list.length ? list.map(s => { const b = Formats.sessionSummary(s.events, s.key, rowInfo); return `<tr class="${b.labels ? 'open' : ''}"><td><b>${esc(s.label)}</b>${s.id && s.id === currentSid() ? ' <span class="tag">en cours</span>' : ''}</td><td class="num">${fmtDT(s.start)}</td><td class="num">${fmtDT(s.end)}</td><td class="num">${b.total}</td><td class="num">${b.unique}</td><td class="num ${b.out ? 'w' : ''}">${b.out}</td><td class="num ${b.labels ? 'w' : ''}">${b.labels}</td><td><button class="btn" data-sid="${esc(s.id)}">Voir</button></td></tr>`; }).join('')
+      : '<tr><td colspan="8" class="empty">Aucune séance de scannage pour le moment.</td></tr>'}</tbody></table></div>
+    <div class="mrow"><button class="btn" id="bgLbl">Étiquettes à remplacer (${g.labels})</button><button class="btn primary" id="bgClose">Fermer</button></div>`);
+  $('#modalBox').classList.add('wide');
+  $('#bgClose').onclick = closeModal;
+  $('#bgLbl').onclick = () => { lblFilter.st = 'remplacer'; openLabels(); };
+  $('#modalBox').querySelectorAll('[data-sid]').forEach(b => b.onclick = () => openSessionBilan(b.dataset.sid));
+}
+function openSessionBilan(sid) {
+  const s = sessionList().find(x => x.id === sid);
+  if (!s) { openBilan(); return; }
+  const b = Formats.sessionSummary(s.events, s.key, rowInfo);
+  const rows = b.rows.map(x => Object.assign(labelRowData(x.r), { scanT: x.firstOut }));
+  let q = '';
+  const anoSt = x => x.st === 'verifier' ? 'À vérifier' : ST.fmt[x.r] != null ? 'Confirmée' : (ST.anomalies.find(a => a.type === 'format' && a.row === x.r && a.st === 'conservee') ? 'Format du listing gardé' : 'Sans suite');
+  modal(`
+    <h3>Séance ${esc(s.label)} — bilan</h3>
+    <p>${fmtDT(s.start)} → ${fmtDT(s.end)}${s.id && s.id === currentSid() ? ' · en cours' : ''}</p>
+    ${tiles([['Scans', b.total], ['Lots uniques reconnus', b.unique], ['Lots conformes', b.conform], ['Scannés hors catégorie', b.out, 1], ['Anomalies confirmées', b.confirmed], ['Anomalies à vérifier', b.verify, 1], ['Étiquettes à remplacer', b.labels, 1]])}
+    <b>Lots scannés pendant « ${esc(s.label)} » mais enregistrés dans une autre catégorie</b>
+    <label class="lblf sbq"><span class="sr">Rechercher</span><input id="sbQ" inputmode="numeric" placeholder="Rechercher un n° (5 ou 6 chiffres)"></label>
+    <div class="anotable" id="sbTable"></div>
+    <div class="mrow"><button class="btn" id="sbBack">Toutes les séances</button><button class="btn" id="sbXls" ${rows.length ? '' : 'disabled'}>Exporter Excel</button><button class="btn" id="sbPrint">Imprimer</button><button class="btn primary" id="sbClose">Fermer</button></div>`);
+  $('#modalBox').classList.add('wide');
+  const shown = () => rows.filter(x => !q || x.n1.includes(q) || x.n2.includes(q));
+  const draw = () => {
+    const list = shown();
+    $('#sbTable').innerHTML = labelTable(list.map(x => Object.assign({}, x, { info: anoSt(x) })), { scanTime: true });
+    bindLabelTable($('#sbTable'), list, new Set(), draw, () => openSessionBilan(sid));
+  };
+  draw();
+  $('#sbQ').oninput = e => { q = e.target.value.replace(/\D/g, ''); draw(); };
+  $('#sbBack').onclick = () => openBilan();
+  $('#sbClose').onclick = closeModal;
+  $('#sbPrint').onclick = () => printModal();
+  $('#sbXls').onclick = () => exportLabels(shown(), `seance_${s.label.replace(/[^\w\-]+/g, '_')}`);
+}
+function showSessionEnd(sid) { const s = sessionList().find(x => x.id === sid); if (s && s.events.length) openSessionBilan(sid); }
+
 
 function applyPlan(plan, r, cmd) {
   if (!INV) { toast("Importez d'abord une liste de lots."); return; }
@@ -1896,7 +2450,9 @@ function applyPlan(plan, r, cmd) {
 }
 
 /* ---------- Annuler / rétablir : la dernière action, ou n'importe quelle opération de l'historique ---------- */
-const canUndo = h => !!h && !h.undone && (((h.kind === 'check' || h.kind === 'uncheck') && (h.rows.length || h.fp)) || ((h.kind === 'reformat' || h.kind === 'hold') && (h.fp || h.ano)));
+const canUndo = h => !!h && !h.undone && (((h.kind === 'check' || h.kind === 'uncheck') && (h.rows.length || h.fp)) || ((h.kind === 'reformat' || h.kind === 'hold') && (h.fp || h.ano)) || (h.kind === 'label' && h.lr != null));
+const opRows = h => [...(h.rows || []), ...Object.keys(h.fp || {}).map(Number), ...(h.kind === 'label' && h.lr != null ? [h.lr] : [])];
+function setLblRow(r, v) { if (r == null || r >= DATA.lots.length) return; if (v) ST.lbl[r] = v; else delete ST.lbl[r]; }
 // l'opération d'origine d'une annulation (les anciennes annulations n'ont pas de lien : retrouvée par son libellé)
 function origOf(u) {
   if (!u || u.kind !== 'undo') return null;
@@ -1908,15 +2464,17 @@ function origOf(u) {
 const canRedo = u => { const h = origOf(u); return !!u && u.kind === 'undo' && !u.undone && !!h && h.undone; };
 // opérations plus récentes, toujours actives, qui touchent les mêmes lots
 function laterOverlap(h) {
-  const rows = new Set([...(h.rows || []), ...Object.keys(h.fp || {}).map(Number)]);
+  const rows = new Set(opRows(h));
   if (!rows.size) return [];
   const i = HIST.indexOf(h);
-  return HIST.slice(i + 1).filter(x => canUndo(x) && [...(x.rows || []), ...Object.keys(x.fp || {}).map(Number)].some(r => rows.has(r)));
+  return HIST.slice(i + 1).filter(x => canUndo(x) && opRows(x).some(r => rows.has(r)));
 }
 function undoEntry(h) {
   h.rows.forEach((row, k) => { ST.status[row] = h.prevS[k]; ST.time[row] = h.prevT[k]; });
   const fmtRows = [];
   if (h.fp) for (const k in h.fp) { const r = +k; if (h.fp[k] == null) delete ST.fmt[r]; else ST.fmt[r] = h.fp[k]; fmtRows.push(r); }
+  const lblRows = h.kind === 'label' ? [h.lr] : [];
+  if (h.kind === 'label') setLblRow(h.lr, h.lp);
   const anos = []; let ap = null;
   if (h.ano) { const a = anoById(h.ano); if (a) { ap = { st: a.st, res: a.res || '' }; setAno(a, 'annulee', 'Décision annulée'); anos.push(a); } }
   h.undone = true;
@@ -1926,7 +2484,7 @@ function undoEntry(h) {
   lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
   setResult(`<b>Annulé</b> — ${esc(h.label)} (${h.rows.length} lot${h.rows.length > 1 ? 's' : ''})`);
   showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Annulé', '');
-  persist({ rows: h.rows, fmt: fmtRows, ano: anos, hist: [h, u] }); refreshPending(); afterChange(true);
+  persist({ rows: h.rows, fmt: fmtRows, lbl: lblRows, ano: anos, hist: [h, u] }); refreshPending(); afterChange(true);
 }
 // Rétablir = annuler l'annulation : l'opération d'origine retrouve son effet
 function redoEntry(u) {
@@ -1941,6 +2499,8 @@ function redoEntry(u) {
     if (v == null || Formats.normFmt(v) === Formats.normFmt(origFmt(r))) delete ST.fmt[r]; else ST.fmt[r] = v;
     fmtRows.push(r);
   }
+  const lblRows = h.kind === 'label' ? [h.lr] : [];
+  if (h.kind === 'label') setLblRow(h.lr, h.ln);
   const anos = [];
   if (h.ano) {
     const a = anoById(h.ano);
@@ -1951,7 +2511,7 @@ function redoEntry(u) {
   flashRows = new Set([...h.rows, ...fmtRows]);
   setResult(`<b>Rétabli</b> — ${esc(h.label)}`);
   showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Rétabli', 'ok');
-  persist({ rows: h.rows, fmt: fmtRows, ano: anos, hist: [h, u, r2] }); refreshPending(); afterChange(false);
+  persist({ rows: h.rows, fmt: fmtRows, lbl: lblRows, ano: anos, hist: [h, u, r2] }); refreshPending(); afterChange(false);
 }
 function undo() {
   if (!INV) return;
@@ -2129,12 +2689,16 @@ function applyFilter() {
 }
 function setFmt(v, user) {
   const was = fmtVal;
+  // changer de format = fin de la séance en cours, puis début d'une nouvelle (chacune garde son identifiant)
+  const ended = INV && v !== was ? endSession() : '';
   fmtVal = v;
   try { settings.fmtFilter = settings.fmtFilter || {}; if (v) settings.fmtFilter[INV.id] = v; else delete settings.fmtFilter[INV.id]; saveSettings(); } catch (e) {}
-  if (user && v && v !== was) { const h = addHist({ kind: 'session', cmd: '', label: `Séance de pointage : ${fmtLabelOf(v)}`, rows: [] }); persist({ hist: [h] }); }
+  if (INV && v && v !== was) startSession(v);
   $('#scanRes').hidden = true;
   renderFmtOptions(); applyFilter(); $('#scroller').scrollTop = 0; renderRows(); renderStats(); renderHist();
   if (user && v) { try { scanIn.focus({ preventScroll: true }); } catch (e) {} }
+  // à la fin d'une séance : son bilan (il reste consultable ensuite dans « Bilan des séances »)
+  if (user && ended && !v) showSessionEnd(ended);
 }
 let nextRow = -1;
 function renderRows() {
@@ -2175,6 +2739,9 @@ function renderStats() {
   refreshPending(); updateFmtStats();
   const T = INV ? Formats.totals(model(), ST.anomalies) : { open: 0, corrections: 0, units: 0, unitsDone: 0 };
   $('#kCorr').textContent = T.corrections;
+  const nl = INV && fmtCol >= 0 ? labelsToReplace() : 0;
+  $('#kLblBox').hidden = !(INV && fmtCol >= 0 && (nl || T.corrections || Object.keys(ST.lbl || {}).length));
+  $('#kLbl').textContent = nl; $('#kLblBox').classList.toggle('warn', !!nl);
   $('#kUnitsBox').hidden = !(INV && qtyCol >= 0);
   $('#kUnits').textContent = `${fmtNum(T.unitsDone)} / ${fmtNum(T.units)}`;
   $('#kTotal').textContent = total.toLocaleString('fr-FR');
@@ -2475,7 +3042,7 @@ function exportXlsx() {
   if (fmtCol < 0) return doExport('');
   modal(`<h3>Exporter vers Excel</h3>
     <div class="cands">
-      <button class="cand" data-x="all"><span class="t" style="font-family:var(--f-ui)">Toute la vente</span><span class="d">Inventaire complet, lots restants, anomalies, corrections et historique (5 feuilles).</span></button>
+      <button class="cand" data-x="all"><span class="t" style="font-family:var(--f-ui)">Toute la vente</span><span class="d">Inventaire complet, lots restants, anomalies, corrections, historique et étiquettes à remplacer (6 feuilles).</span></button>
       ${fmtVal ? `<button class="cand" data-x="fmt"><span class="t" style="font-family:var(--f-ui)">Format « ${esc(fmtLabelOf(fmtVal))} » uniquement</span><span class="d">Les mêmes feuilles, limitées aux lots de ce format.</span></button>` : ''}
     </div>
     <div class="mrow"><button class="btn" id="xCancel">Annuler</button></div>`);
@@ -2512,7 +3079,7 @@ async function doExport(onlyKey) {
   const corr = HIST.filter(h => h.fp && (h.kind === 'reformat' || h.kind === 'check'));
   const s4 = [['Date', 'Heure', n1, n2, 'Ancien format', 'Nouveau format', 'Motif / origine', 'Annulée'],
     ...corr.flatMap(h => Object.keys(h.fp).map(k => { const r = +k; const a = h.ano ? anoById(h.ano) : null; return [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), DATA.lots[r] ?? '', r < DATA.lots.length ? altOf(r) : '', h.fp[k] != null ? h.fp[k] : (r < DATA.lots.length ? origFmt(r) : ''), a && a.fs ? a.fs : '', a ? a.res || '' : (h.result || ''), h.undone ? 'Oui' : '']; })).filter(x => !onlyKey || Formats.normFmt(x[4]) === onlyKey || Formats.normFmt(x[5]) === onlyKey)];
-  const KIND = { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture', session: 'Séance', scan: 'Scan', hold: 'Mise en attente', reformat: 'Correction de format', redo: 'Rétablissement', anodel: 'Suppression d\'anomalies' };
+  const KIND = { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture', session: 'Séance', scan: 'Scan', hold: 'Mise en attente', reformat: 'Correction de format', redo: 'Rétablissement', anodel: 'Suppression d\'anomalies', sessend: 'Fin de séance', label: 'Réétiquetage', note: 'Observation', postpone: 'Correction reportée' };
   const s5 = [['Date', 'Heure', 'Opération', 'Commande', 'Détail', 'Lots modifiés', 'Annulée'],
     ...HIST.map(h => [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), KIND[h.kind] || h.kind, h.cmd || '', h.label + (h.result ? ' — ' + h.result : ''), h.rows ? h.rows.length : 0, h.undone ? 'Oui' : ''])];
   const fit = (aoa, min, max) => aoa[0].map((_, i) => Math.min(max, Math.max(min, ...aoa.slice(0, 101).map(r => String(r[i] ?? '').length + 2))));
@@ -2523,10 +3090,14 @@ async function doExport(onlyKey) {
     { name: 'Lots restants', rows: s2, styles: [1, ...left.map(color)], widths: fit(s2, 8, 50) },
     { name: 'Anomalies', rows: s3, styles: s3.map((x, i) => i ? (/Ouverte|attente/.test(x[7]) ? 4 : 0) : 1), widths: fit(s3, 10, 60) },
     { name: 'Corrections de format', rows: s4, widths: fit(s4, 8, 50) },
-    { name: 'Historique', rows: s5, widths: fit(s5, 8, 70) }
+    { name: 'Historique', rows: s5, widths: fit(s5, 8, 70) },
+    ...(fmtCol >= 0 ? [(() => { refreshPending(); const ls = labelSheet(labelRows().filter(r => !onlyKey || inScope(r) || Formats.normFmt(origFmt(r)) === onlyKey).map(labelRowData)); return { name: 'Étiquettes à remplacer', rows: ls.rows, styles: ls.styles, widths: fit(ls.rows, 8, 40) }; })()] : [])
   ]);
   const d = new Date();
   const fname = `vente_${INV.name.replace(/[^\w\-]+/g, '_')}${onlyKey ? '_' + fmtLabelOf(onlyKey).replace(/[^\w\-]+/g, '_') : ''}_${d.toISOString().slice(0, 10)}_${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}.xlsx`;
+  return downloadBlob(blob, fname);
+}
+async function downloadBlob(blob, fname) {
   if (window.claude && typeof window.claude.use === 'function') {
     const dl = await window.claude.use('downloads');
     if (dl) { try { await dl.save({ filename: fname, data: blob }); toast('Export enregistré : ' + fname); } catch (e) { if (e.code !== 'declined') toast('Export impossible ici (' + (e.code || 'erreur') + ').'); } return; }
@@ -2670,6 +3241,9 @@ $('#bBip').onclick = () => openBipGuide();
 $('#bAnoAll').onclick = () => { if (INV) openAnomalies(); };
 $('#bHistAll').onclick = () => { if (INV) openHistory(); };
 $('#kAnoBox').onclick = () => { if (INV) { anoFilter.st = 'open'; openAnomalies(); } };
+$('#kLblBox').onclick = () => { if (INV) { lblFilter.st = 'remplacer'; openLabels(); } };
+$('#bLblAll').onclick = () => { if (INV) openLabels(); };
+$('#bBilan').onclick = () => { if (INV) openBilan(); };
 if ('BarcodeDetector' in window && navigator.mediaDevices && matchMedia('(pointer: coarse)').matches) { $('#bCam').hidden = false; $('#bCam').onclick = openCamera; }
 let wake = null;
 const keepAwake = () => { try { if (!wake && navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wake = w; w.addEventListener('release', () => wake = null); }).catch(() => {}); } catch (e) {} };
