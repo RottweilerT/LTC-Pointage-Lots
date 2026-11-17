@@ -66,7 +66,7 @@ select.btn { padding-right: 8px; max-width: 260px }
 
 
 @media (prefers-reduced-motion: reduce) { .flash { animation: none !important } }
-.scan { background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center }
+.scan { scroll-margin-top: 10px; background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center }
 .scanform { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
 .scanhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap }
 .bipbtn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; min-height: 32px; padding: 4px 8px; border-radius: 6px }
@@ -1637,10 +1637,22 @@ function renderFmtDash() {
       <td class="c3">${s.lots ? `<span class="btn ${s.key === sessionKey() ? 'primary' : ''}" aria-hidden="true">${s.key === sessionKey() ? 'En cours' : (s.done ? 'Reprendre' : 'Pointer')}</span>` : ''}</td>
     </tr>`).join('')}</tbody></table>`;
   $('#fmtTable').querySelectorAll('tbody tr').forEach(tr => {
-    const go = () => { const k = tr.dataset.k; const s = fmtStatsCache.find(x => x.key === k); if (!s || !s.lots) return; setFmt(k === sessionKey() ? '' : k, true); };
+    const go = () => {
+      const k = tr.dataset.k; const s = fmtStatsCache.find(x => x.key === k); if (!s || !s.lots) return;
+      const start = k !== sessionKey();
+      setFmt(start ? k : '', true);
+      // séance démarrée : la page remonte sur la barre de séance et la case de scan, prête à scanner
+      if (start) scrollToScan();
+    };
     tr.onclick = go;
     tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
   });
+}
+
+function scrollToScan() {
+  const el = document.querySelector('section.scan'); if (!el) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try { el.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }); } catch (e) { el.scrollIntoView(); }
 }
 
 /* ---------- Anomalies : création et mise à jour ---------- */

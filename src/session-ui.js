@@ -80,10 +80,22 @@ function renderFmtDash() {
       <td class="c3">${s.lots ? `<span class="btn ${s.key === sessionKey() ? 'primary' : ''}" aria-hidden="true">${s.key === sessionKey() ? 'En cours' : (s.done ? 'Reprendre' : 'Pointer')}</span>` : ''}</td>
     </tr>`).join('')}</tbody></table>`;
   $('#fmtTable').querySelectorAll('tbody tr').forEach(tr => {
-    const go = () => { const k = tr.dataset.k; const s = fmtStatsCache.find(x => x.key === k); if (!s || !s.lots) return; setFmt(k === sessionKey() ? '' : k, true); };
+    const go = () => {
+      const k = tr.dataset.k; const s = fmtStatsCache.find(x => x.key === k); if (!s || !s.lots) return;
+      const start = k !== sessionKey();
+      setFmt(start ? k : '', true);
+      // séance démarrée : la page remonte sur la barre de séance et la case de scan, prête à scanner
+      if (start) scrollToScan();
+    };
     tr.onclick = go;
     tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
   });
+}
+
+function scrollToScan() {
+  const el = document.querySelector('section.scan'); if (!el) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try { el.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }); } catch (e) { el.scrollIntoView(); }
 }
 
 /* ---------- Anomalies : création et mise à jour ---------- */
