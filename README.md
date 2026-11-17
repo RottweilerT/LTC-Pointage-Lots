@@ -30,7 +30,7 @@ Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on po
 - **Deux numéros** : un scan d'un seul numéro retrouve le lot et affiche l'autre (indiqué « non lu ») ; « 40000 165903 » (numéro + 2e numéro) vérifie qu'ils désignent le même lot.
 - **Format d'origine / format opérationnel** : le fichier n'est jamais modifié ; la correction est enregistrée à part (`pt_etat.f`), avec motif, date et appareil dans l'historique. Fiche d'un lot : toucher sa cellule de format (détail, historique, correction manuelle, retour au format d'origine).
 - **Historique** : chaque opération a un bouton « Annuler » (retour à l'état d'avant cette opération précise) et chaque annulation un bouton « Rétablir » (l'annulation est annulée : l'opération retrouve son effet, format et décision compris). Avertissement si une opération plus récente touche les mêmes lots. « Historique complet » liste tout.
-- **Anomalies de pointage** : liste filtrable (type, statut, format) avec décisions ; les anomalies traitées restent consultables.
+- **Anomalies de pointage** : liste filtrable (type, statut, format) avec décisions ; les anomalies traitées restent consultables jusqu'à leur suppression (« Supprimer » sur une ligne, « Supprimer toutes les anomalies traitées » ou « Supprimer les … affichées », avec confirmation ; définitif).
 - **Export** : toute la vente ou le format en cours ; feuilles Inventaire complet, Lots restants, Anomalies, Corrections de format, Historique (format d'origine, format opérationnel, quantités, statut, anomalie, résolution, dates).
 - Tests : `node tests/formats.test.js` (règles : scénarios 1 à 10).
 

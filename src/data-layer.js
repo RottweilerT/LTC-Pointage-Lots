@@ -99,6 +99,7 @@ const Cloud = {
     }
     (c.hist || []).forEach(h => ops.push(['set', this.col('pt_journal').doc(`${INV.id}_${h.id}`), this.histDoc(h)]));
     (c.ano || []).forEach(a => ops.push(['set', this.col('pt_anomalies').doc(`${INV.id}_${a.id}`), Object.assign({ inv: INV.id }, a)]));
+    (c.anoDel || []).forEach(id => ops.push(['del', this.col('pt_anomalies').doc(`${INV.id}_${id}`)]));
     if (c.fmt && c.fmt.length) {
       const byChunk = new Map();
       for (const r of c.fmt) { const k = Math.floor(r / CHUNK); if (!byChunk.has(k)) byChunk.set(k, {}); byChunk.get(k)[r - k * CHUNK] = ST.fmt[r] != null ? ST.fmt[r] : this.FV().delete(); }

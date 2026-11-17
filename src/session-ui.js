@@ -317,6 +317,7 @@ function anoRowHtml(a, i) {
   }
   if (open) acts.push(`<button class="btn" data-act="solve" data-i="${i}">Marquer résolue</button>`);
   if (r != null && r < DATA.lots.length) acts.push(`<button class="btn" data-act="lot" data-i="${i}">Voir le lot</button>`);
+  acts.push(`<button class="btn danger" data-act="del" data-i="${i}" title="Supprimer définitivement cette anomalie">Supprimer</button>`);
   return `<tr class="${open ? 'open' : ''}">
     <td>${fmtDT(a.t)}</td><td>${esc(a.kind || '')}</td><td class="num">${esc(a.n || '')}</td><td class="num">${esc(a.n2 || '')}</td>
     <td>${esc(a.fo || '')}</td><td>${esc(a.fs || '')}</td>
@@ -339,9 +340,11 @@ function openAnomalies() {
     </div>
     <div class="anotable"><table><thead><tr><th>Date</th><th>Type</th><th>${esc(INV ? INV.columns[INV.lotCol] : 'N°')}</th><th>${esc(INV && INV.altCol != null && INV.altCol >= 0 ? INV.columns[INV.altCol] : '2e n°')}</th><th>Format d'origine</th><th>Format constaté</th><th>Statut</th><th>Détail</th><th></th></tr></thead>
     <tbody>${list.length ? list.map(([a, i]) => anoRowHtml(a, i)).join('') : '<tr><td colspan="9" class="empty">Aucune anomalie pour ces filtres.</td></tr>'}</tbody></table></div>
-    <div class="mrow"><button class="btn primary" id="afClose">Fermer</button></div>`);
+    <div class="mrow"><button class="btn danger" id="afDelDone" ${all.some(([a]) => !Formats.isOpen(a)) ? '' : 'disabled'}>Supprimer toutes les anomalies traitées (${all.filter(([a]) => !Formats.isOpen(a)).length})</button><button class="btn danger" id="afDelShown" ${list.length ? '' : 'disabled'}>Supprimer les ${list.length} affichée${list.length > 1 ? 's' : ''}</button><button class="btn primary" id="afClose">Fermer</button></div>`);
   $('#modalBox').classList.add('wide');
   $('#afClose').onclick = closeModal;
+  $('#afDelDone').onclick = () => deleteAnos(all.filter(([a]) => !Formats.isOpen(a)).map(([a]) => a), 'toutes les anomalies traitées');
+  $('#afDelShown').onclick = () => deleteAnos(list.map(([a]) => a), 'les anomalies affichées');
   $('#afType').onchange = e => { anoFilter.type = e.target.value; openAnomalies(); };
   $('#afSt').onchange = e => { anoFilter.st = e.target.value; openAnomalies(); };
   $('#afFmt').onchange = e => { anoFilter.fmt = e.target.value; openAnomalies(); };
@@ -351,6 +354,7 @@ function anoAct(act, a) {
   if (!a) return;
   const r = a.row;
   if (act === 'lot') { openLot(r); return; }
+  if (act === 'del') { deleteAnos([a], 'cette anomalie'); return; }
   if (act === 'solve') { setAno(a, 'resolue', a.res ? a.res + ' · marquée résolue' : 'Marquée résolue'); persist({ ano: [a] }); refreshPending(); afterChange(false); openAnomalies(); return; }
   if (act === 'confirm') {
     setAno(a, 'corrigee', `Format confirmé : ${a.fs} (listing : ${opLbl(r)})`); a.fk = Formats.normFmt(a.fs);
@@ -393,4 +397,25 @@ async function openCamera() {
       } catch (e) {}
     }, 250);
   } catch (e) { $('#camMsg').textContent = 'Caméra refusée ou indisponible : autorisez la caméra pour ce site.'; }
+}
+
+/* ---------- Suppression définitive d'anomalies (traitées ou non) : elles n'apparaissent plus nulle part ---------- */
+function deleteAnos(list, what) {
+  if (!list.length) return;
+  const open = list.filter(Formats.isOpen).length, pend = list.filter(a => a.st === 'attente').length;
+  modal(`<h3>Supprimer ${list.length > 1 ? list.length + ' anomalies' : 'cette anomalie'} ?</h3>
+    <p>${list.length > 1 ? `Vous allez supprimer ${esc(what)} (${list.length}).` : `« ${esc(list[0].kind || '')}${list[0].n ? ' : ' + esc(list[0].n) : ''} ».`} ${list.length > 1 ? 'Elles disparaissent' : 'Elle disparaît'} de la liste, des compteurs et de l'export, pour tous les appareils. Cette suppression ne peut pas être annulée.</p>
+    ${open ? `<p class="notice"><b>Attention :</b> ${open} ${open > 1 ? 'sont encore ouvertes' : 'est encore ouverte'}${pend ? `, dont ${pend} lot${pend > 1 ? 's' : ''} en attente qui ${pend > 1 ? 'redeviendront' : 'redeviendra'} simplement « non pointé${pend > 1 ? 's' : ''} »` : ''}.</p>` : ''}
+    <p class="hint">Les pointages et les corrections de format ne changent pas ; l'historique garde une ligne indiquant la suppression.</p>
+    <div class="mrow"><button class="btn" id="adNo">Retour</button><button class="btn danger" id="adYes">Supprimer définitivement</button></div>`);
+  $('#adNo').onclick = openAnomalies;
+  $('#adYes').onclick = () => {
+    const ids = new Set(list.map(a => a.id));
+    ST.anomalies = ST.anomalies.filter(a => !ids.has(a.id));
+    const h = addHist({ kind: 'anodel', cmd: 'Suppression d\'anomalies', label: `${ids.size} anomalie${ids.size > 1 ? 's' : ''} supprimée${ids.size > 1 ? 's' : ''}`, rows: [], result: [...new Set(list.map(a => a.kind || 'Note'))].join(', ') });
+    persist({ anoDel: [...ids], hist: [h] });
+    refreshPending(); afterChange(false); renderAno();
+    toast(`${ids.size} anomalie${ids.size > 1 ? 's' : ''} supprimée${ids.size > 1 ? 's' : ''}`);
+    openAnomalies();
+  };
 }
