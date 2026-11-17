@@ -92,16 +92,17 @@ function scanApply(r, o) {
   // o : { fmt: nouveau libellé (corriger) | undefined, scanSt: libellé de statut, ano: anomalie liée, read: texte lu }
   const prevS = [ST.status[r]], prevT = [ST.time[r]], now = Date.now();
   const fmtRows = [];
-  let fp = null;
+  let fp = null, fn = null;
   if (o.fmt !== undefined) {
     fp = {}; fp[r] = ST.fmt[r] != null ? ST.fmt[r] : null;
     if (Formats.normFmt(o.fmt) === Formats.normFmt(origFmt(r))) delete ST.fmt[r]; else ST.fmt[r] = o.fmt;
+    fn = {}; fn[r] = ST.fmt[r] != null ? ST.fmt[r] : null;
     fmtRows.push(r);
   }
   const changed = !ST.status[r];
   if (changed) { ST.status[r] = 1; ST.time[r] = now; }
   const fs = o.fs || opLbl(r);
-  const h = addHist({ kind: 'check', cmd: o.read || 'Scan', label: `${lotLabel(r)} (scan)`, rows: changed ? [r] : [], prevS: changed ? prevS : [], prevT: changed ? prevT : [], fp,
+  const h = addHist({ kind: 'check', cmd: o.read || 'Scan', label: `${lotLabel(r)} (scan)`, rows: changed ? [r] : [], prevS: changed ? prevS : [], prevT: changed ? prevT : [], fp, fn,
     sc: { r, l: lotLabel(r), fo: origFmt(r), fs, st: o.scanSt || 'Validé' }, ano: o.ano ? o.ano.id : null,
     result: `${o.scanSt || 'Validé'}${fmtCol >= 0 ? ' · ' + fs : ''}` });
   if (changed) { lastRow = r; ST.lastRow = r; }
@@ -295,11 +296,12 @@ function reclassify(r, to, why) {
   if (Formats.normFmt(from) === Formats.normFmt(to)) { toast('Le lot est déjà dans ce format.'); return; }
   const fp = {}; fp[r] = ST.fmt[r] != null ? ST.fmt[r] : null;
   if (Formats.normFmt(to) === Formats.normFmt(origFmt(r))) delete ST.fmt[r]; else ST.fmt[r] = to;
+  const fn = {}; fn[r] = ST.fmt[r] != null ? ST.fmt[r] : null;
   const a = anoBase('format', r, { fo: origFmt(r), fs: to, cmd: 'Correction manuelle' });
   setAno(a, 'corrigee', `Format : ${from} → ${to}${why ? ' · motif : ' + why : ''}`);
   // si le lot était en attente, la décision est prise
   ST.anomalies.forEach(x => { if (x !== a && x.row === r && x.st === 'attente') setAno(x, 'resolue', 'Format corrigé à la main'); });
-  const h = addHist({ kind: 'reformat', cmd: 'Correction du format', label: `Format de ${lotLabel(r)} : ${from} → ${to}`, rows: [], fp, ano: a.id, result: why ? 'Motif : ' + why : '' });
+  const h = addHist({ kind: 'reformat', cmd: 'Correction du format', label: `Format de ${lotLabel(r)} : ${from} → ${to}`, rows: [], fp, fn, ano: a.id, result: why ? 'Motif : ' + why : '' });
   persist({ fmt: [r], hist: [h], ano: ST.anomalies.filter(x => x.row === r) });
   flashRows = new Set([r]); refreshPending(); afterChange(false);
   showScan(lotLabel(r), `Format : ${to}`, 'ok');

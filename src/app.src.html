@@ -165,6 +165,12 @@ select.btn { padding-right: 8px; max-width: 260px }
 .log div { padding: 6px 8px; border-radius: 6px; background: var(--surface-2); overflow-wrap: anywhere }
 .log .a { background: var(--warn-soft) }
 .log .a.done { background: var(--surface-2) }
+.log .hrow { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px }
+.log .hrow > span { min-width: 0 }
+.hbtn { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; font: 600 12px var(--f-ui); padding: 4px 8px; min-height: 30px; cursor: pointer }
+.hbtn:hover { border-color: var(--accent) } .hbtn.redo { border-color: var(--accent); color: var(--accent) }
+.log.histfull { max-height: 60vh }
+.log .u .hbtn { text-decoration: none }
 .log .u { opacity: .55; text-decoration: line-through }
 .log time { font-family: var(--f-num); color: var(--muted); margin-right: 6px }
 
@@ -383,6 +389,7 @@ kbd { font: 600 13px var(--f-num); border: 1px solid var(--line); border-bottom-
       <section class="panel">
         <h2>Historique</h2>
         <div class="log" id="histLog"><div>Aucune opération.</div></div>
+        <button class="btn anoall" id="bHistAll" type="button">Historique complet</button>
       </section>
     </aside>
   </div>
@@ -520,31 +527,90 @@ function applyPlan(plan, r, cmd) {
   persist({ rows: changed, hist: entries, ano: anoAdd }); afterChange(true);
 }
 
+/* ---------- Annuler / rétablir : la dernière action, ou n'importe quelle opération de l'historique ---------- */
+const canUndo = h => !!h && !h.undone && (((h.kind === 'check' || h.kind === 'uncheck') && (h.rows.length || h.fp)) || ((h.kind === 'reformat' || h.kind === 'hold') && (h.fp || h.ano)));
+// l'opération d'origine d'une annulation (les anciennes annulations n'ont pas de lien : retrouvée par son libellé)
+function origOf(u) {
+  if (!u || u.kind !== 'undo') return null;
+  if (u.ref) return HIST.find(x => x.id === u.ref) || null;
+  const i = HIST.indexOf(u);
+  for (let j = i - 1; j >= 0; j--) if (HIST[j].undone && 'Annulation : ' + HIST[j].label === u.label && HIST[j].kind !== 'undo') return HIST[j];
+  return null;
+}
+const canRedo = u => { const h = origOf(u); return !!u && u.kind === 'undo' && !u.undone && !!h && h.undone; };
+// opérations plus récentes, toujours actives, qui touchent les mêmes lots
+function laterOverlap(h) {
+  const rows = new Set([...(h.rows || []), ...Object.keys(h.fp || {}).map(Number)]);
+  if (!rows.size) return [];
+  const i = HIST.indexOf(h);
+  return HIST.slice(i + 1).filter(x => canUndo(x) && [...(x.rows || []), ...Object.keys(x.fp || {}).map(Number)].some(r => rows.has(r)));
+}
+function undoEntry(h) {
+  h.rows.forEach((row, k) => { ST.status[row] = h.prevS[k]; ST.time[row] = h.prevT[k]; });
+  const fmtRows = [];
+  if (h.fp) for (const k in h.fp) { const r = +k; if (h.fp[k] == null) delete ST.fmt[r]; else ST.fmt[r] = h.fp[k]; fmtRows.push(r); }
+  const anos = []; let ap = null;
+  if (h.ano) { const a = anoById(h.ano); if (a) { ap = { st: a.st, res: a.res || '' }; setAno(a, 'annulee', 'Décision annulée'); anos.push(a); } }
+  h.undone = true;
+  const u = addHist({ kind: 'undo', cmd: 'Annuler', label: `Annulation : ${h.label}`, rows: [], ref: h.id, ap, result: h.rows.length ? `${h.rows.length} lot(s) remis dans leur état précédent` : 'Décision annulée' });
+  flashRows = new Set([...h.rows, ...fmtRows]);
+  const lastChk = [...HIST].reverse().find(x => x.kind === 'check' && !x.undone && x.rows.length);
+  lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
+  setResult(`<b>Annulé</b> — ${esc(h.label)} (${h.rows.length} lot${h.rows.length > 1 ? 's' : ''})`);
+  showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Annulé', '');
+  persist({ rows: h.rows, fmt: fmtRows, ano: anos, hist: [h, u] }); refreshPending(); afterChange(true);
+}
+// Rétablir = annuler l'annulation : l'opération d'origine retrouve son effet
+function redoEntry(u) {
+  const h = origOf(u); if (!h || !h.undone) { toast('Cette opération est déjà active.'); return; }
+  const target = h.kind === 'uncheck' ? 0 : 1;
+  h.rows.forEach(r => { ST.status[r] = target; ST.time[r] = target ? (ST.time[r] || h.t) : 0; });
+  const fmtRows = [];
+  if (h.fp) for (const k in h.fp) {
+    const r = +k; if (r >= DATA.lots.length) continue;
+    let v = h.fn && Object.prototype.hasOwnProperty.call(h.fn, k) ? h.fn[k] : null;
+    if (!(h.fn && Object.prototype.hasOwnProperty.call(h.fn, k))) { const a = h.ano ? anoById(h.ano) : null; const m = String(h.label).match(/→ (.+)$/); v = a && a.fs ? a.fs : m ? m[1] : null; }
+    if (v == null || Formats.normFmt(v) === Formats.normFmt(origFmt(r))) delete ST.fmt[r]; else ST.fmt[r] = v;
+    fmtRows.push(r);
+  }
+  const anos = [];
+  if (h.ano) {
+    const a = anoById(h.ano);
+    if (a) { const back = u.ap || { st: h.kind === 'hold' ? 'attente' : h.fp ? 'corrigee' : 'conservee', res: '' }; a.st = back.st; a.res = back.res || a.res; a.tr = Date.now(); anos.push(a); }
+  }
+  h.undone = false; u.undone = true;
+  const r2 = addHist({ kind: 'redo', cmd: 'Rétablir', label: `Rétabli : ${h.label}`, rows: [], ref: h.id, result: 'Annulation annulée : état d\'avant l\'annulation' });
+  flashRows = new Set([...h.rows, ...fmtRows]);
+  setResult(`<b>Rétabli</b> — ${esc(h.label)}`);
+  showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Rétabli', 'ok');
+  persist({ rows: h.rows, fmt: fmtRows, ano: anos, hist: [h, u, r2] }); refreshPending(); afterChange(false);
+}
 function undo() {
   if (!INV) return;
   // d'abord la dernière action faite sur cet appareil (une autre personne peut pointer en même temps)
-  const can = h => !h.undone && (((h.kind === 'check' || h.kind === 'uncheck') && (h.rows.length || h.fp)) || ((h.kind === 'reformat' || h.kind === 'hold') && (h.fp || h.ano)));
-  const mine = HIST.some(h => can(h) && h.dev === DEVICE);
+  const mine = HIST.some(h => canUndo(h) && h.dev === DEVICE);
   for (let i = HIST.length - 1; i >= 0; i--) {
     const h = HIST[i];
-    if (can(h) && (!mine || h.dev === DEVICE)) {
-      h.rows.forEach((row, k) => { ST.status[row] = h.prevS[k]; ST.time[row] = h.prevT[k]; });
-      const fmtRows = [];
-      if (h.fp) for (const k in h.fp) { const r = +k; if (h.fp[k] == null) delete ST.fmt[r]; else ST.fmt[r] = h.fp[k]; fmtRows.push(r); }
-      const anos = [];
-      if (h.ano) { const a = anoById(h.ano); if (a) { setAno(a, 'annulee', 'Décision annulée'); anos.push(a); } }
-      h.undone = true;
-      const u = addHist({ kind: 'undo', cmd: 'Annuler', label: `Annulation : ${h.label}`, rows: [], result: h.rows.length ? `${h.rows.length} lot(s) remis dans leur état précédent` : 'Décision annulée' });
-      flashRows = new Set(h.rows);
-      const lastChk = [...HIST].reverse().find(x => x.kind === 'check' && !x.undone && x.rows.length);
-      lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
-      setResult(`<b>Annulé</b> — ${esc(h.label)} (${h.rows.length} lot${h.rows.length > 1 ? 's' : ''})`);
-      showScan(h.rows.length === 1 ? lotLabel(h.rows[0]) : h.label.replace(/ \((manuel|scan)\)$/, ''), 'Annulé', '');
-      persist({ rows: h.rows, fmt: fmtRows, ano: anos, hist: [h, u] }); refreshPending(); afterChange(true);
-      return;
-    }
+    if (canUndo(h) && (!mine || h.dev === DEVICE)) { undoEntry(h); return; }
   }
   setResult('Rien à annuler.');
+}
+// Depuis l'historique : confirmation, avec l'effet exact et les opérations plus récentes sur les mêmes lots
+function histAction(id, act) {
+  const x = HIST.find(h => h.id === id); if (!x) return;
+  const h = act === 'redo' ? origOf(x) : x;
+  if (!h) return;
+  const later = laterOverlap(h);
+  const n = h.rows.length, nf = Object.keys(h.fp || {}).length;
+  const what = act === 'redo'
+    ? `L'opération « ${esc(h.label)} » retrouve son effet : ${n ? `${n} lot${n > 1 ? 's' : ''} ${h.kind === 'uncheck' ? 'non pointé' + (n > 1 ? 's' : '') : 'pointé' + (n > 1 ? 's' : '')}` : ''}${n && nf ? ', ' : ''}${nf ? 'format corrigé' : ''}${!n && !nf ? 'décision rétablie' : ''}.`
+    : `Les lots de « ${esc(h.label)} » reviennent à leur état d'avant cette opération${nf ? ' (format compris)' : ''}.`;
+  modal(`<h3>${act === 'redo' ? 'Rétablir cette opération ?' : 'Annuler cette opération ?'}</h3>
+    <p>${what}</p>
+    ${later.length ? `<p class="notice"><b>Attention :</b> ${later.length} opération${later.length > 1 ? 's' : ''} plus récente${later.length > 1 ? 's' : ''} touche${later.length > 1 ? 'nt' : ''} les mêmes lots (${later.slice(0, 3).map(l => esc(l.label)).join(' · ')}${later.length > 3 ? '…' : ''}) : elle${later.length > 1 ? 's' : ''} ser${later.length > 1 ? 'ont' : 'a'} remplacée${later.length > 1 ? 's' : ''} pour ces lots.</p>` : ''}
+    <div class="mrow"><button class="btn" id="haNo">Retour</button><button class="btn primary" id="haYes">${act === 'redo' ? 'Rétablir' : 'Annuler l\'opération'}</button></div>`);
+  $('#haNo').onclick = closeModal;
+  $('#haYes').onclick = () => { closeModal(); if (act === 'redo') redoEntry(x); else undoEntry(h); };
 }
 
 function toggleRow(row) {
@@ -765,9 +831,27 @@ function renderAno() {
   $('#anoLog').innerHTML = a.length ? a.map(x => `<div class="a ${Formats.isOpen(x) ? '' : 'done'}"><time>${fmtT(x.t)}</time><b>${esc(x.kind)}</b>${x.n ? ' : ' + esc(x.n) : ''}${x.fo || x.fs ? `<br>${esc(x.fo || '')}${x.fs ? ' → ' + esc(x.fs) : ''}` : ''} <span class="stp ${x.st || 'info'}">${esc(Formats.ST_LABEL[x.st] || 'Note')}</span>${!x.st && x.cmd ? `<br><span class="hint">« ${esc(x.cmd)} »</span>` : ''}</div>`).join('') : '<div>Aucune anomalie.</div>';
   $('#kAno').textContent = open.length;
 }
+function histItem(x, full) {
+  const st = x.kind === 'undo' && x.undone ? ' <span class="tag cl">rétablie</span>' : x.undone ? ' <span class="tag cl">annulée</span>' : '';
+  const btn = canUndo(x) ? `<button type="button" class="hbtn" data-h="${esc(x.id)}" data-a="undo">Annuler</button>`
+    : canRedo(x) ? `<button type="button" class="hbtn redo" data-h="${esc(x.id)}" data-a="redo">Rétablir</button>` : '';
+  return `<div class="${x.undone && x.kind !== 'undo' ? 'u' : ''} hrow"><span><time>${full ? fmtDT(x.t) : fmtT(x.t)}</time><b>${esc(x.label)}</b>${st}${x.result ? '<br>' + esc(x.result) : ''}</span>${btn}</div>`;
+}
+function bindHist(el) { el.querySelectorAll('.hbtn').forEach(b => b.onclick = () => histAction(b.dataset.h, b.dataset.a)); }
 function renderHist() {
   const h = HIST.slice(-60).reverse();
-  $('#histLog').innerHTML = h.length ? h.map(x => `<div class="${x.undone ? 'u' : ''}"><time>${fmtT(x.t)}</time><b>${esc(x.label)}</b>${x.result ? '<br>' + esc(x.result) : ''}</div>`).join('') : '<div>Aucune opération.</div>';
+  $('#histLog').innerHTML = h.length ? h.map(x => histItem(x)).join('') : '<div>Aucune opération.</div>';
+  bindHist($('#histLog'));
+}
+function openHistory() {
+  const h = HIST.slice().reverse();
+  modal(`<h3>Historique — ${esc(INV ? INV.name : '')}</h3>
+    <p>« Annuler » remet les lots dans leur état d'avant l'opération. « Rétablir » annule une annulation : l'opération retrouve son effet.</p>
+    <div class="log histfull">${h.length ? h.map(x => histItem(x, true)).join('') : '<div>Aucune opération.</div>'}</div>
+    <div class="mrow"><button class="btn primary" id="hClose">Fermer</button></div>`);
+  $('#modalBox').classList.add('wide');
+  $('#hClose').onclick = closeModal;
+  bindHist($('#modalBox'));
 }
 function renderAll() { renderStats(); renderRows(); renderAno(); renderHist(); }
 function afterChange(scroll) {
@@ -1058,7 +1142,7 @@ async function doExport(onlyKey) {
   const corr = HIST.filter(h => h.fp && (h.kind === 'reformat' || h.kind === 'check'));
   const s4 = [['Date', 'Heure', n1, n2, 'Ancien format', 'Nouveau format', 'Motif / origine', 'Annulée'],
     ...corr.flatMap(h => Object.keys(h.fp).map(k => { const r = +k; const a = h.ano ? anoById(h.ano) : null; return [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), DATA.lots[r] ?? '', r < DATA.lots.length ? altOf(r) : '', h.fp[k] != null ? h.fp[k] : (r < DATA.lots.length ? origFmt(r) : ''), a && a.fs ? a.fs : '', a ? a.res || '' : (h.result || ''), h.undone ? 'Oui' : '']; })).filter(x => !onlyKey || Formats.normFmt(x[4]) === onlyKey || Formats.normFmt(x[5]) === onlyKey)];
-  const KIND = { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture', session: 'Séance', scan: 'Scan', hold: 'Mise en attente', reformat: 'Correction de format' };
+  const KIND = { import: 'Import', check: 'Pointage', uncheck: 'Retrait', undo: 'Annulation', close: 'Clôture', reopen: 'Réouverture', session: 'Séance', scan: 'Scan', hold: 'Mise en attente', reformat: 'Correction de format', redo: 'Rétablissement' };
   const s5 = [['Date', 'Heure', 'Opération', 'Commande', 'Détail', 'Lots modifiés', 'Annulée'],
     ...HIST.map(h => [new Date(h.t).toLocaleDateString('fr-FR'), new Date(h.t).toLocaleTimeString('fr-FR'), KIND[h.kind] || h.kind, h.cmd || '', h.label + (h.result ? ' — ' + h.result : ''), h.rows ? h.rows.length : 0, h.undone ? 'Oui' : ''])];
   const fit = (aoa, min, max) => aoa[0].map((_, i) => Math.min(max, Math.max(min, ...aoa.slice(0, 101).map(r => String(r[i] ?? '').length + 2))));
@@ -1214,6 +1298,7 @@ $('#bManage').onclick = async () => { await refreshInvList(INV && INV.id); manag
 $('#bUndo').onclick = undo;
 $('#bBip').onclick = () => openBipGuide();
 $('#bAnoAll').onclick = () => { if (INV) openAnomalies(); };
+$('#bHistAll').onclick = () => { if (INV) openHistory(); };
 $('#kAnoBox').onclick = () => { if (INV) { anoFilter.st = 'open'; openAnomalies(); } };
 if ('BarcodeDetector' in window && navigator.mediaDevices && matchMedia('(pointer: coarse)').matches) { $('#bCam').hidden = false; $('#bCam').onclick = openCamera; }
 let wake = null;

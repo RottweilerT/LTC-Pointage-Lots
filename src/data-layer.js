@@ -68,9 +68,9 @@ const Cloud = {
   },
   histDoc(h) {
     return { inv: h.inv, id: h.id, seq: h.seq, t: h.t, dev: h.dev || '', kind: h.kind, cmd: h.cmd || '', label: h.label || '', result: h.result || '', undone: !!h.undone,
-      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [], fp: h.fp || null, sc: h.sc || null, ano: h.ano || null }) };
+      d: JSON.stringify({ rows: h.rows || [], prevS: h.prevS || [], prevT: h.prevT || [], fp: h.fp || null, fn: h.fn || null, sc: h.sc || null, ano: h.ano || null, ref: h.ref || null, ap: h.ap || null }) };
   },
-  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [], fp: d.fp || null, sc: d.sc || null, ano: d.ano || null }; },
+  histFrom(x) { let d = {}; try { d = JSON.parse(x.d || '{}'); } catch (e) {} return { id: x.id, inv: x.inv, seq: x.seq || 0, t: x.t, dev: x.dev, kind: x.kind, cmd: x.cmd, label: x.label, result: x.result, undone: !!x.undone, rows: d.rows || [], prevS: d.prevS || [], prevT: d.prevT || [], fp: d.fp || null, fn: d.fn || null, sc: d.sc || null, ano: d.ano || null, ref: d.ref || null, ap: d.ap || null }; },
   invDoc(inv) { return { id: inv.id, name: inv.name, created: inv.created, closed: !!inv.closed, columns: inv.columns, lotCol: inv.lotCol, altCol: inv.altCol ?? null, fmtCol: inv.fmtCol ?? null, qtyCol: inv.qtyCol ?? null, date: inv.date || '', archived: !!inv.archived, count: inv.count, chunk: CHUNK }; },
   watchList(cb) {
     if (this.invUnsub) this.invUnsub();
