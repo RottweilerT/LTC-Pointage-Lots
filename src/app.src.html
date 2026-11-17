@@ -64,6 +64,16 @@ select.btn { padding-right: 8px; max-width: 260px }
 @media (prefers-reduced-motion: reduce) { .flash { animation: none !important } }
 .scan { background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center }
 .scanform { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.scanhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap }
+.bipbtn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; min-height: 32px; padding: 4px 8px; border-radius: 6px }
+.bipbtn:hover { background: var(--accent-soft) }
+.modal.wide { width: min(900px, 100%) }
+.biptabs { display: flex; gap: 6px; flex-wrap: wrap }
+.biptabs .chip[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); font-weight: 600 }
+.bippage { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden }
+.bippage img { display: block; width: 100%; height: auto }
+a.btn { text-decoration: none; color: inherit }
+.bipsteps { margin: 0; padding-left: 20px; color: var(--ink); font-size: 14px; display: grid; gap: 2px }
 .scanlbl { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600 }
 .scan .field input { font: 600 22px var(--f-num); min-height: 54px; letter-spacing: .04em }
 .scan .field input::placeholder { font: 400 16px var(--f-ui); letter-spacing: 0 }
@@ -237,7 +247,8 @@ select.btn { padding-right: 8px; max-width: 260px }
 
   <section class="scan" aria-label="Saisie manuelle et scanner">
     <form class="scanform" id="scanForm">
-      <label for="scanInput" class="scanlbl">Saisie manuelle / scanner</label>
+      <div class="scanhead"><label for="scanInput" class="scanlbl">Saisie manuelle / scanner</label>
+        <button type="button" class="linkbtn bipbtn" id="bBip"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>Volume bip scanner</button></div>
       <div class="field">
         <input id="scanInput" placeholder="Code-barres ou n° de lot" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
         <button class="btn primary">Pointer</button>
@@ -680,11 +691,11 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = fal
 let modalHist = false, backPending = false, wantPush = false;
 function modalPush() { try { history.pushState({ ptModal: 1 }, ''); modalHist = true; } catch (e) {} }
 function modal(html) {
-  $('#modalBox').innerHTML = html; $('#modal').hidden = false;
+  $('#modalBox').classList.remove('wide'); $('#modalBox').innerHTML = html; $('#modal').hidden = false;
   if (!modalHist) { if (backPending) wantPush = true; else modalPush(); }
 }
 function closeModal(fromPop) {
-  $('#modal').hidden = true; $('#modalBox').innerHTML = '';
+  $('#modal').hidden = true; $('#modalBox').innerHTML = ''; $('#modalBox').classList.remove('wide');
   if (modalHist && fromPop !== true) { modalHist = false; backPending = true; try { history.back(); } catch (e) { backPending = false; } }
   else modalHist = false;
 }
@@ -695,6 +706,28 @@ addEventListener('popstate', () => {
 let actx;
 function tone(f, d) { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; g.gain.value = .06; o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {} }
 const tick = () => tone(880, .06), beep = () => { tone(330, .15); setTimeout(() => tone(260, .2), 160); };
+/* ---------- Volume bip scanner : guide Datalogic QM2400 (codes de programmation à scanner à l'écran) ---------- */
+const BIP_PAGES = [
+  { t: 'Les 2 bips', img: 'guide-scanner/page-1.png', alt: 'Guide des deux bips du scanner : bip 1 lecture réussie, bip 2 transmission radio réussie, procédure commune' },
+  { t: 'Bip 1 · Lecture', img: 'guide-scanner/page-2.png', alt: 'Bip 1, volume du bip de lecture : codes Enter/Exit Programming Mode, Beeper Off, Low, Medium, High' },
+  { t: 'Bip 2 · Transmission', img: 'guide-scanner/page-3.png', alt: 'Bip 2, bip de transmission radio : codes Enter/Exit Programming Mode, Disable, Enable, fréquence Low, Medium, High' }
+];
+function openBipGuide(tab) {
+  if (tab == null) tab = Math.min(BIP_PAGES.length - 1, Math.max(0, +(settings.bipTab || 0)));
+  settings.bipTab = tab; saveSettings();
+  const pg = BIP_PAGES[tab];
+  modal(`
+    <h3>Volume bip scanner</h3>
+    <p>Datalogic QuickScan QM2400 · socle BC2030. Les codes peuvent être scannés directement sur cet écran (luminosité au maximum) ou sur le PDF imprimé.</p>
+    <ol class="bipsteps"><li>Scanner « Enter/Exit Programming Mode ».</li><li>Scanner <b>un seul</b> code de réglage.</li><li>Scanner à nouveau « Enter/Exit Programming Mode ».</li></ol>
+    <div class="biptabs" role="tablist">${BIP_PAGES.map((p, i) => `<button class="chip" role="tab" data-t="${i}" aria-selected="${i === tab}">${esc(p.t)}</button>`).join('')}</div>
+    <div class="bippage" role="tabpanel"><img src="${pg.img}" alt="${esc(pg.alt)}"></div>
+    <div class="mrow"><a class="btn" href="guide-scanner/guide-bip-scanner.pdf" target="_blank" rel="noopener">Ouvrir le PDF (à imprimer)</a><button class="btn primary" id="bipClose">Fermer</button></div>`);
+  $('#modalBox').classList.add('wide');
+  $('#modalBox').querySelectorAll('.biptabs .chip').forEach(b => b.onclick = () => { const y = $('#modalBox').scrollTop; openBipGuide(+b.dataset.t); $('#modalBox').scrollTop = y; });
+  $('#bipClose').onclick = closeModal;
+}
+
 function askConfirm(title, text, okLabel, fn, danger) {
   modal(`<h3>${esc(title)}</h3><p>${text}</p><div class="mrow"><button class="btn" id="mNo">Annuler</button><button class="btn ${danger ? 'danger' : 'primary'}" id="mYes">${esc(okLabel)}</button></div>`);
   $('#mNo').onclick = closeModal; $('#mYes').onclick = () => { closeModal(); fn(); };
@@ -951,6 +984,7 @@ function manageInventories() {
 /* ---------- Événements ---------- */
 $('#bManage').onclick = async () => { await refreshInvList(INV && INV.id); manageInventories(); };
 $('#bUndo').onclick = undo;
+$('#bBip').onclick = () => openBipGuide();
 let wake = null;
 const keepAwake = () => { try { if (!wake && navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wake = w; w.addEventListener('release', () => wake = null); }).catch(() => {}); } catch (e) {} };
 document.addEventListener('pointerdown', keepAwake); document.addEventListener('keydown', keepAwake);

@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html sw.js manifest.webmanifest .nojekyll *.png _site/
+          cp -r guide-scanner _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
