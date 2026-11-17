@@ -68,12 +68,14 @@ select.btn { padding-right: 8px; max-width: 260px }
 .bipbtn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; min-height: 32px; padding: 4px 8px; border-radius: 6px }
 .bipbtn:hover { background: var(--accent-soft) }
 .modal.wide { width: min(900px, 100%) }
-.biptabs { display: flex; gap: 6px; flex-wrap: wrap }
+.modal.bip { width: min(760px, 100%); height: 100%; padding: 12px; gap: 10px; overflow: hidden }
+.biphead { display: flex; align-items: center; gap: 8px; flex: none }
+.biptabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0 }
 .biptabs .chip[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); font-weight: 600 }
-.bippage { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden }
-.bippage img { display: block; width: 100%; height: auto }
-a.btn { text-decoration: none; color: inherit }
-.bipsteps { margin: 0; padding-left: 20px; color: var(--ink); font-size: 14px; display: grid; gap: 2px }
+.bipx { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 24px; line-height: 1 }
+/* la page entière tient dans la fenêtre, sans défilement */
+.bippage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center }
+.bippage img { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 6px }
 .scanlbl { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600 }
 .scan .field input { font: 600 22px var(--f-num); min-height: 54px; letter-spacing: .04em }
 .scan .field input::placeholder { font: 400 16px var(--f-ui); letter-spacing: 0 }
@@ -691,11 +693,11 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = fal
 let modalHist = false, backPending = false, wantPush = false;
 function modalPush() { try { history.pushState({ ptModal: 1 }, ''); modalHist = true; } catch (e) {} }
 function modal(html) {
-  $('#modalBox').classList.remove('wide'); $('#modalBox').innerHTML = html; $('#modal').hidden = false;
+  $('#modalBox').classList.remove('wide', 'bip'); $('#modalBox').innerHTML = html; $('#modal').hidden = false;
   if (!modalHist) { if (backPending) wantPush = true; else modalPush(); }
 }
 function closeModal(fromPop) {
-  $('#modal').hidden = true; $('#modalBox').innerHTML = ''; $('#modalBox').classList.remove('wide');
+  $('#modal').hidden = true; $('#modalBox').innerHTML = ''; $('#modalBox').classList.remove('wide', 'bip');
   if (modalHist && fromPop !== true) { modalHist = false; backPending = true; try { history.back(); } catch (e) { backPending = false; } }
   else modalHist = false;
 }
@@ -717,14 +719,13 @@ function openBipGuide(tab) {
   settings.bipTab = tab; saveSettings();
   const pg = BIP_PAGES[tab];
   modal(`
-    <h3>Volume bip scanner</h3>
-    <p>Datalogic QuickScan QM2400 · socle BC2030. Les codes peuvent être scannés directement sur cet écran (luminosité au maximum) ou sur le PDF imprimé.</p>
-    <ol class="bipsteps"><li>Scanner « Enter/Exit Programming Mode ».</li><li>Scanner <b>un seul</b> code de réglage.</li><li>Scanner à nouveau « Enter/Exit Programming Mode ».</li></ol>
-    <div class="biptabs" role="tablist">${BIP_PAGES.map((p, i) => `<button class="chip" role="tab" data-t="${i}" aria-selected="${i === tab}">${esc(p.t)}</button>`).join('')}</div>
-    <div class="bippage" role="tabpanel"><img src="${pg.img}" alt="${esc(pg.alt)}"></div>
-    <div class="mrow"><a class="btn" href="guide-scanner/guide-bip-scanner.pdf" target="_blank" rel="noopener">Ouvrir le PDF (à imprimer)</a><button class="btn primary" id="bipClose">Fermer</button></div>`);
-  $('#modalBox').classList.add('wide');
-  $('#modalBox').querySelectorAll('.biptabs .chip').forEach(b => b.onclick = () => { const y = $('#modalBox').scrollTop; openBipGuide(+b.dataset.t); $('#modalBox').scrollTop = y; });
+    <div class="biphead">
+      <div class="biptabs" role="tablist" aria-label="Volume bip scanner">${BIP_PAGES.map((p, i) => `<button class="chip" role="tab" data-t="${i}" aria-selected="${i === tab}">${esc(p.t)}</button>`).join('')}</div>
+      <button class="bipx" id="bipClose" aria-label="Fermer">×</button>
+    </div>
+    <div class="bippage" role="tabpanel"><img src="${pg.img}" alt="${esc(pg.alt)}"></div>`);
+  $('#modalBox').classList.add('wide', 'bip');
+  $('#modalBox').querySelectorAll('.biptabs .chip').forEach(b => b.onclick = () => openBipGuide(+b.dataset.t));
   $('#bipClose').onclick = closeModal;
 }
 

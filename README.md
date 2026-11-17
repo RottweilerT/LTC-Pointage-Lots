@@ -6,7 +6,7 @@ Appli web d'inventaire : on importe la liste Excel des lots attendus, puis on po
 - Données partagées : Firebase Firestore (projet `ltc-pointage-lots-4bfa7`). Tous les appareils voient le même inventaire en direct ; hors ligne, les actions sont gardées sur l'appareil et envoyées au retour du réseau.
 - La configuration Firebase est dans `src/app.src.html` (`FIREBASE_CONFIG`). Si des inventaires avaient été commencés sur un appareil avant le branchement, un bouton propose de les envoyer vers la base.
 - `firestore.rules` : règles d'accès à coller dans Firebase → Firestore Database → Règles.
-- **Volume bip scanner** (lien dans la case « Saisie manuelle / scanner ») : guide Datalogic QM2400 / socle BC2030 avec les codes de programmation des deux bips, scannables à l'écran ; PDF d'origine dans `guide-scanner/`.
+- **Volume bip scanner** (lien dans la case « Saisie manuelle / scanner ») : les 3 pages du guide Datalogic QM2400 / socle BC2030 (codes de programmation des deux bips) en onglets, chaque page affichée en entier ; PDF d'origine dans `guide-scanner/`.
 - **Code d'accès** : l'appli s'ouvre sur un écran de code, demandé une fois par appareil (« Options… » → « Verrouiller cet appareil » pour le redemander). Le code est le mot de passe du compte Firebase unique `pointage@ltc-pointage-lots.app` (Authentication → Utilisateurs ; changer le code = changer ce mot de passe). Les règles n'autorisent la base qu'aux appareils connectés. Le même code doit être enregistré dans le secret GitHub `POINTAGE_CODE` pour la sauvegarde de nuit.
 
 ## Utilisation
