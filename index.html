@@ -105,6 +105,11 @@ select.btn { padding-right: 8px; max-width: 260px }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-right: auto }
 .chip { border: 1px solid var(--line); background: var(--surface-2); border-radius: 99px; padding: 5px 12px; font-size: 13px; min-height: 34px }
 .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); font-weight: 600 }
+.fmtpick { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); min-width: 0 }
+.fmtpick select { border: 1px solid var(--line); border-radius: 99px; background: var(--surface-2); color: var(--ink); padding: 5px 10px; min-height: 34px; max-width: 220px; font-size: 13px }
+.fmtpick.on select { background: var(--accent-soft); border-color: var(--accent); font-weight: 600 }
+.viewcount { flex-basis: 100%; font-size: 12px; color: var(--muted) }
+.viewcount button { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; text-decoration: underline; padding: 2px 4px; min-height: 28px }
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent) }
 .thead, .trow { display: grid; grid-template-columns: var(--cols); align-items: center; gap: 10px; padding: 0 12px }
@@ -253,7 +258,11 @@ select.btn { padding-right: 8px; max-width: 260px }
           <button class="chip" data-f="done" aria-pressed="false">Pointés</button>
           <button class="chip" data-f="dup" aria-pressed="false">Doublons</button>
         </div>
+        <label class="fmtpick" id="fmtWrap" hidden><span id="fmtLbl">Format</span>
+          <select id="fmtSel" aria-label="Filtrer par format"></select>
+        </label>
         <label class="toggle"><input type="checkbox" id="autoScroll" checked> Défilement auto</label>
+        <div class="viewcount" id="viewCount" hidden></div>
       </div>
       <div class="scroller" id="scroller"><div class="thead" id="thead"></div><div class="spacer" id="spacer"></div></div>
     </section>
@@ -970,7 +979,7 @@ async function localLoad(id) {
 let remoteT = null;
 function onRemote() {
   clearTimeout(remoteT);
-  remoteT = setTimeout(() => { if (!INV) return; applyFilter(); renderAll(); refreshInvSelect(INV.id); }, 120);
+  remoteT = setTimeout(() => { if (!INV) return; renderFmtOptions(); applyFilter(); renderAll(); refreshInvSelect(INV.id); }, 120);
 }
 
 async function loadInventory(id) {
@@ -987,7 +996,7 @@ async function loadInventory(id) {
   lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
   flashRows = new Set();
   settings.last = id; saveSettings();
-  buildHead(); applyFilter(); renderAll();
+  buildHead(); setupFmtFilter(); applyFilter(); renderAll();
   return true;
 }
 let POS = new Int32Array(0);
@@ -1224,13 +1233,67 @@ function buildHead() {
   document.documentElement.style.setProperty('--tmin', tmin + 'px');
   $('#thead').innerHTML = INV ? tc.map(c => `<span class="${c.k === 'lot' ? 'lothd' : ''}" title="${esc(c.label)}">${esc(c.label)}</span>`).join('') : '';
   $('#thead').hidden = !INV;
+  if (!INV) { $('#fmtWrap').hidden = true; $('#viewCount').hidden = true; fmtVal = ''; }
+}
+/* ---------- Filtre par format (packaging_name, format, conditionnement…) ----------
+   Affichage seulement : aucune donnée modifiée. Le choix est retenu par liste sur cet appareil. */
+let fmtCol = -1, fmtVal = '';
+function guessFmtCol() {
+  if (!INV) return -1;
+  const alt = INV.altCol ?? -1;
+  const cand = INV.columns.map((c, i) => i).filter(i => i !== INV.lotCol && i !== alt);
+  const named = cand.find(i => /packag|format|conditionn|emballage|type/i.test(INV.columns[i] || ''));
+  if (named !== undefined) return named;
+  // sinon : la colonne texte avec peu de valeurs différentes
+  let best = -1, bestN = Infinity;
+  for (const i of cand) {
+    const vals = new Set(DATA.rows.map(r => String(r[i] ?? '').trim()).filter(Boolean));
+    if (vals.size >= 2 && vals.size <= 30 && vals.size < bestN && ![...vals].every(v => /^\d+$/.test(v))) { best = i; bestN = vals.size; }
+  }
+  return best;
+}
+const fmtOf = r => String(DATA.rows[r][fmtCol] ?? '').trim() || '(vide)';
+function setupFmtFilter() {
+  fmtCol = guessFmtCol();
+  const wrap = $('#fmtWrap'), sel = $('#fmtSel');
+  if (fmtCol < 0) { wrap.hidden = true; fmtVal = ''; return; }
+  const saved = (settings.fmtFilter || {})[INV.id] || '';
+  const vals = [...new Set(ORDER.map(fmtOf))];
+  fmtVal = vals.includes(saved) ? saved : '';
+  $('#fmtLbl').textContent = INV.columns[fmtCol];
+  wrap.hidden = false;
+  renderFmtOptions();
+}
+function renderFmtOptions() {
+  if (fmtCol < 0 || !INV) return;
+  const tot = new Map(), todo = new Map();
+  for (const r of ORDER) { const f = fmtOf(r); tot.set(f, (tot.get(f) || 0) + 1); if (!ST.status[r]) todo.set(f, (todo.get(f) || 0) + 1); }
+  const vals = [...tot.keys()].sort((a, b) => tot.get(b) - tot.get(a) || a.localeCompare(b, 'fr', { numeric: true }));
+  const lab = f => `${f} — ${tot.get(f)} lot${tot.get(f) > 1 ? 's' : ''}${todo.get(f) ? ', ' + todo.get(f) + ' à pointer' : ', tout pointé'}`;
+  $('#fmtSel').innerHTML = `<option value="">Tous les formats (${ORDER.length})</option>` + vals.map(f => `<option value="${esc(f)}" ${f === fmtVal ? 'selected' : ''}>${esc(lab(f))}</option>`).join('');
+  $('#fmtSel').value = fmtVal;
+  $('#fmtWrap').classList.toggle('on', !!fmtVal);
 }
 function applyFilter() {
   if (!INV) { VIEW = []; return; }
-  if (filter === 'all') VIEW = ORDER;
-  else if (filter === 'todo') VIEW = ORDER.filter(r => !ST.status[r]);
-  else if (filter === 'done') VIEW = ORDER.filter(r => ST.status[r]);
-  else VIEW = ORDER.filter(r => IDX.dupRows.has(r));
+  let v = ORDER;
+  if (fmtVal && fmtCol >= 0) v = v.filter(r => fmtOf(r) === fmtVal);
+  if (filter === 'todo') v = v.filter(r => !ST.status[r]);
+  else if (filter === 'done') v = v.filter(r => ST.status[r]);
+  else if (filter === 'dup') v = v.filter(r => IDX.dupRows.has(r));
+  VIEW = v;
+  const vc = $('#viewCount');
+  if (fmtVal) {
+    const all = ORDER.filter(r => fmtOf(r) === fmtVal), done = all.filter(r => ST.status[r]).length;
+    vc.hidden = false;
+    vc.innerHTML = `Format « ${esc(fmtVal)} » : ${VIEW.length} ligne${VIEW.length > 1 ? 's' : ''} affichée${VIEW.length > 1 ? 's' : ''} · ${done} / ${all.length} pointé${done > 1 ? 's' : ''} <button type="button" id="fmtClear">Afficher tous les formats</button>`;
+    $('#fmtClear').onclick = () => setFmt('');
+  } else vc.hidden = true;
+}
+function setFmt(v) {
+  fmtVal = v;
+  try { settings.fmtFilter = settings.fmtFilter || {}; if (v) settings.fmtFilter[INV.id] = v; else delete settings.fmtFilter[INV.id]; saveSettings(); } catch (e) {}
+  renderFmtOptions(); applyFilter(); $('#scroller').scrollTop = 0; renderRows();
 }
 let nextRow = -1;
 function renderRows() {
@@ -1292,7 +1355,8 @@ function renderHist() {
 }
 function renderAll() { renderStats(); renderRows(); renderAno(); renderHist(); }
 function afterChange(scroll) {
-  if (filter !== 'all') applyFilter();
+  if (filter !== 'all' || fmtVal) applyFilter();
+  renderFmtOptions();
   renderStats(); renderAno(); renderHist();
   if (scroll && settings.autoScroll && nextRow >= 0) scrollToRow(nextRow, false);
   renderRows();
@@ -1627,7 +1691,7 @@ function scanSubmit() {
   applyPlan({ mode: 'check', items: [{ kind: 'single', n: Number(v) }], except: [], warnings: [], label: DATA.lots[rows[0]] + ' (scan)' }, { rows, missing: [], emptyRanges: [] }, 'Scan ' + raw.trim());
   showScan(lotLabel(rows[0]), was ? 'Déjà pointé' : 'Pointé ✓', was ? 'dup' : 'ok');
   if (was) tone(520, .12);
-  if (filter === 'all' && settings.autoScroll) { scrollToRow(rows[0], true); renderRows(); }
+  if (filter === 'all' && !fmtVal && settings.autoScroll) { scrollToRow(rows[0], true); renderRows(); }
 }
 function scanInput() {
   const now = Date.now();
@@ -1646,6 +1710,7 @@ document.addEventListener('keydown', e => {
   if (e.key.length === 1 && /[0-9&é"'(\-è_çà]/.test(e.key)) { e.preventDefault(); scanIn.value += e.key; scanInput(); }
 });
 try { if (matchMedia('(pointer: fine)').matches) scanIn.focus({ preventScroll: true }); } catch (e) {}
+$('#fmtSel').onchange = e => setFmt(e.target.value);
 document.querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = c.dataset.f; document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === c)); applyFilter(); $('#scroller').scrollTop = 0; renderRows(); });
 $('#autoScroll').checked = settings.autoScroll;
 $('#autoScroll').onchange = e => { settings.autoScroll = e.target.checked; saveSettings(); };

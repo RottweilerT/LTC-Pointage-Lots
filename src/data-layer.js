@@ -153,7 +153,7 @@ async function localLoad(id) {
 let remoteT = null;
 function onRemote() {
   clearTimeout(remoteT);
-  remoteT = setTimeout(() => { if (!INV) return; applyFilter(); renderAll(); refreshInvSelect(INV.id); }, 120);
+  remoteT = setTimeout(() => { if (!INV) return; renderFmtOptions(); applyFilter(); renderAll(); refreshInvSelect(INV.id); }, 120);
 }
 
 async function loadInventory(id) {
@@ -170,7 +170,7 @@ async function loadInventory(id) {
   lastRow = lastChk ? lastChk.rows.reduce((m, x) => POS[x] > POS[m] ? x : m, lastChk.rows[0]) : -1; ST.lastRow = lastRow;
   flashRows = new Set();
   settings.last = id; saveSettings();
-  buildHead(); applyFilter(); renderAll();
+  buildHead(); setupFmtFilter(); applyFilter(); renderAll();
   return true;
 }
 let POS = new Int32Array(0);
