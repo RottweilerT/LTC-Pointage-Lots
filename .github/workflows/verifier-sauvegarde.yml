@@ -1,0 +1,155 @@
+name: Vérifier la sauvegarde
+
+# Test SANS RISQUE de la sauvegarde : rien n'est écrit dans Firebase ni dans le dépôt.
+# 1. Déchiffre sauvegarde/base.json.enc avec le secret SAUVEGARDE_CLE (preuve que la clé est la bonne).
+# 2. Vérifie que le contenu est complet et au bon format pour « Restaurer la base ».
+# 3. Prépare chaque document exactement comme la restauration le ferait, mais sans l'envoyer.
+# 4. Vérifie la cohérence des ventes : chaque document rattaché à une vente existante,
+#    nombre de lots des tranches = nombre de lots annoncé par la vente.
+# 5. Compare avec la base actuelle (lecture seule) : documents identiques, modifiés depuis, nouveaux, disparus.
+# 6. Vérifie que la base est fermée au public (lecture sans code d'accès refusée).
+# Le journal n'affiche que des nombres (le dépôt est public) : aucun nom de vente, numéro de lot ni identifiant.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Commit de la sauvegarde à vérifier (laisser vide = la plus récente)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Déchiffrer la sauvegarde
+        env:
+          CLE: ${{ secrets.SAUVEGARDE_CLE }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ -z "$CLE" ]; then echo "::error::Le secret SAUVEGARDE_CLE manque dans les réglages du dépôt"; exit 1; fi
+          if [ ! -f sauvegarde/base.json.enc ] && [ -z "$VERSION" ]; then echo "::error::Aucune sauvegarde dans le dépôt (sauvegarde/base.json.enc absent)"; exit 1; fi
+          if [ -n "$VERSION" ]; then
+            if ! git show "$VERSION:sauvegarde/base.json.enc" > /tmp/base.enc 2>/dev/null; then echo "::error::Pas de sauvegarde dans la version demandée"; exit 1; fi
+          else cp sauvegarde/base.json.enc /tmp/base.enc; fi
+          if ! openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in /tmp/base.enc -out /tmp/base.json -pass env:CLE 2>/dev/null; then
+            echo "::error::Déchiffrement impossible : la clé SAUVEGARDE_CLE ne correspond pas à celle qui a chiffré cette sauvegarde"; exit 1
+          fi
+          echo "::notice::Déchiffrement réussi : la clé est la bonne"
+      - name: Contrôler la sauvegarde et la comparer à la base (lecture seule)
+        env:
+          CODE: ${{ secrets.POINTAGE_CODE }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request, urllib.error
+          OUT = open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a", encoding="utf-8")
+          def note(t): OUT.write(t + "\n")
+          erreurs, alertes = [], []
+          try: b = json.load(open("/tmp/base.json"))
+          except Exception: raise SystemExit("::error::Le fichier déchiffré n'est pas lisible (JSON invalide)")
+          if not isinstance(b.get("collections"), dict) or not b.get("projet"): raise SystemExit("::error::Format inattendu : ce n'est pas une sauvegarde du pointage")
+          ATTENDU = ["pt_inventaires", "pt_lignes", "pt_etat", "pt_journal", "pt_anomalies"]
+          C = b["collections"]
+          manque = [c for c in ATTENDU if c not in C]
+          if manque: erreurs.append("collections absentes : " + ", ".join(manque))
+
+          # Préparation des écritures exactement comme « Restaurer la base », sans envoi
+          prets, trop_gros, mal = 0, 0, 0
+          for col, docs in C.items():
+              for i, fields in docs.items():
+                  if not isinstance(fields, dict): mal += 1; continue
+                  if len(json.dumps({"fields": fields}).encode()) > 1_000_000: trop_gros += 1
+                  prets += 1
+          if mal: erreurs.append(f"{mal} document(s) mal formé(s)")
+          if trop_gros: erreurs.append(f"{trop_gros} document(s) dépassent 1 Mo")
+
+          # Cohérence des ventes (sans afficher aucun nom)
+          def val(f, k):
+              v = (f or {}).get(k) or {}
+              if "stringValue" in v: return v["stringValue"]
+              if "integerValue" in v: return int(v["integerValue"])
+              if "doubleValue" in v: return v["doubleValue"]
+              if "booleanValue" in v: return v["booleanValue"]
+              if "arrayValue" in v: return v["arrayValue"].get("values", [])
+              return None
+          ventes = set(C.get("pt_inventaires", {}).keys())
+          orphelins = {col: sum(1 for f in C.get(col, {}).values() if val(f, "inv") not in ventes) for col in ATTENDU[1:]}
+          nb_orph = sum(orphelins.values())
+          if nb_orph: alertes.append(f"{nb_orph} document(s) rattaché(s) à une vente qui n'existe plus (" + ", ".join(f"{c} {n}" for c, n in orphelins.items() if n) + ")")
+          lots_par_vente = {}
+          for f in C.get("pt_lignes", {}).values():
+              lots_par_vente[val(f, "inv")] = lots_par_vente.get(val(f, "inv"), 0) + len(val(f, "lots") or [])
+          ecarts, sans_lignes, total_lots = 0, 0, 0
+          for i, f in C.get("pt_inventaires", {}).items():
+              n = lots_par_vente.get(i, 0); total_lots += n
+              if n == 0: sans_lignes += 1
+              elif val(f, "count") is not None and val(f, "count") != n: ecarts += 1
+          if sans_lignes: erreurs.append(f"{sans_lignes} vente(s) sans aucune ligne de listing")
+          if ecarts: alertes.append(f"{ecarts} vente(s) dont le nombre de lots ne correspond pas au total annoncé")
+          pointes = sum(len(((f.get("t") or {}).get("mapValue") or {}).get("fields") or {}) for f in C.get("pt_etat", {}).values())
+
+          # Lecture de la base actuelle (aucune écriture), avec le code d'accès de l'appli
+          page = open("index.html", encoding="utf-8").read()
+          KEY = re.search(r'apiKey:\s*"([^"]+)"', page).group(1)
+          m = re.search(r"AUTH_EMAIL\s*=\s*'([^']+)'", page)
+          EMAIL = m.group(1) if m else "pointage@ltc-pointage-lots.app"
+          REF = {"Referer": "https://rottweilert.github.io/LTC-Pointage-Lots/"}
+          HDR = dict(REF)
+          code = os.environ.get("CODE", "")
+          if not code: print("::error::Le secret POINTAGE_CODE manque : impossible de comparer avec la base"); raise SystemExit(1)
+          r = urllib.request.Request(f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={KEY}",
+              data=json.dumps({"email": EMAIL, "password": code, "returnSecureToken": True}).encode(), headers={**REF, "Content-Type": "application/json"})
+          try: HDR["Authorization"] = "Bearer " + json.load(urllib.request.urlopen(r))["idToken"]
+          except urllib.error.HTTPError as e: print(f"::error::Identification refusée ({e.code}) : le secret POINTAGE_CODE ne correspond pas au code d'accès"); raise SystemExit(1)
+          base = f"https://firestore.googleapis.com/v1/projects/{b['projet']}/databases/(default)/documents"
+          def lire(col):
+              docs, token = {}, ""
+              while True:
+                  url = f"{base}/{col}?pageSize=300&key={KEY}" + (f"&pageToken={token}" if token else "")
+                  data = json.load(urllib.request.urlopen(urllib.request.Request(url, headers=HDR)))
+                  for d in data.get("documents", []): docs[d["name"].split("/")[-1]] = d.get("fields", {})
+                  token = data.get("nextPageToken")
+                  if not token: return docs
+
+          note("## Vérification de la sauvegarde (aucune écriture)\n")
+          note("- Déchiffrement : **réussi** (la clé est la bonne)")
+          note(f"- Documents prêts à être restaurés : **{prets}**")
+          note(f"- Ventes : **{len(ventes)}** · lots dans les listings : **{total_lots}** · lots pointés : **{pointes}**\n")
+          note("| Partie de la base | Dans la sauvegarde | Dans la base actuelle | Identiques | Modifiés depuis | Ajoutés depuis | Disparus depuis |")
+          note("|---|---|---|---|---|---|---|")
+          NOMS = {"pt_inventaires": "Ventes", "pt_lignes": "Listings (tranches de 500 lots)", "pt_etat": "Pointages", "pt_journal": "Historique", "pt_anomalies": "Anomalies"}
+          for col in ATTENDU:
+              s = C.get(col, {})
+              try: a = lire(col)
+              except urllib.error.HTTPError as e: erreurs.append(f"lecture de {col} impossible ({e.code})"); continue
+              ident = sum(1 for i in s if i in a and a[i] == s[i])
+              modif = sum(1 for i in s if i in a and a[i] != s[i])
+              ajout = sum(1 for i in a if i not in s)
+              disp = sum(1 for i in s if i not in a)
+              note(f"| {NOMS[col]} | {len(s)} | {len(a)} | {ident} | {modif} | {ajout} | {disp} |")
+              print(f"{col} : sauvegarde {len(s)} · base {len(a)} · identiques {ident} · modifiés {modif} · ajoutés {ajout} · disparus {disp}")
+
+          # La base est-elle fermée au public ? (lecture sans code d'accès)
+          try:
+              urllib.request.urlopen(urllib.request.Request(f"{base}/pt_inventaires?pageSize=1&key={KEY}", headers=REF)).read()
+              ferme = False
+          except urllib.error.HTTPError as e: ferme = e.code in (401, 403)
+          note(f"\n- Base fermée au public (lecture sans code refusée) : **{'oui' if ferme else 'NON, la base est lisible sans code'}**")
+          print("Base fermée au public :", "oui" if ferme else "non")
+          if not ferme: erreurs.append("la base est lisible sans code d'accès : vérifier les règles publiées dans la console Firebase")
+
+          note("\n« Modifiés / ajoutés / disparus depuis » = changements faits dans l'appli après la sauvegarde : c'est normal.")
+          for a in alertes: note(f"\n⚠️ {a}"); print("::warning::" + a)
+          if erreurs:
+              note("\n**Problèmes :** " + " ; ".join(erreurs))
+              for e in erreurs: print("::error::" + e)
+              raise SystemExit(1)
+          note("\n**Résultat : la sauvegarde est complète et restaurable.**")
+          print(f"::notice::Sauvegarde complète et restaurable : {prets} documents prêts, {len(ventes)} ventes, aucune écriture effectuée")
+          PY
+          rm -f /tmp/base.json /tmp/base.enc

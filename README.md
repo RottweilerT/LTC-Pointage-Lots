@@ -71,6 +71,7 @@ Pointer une plage ne coûte qu'une écriture par tranche touchée : un inventair
 ## Sauvegardes (onglet Actions)
 
 - **Sauvegarde de la base** : chaque nuit, copie chiffrée de toute la base dans `sauvegarde/base.json.enc` (secret du dépôt `SAUVEGARDE_CLE` requis).
+- **Vérifier la sauvegarde** : test sans risque (lecture seule, rien n'est écrit) : déchiffre la sauvegarde, contrôle qu'elle est complète et restaurable, vérifie la cohérence des ventes, la compare à la base actuelle et vérifie que la base est fermée au public. Le résumé n'affiche que des nombres. Champ facultatif : un commit précis de sauvegarde à vérifier.
 - **Restaurer la base** : remet une sauvegarde dans Firebase (taper RESTAURER pour confirmer).
 - **Tests des commandes** : lancés à chaque modification.
 
